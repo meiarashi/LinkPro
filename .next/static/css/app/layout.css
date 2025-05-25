@@ -1,5 +1,5 @@
 /*!*************************************************************************************************************************************************************************************************************************************************************!*\
-  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[11].oneOf[12].use[3]!./app/globals.css ***!
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[3]!./app/globals.css ***!
   \*************************************************************************************************************************************************************************************************************************************************************/
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
@@ -1330,7 +1330,7 @@ video {
   }
 } 
 /*!************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
-  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[11].oneOf[2].use[1]!./node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[11].oneOf[2].use[2]!./node_modules/next/font/google/target.css?{"path":"app\\layout.tsx","import":"Noto_Sans_JP","arguments":[{"subsets":["latin"],"display":"swap","variable":"--font-noto-sans-jp","weight":["400","500","700"]}],"variableName":"notoSansJP"} ***!
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[2].use[1]!./node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[14].oneOf[2].use[2]!./node_modules/next/font/google/target.css?{"path":"app\\layout.tsx","import":"Noto_Sans_JP","arguments":[{"subsets":["latin"],"display":"swap","variable":"--font-noto-sans-jp","weight":["400","500","700"]}],"variableName":"notoSansJP"} ***!
   \************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
 /* [0] */
 @font-face {
@@ -4679,7 +4679,7 @@ video {
   font-display: swap;
   src: url(/_next/static/media/6c1d3e1a02c4bd06-s.p.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}@font-face {font-family: '__Noto_Sans_JP_Fallback_6c11f0';src: local("Arial");ascent-override: 110.35%;descent-override: 27.40%;line-gap-override: 0.00%;size-adjust: 105.12%
+}@font-face {font-family: '__Noto_Sans_JP_Fallback_6c11f0';src: local("Arial");ascent-override: 110.73%;descent-override: 27.49%;line-gap-override: 0.00%;size-adjust: 104.76%
 }.__className_6c11f0 {font-family: '__Noto_Sans_JP_6c11f0', '__Noto_Sans_JP_Fallback_6c11f0';font-style: normal
 }.__variable_6c11f0 {--font-noto-sans-jp: '__Noto_Sans_JP_6c11f0', '__Noto_Sans_JP_Fallback_6c11f0'
 }

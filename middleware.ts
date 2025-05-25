@@ -1,5 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // パブリックルート（認証不要のページ）
@@ -15,25 +14,20 @@ const publicPaths = [
   "/terms",
   "/privacy",
   "/company",
-  "/sso-callback"
+  "/sso-callback",
+  "/api(.*)" // API経路もパブリックとして扱う
 ];
 
-// API経路
-const apiPaths = ["/api(.*)"];
+const isPublicRoute = createRouteMatcher(publicPaths);
 
-// パブリックルートかチェックするマッチャーを作成
-const isPublic = createRouteMatcher([...publicPaths, ...apiPaths]);
-
-export default function middleware(req: NextRequest) {
-  // リクエストがパブリックルートの場合はスキップ
-  if (isPublic(req)) {
-    return NextResponse.next();
+export default clerkMiddleware((auth, req: NextRequest) => {
+  if (!isPublicRoute(req)) {
+    // パブリックルートでない場合は認証を要求
+    auth.protect(); // Changed from auth().protect()
   }
-
-  // それ以外の場合はClerkのミドルウェアを適用
-  return clerkMiddleware()(req);
-}
+  // パブリックルートの場合は何もしない（NextResponse.next() は Clerk が内部で処理）
+});
 
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: ['/((?!.+\.[\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 }; 
