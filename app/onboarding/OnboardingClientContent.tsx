@@ -82,8 +82,21 @@ export default function OnboardingClientContent() {
     if (!user) return;
     setSaving(true);
 
+    // Prepare data for auth.users update (keeping existing logic)
+    const userUpdateData: any = {
+      user_type: userType,
+      full_name: formData.displayName,
+      bio: formData.bio,
+      company_name: userType === "client" ? formData.companyName : undefined,
+      position: userType === "client" ? formData.position : undefined,
+      skills: userType === "pm" ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+      experience_years: userType === "pm" ? (parseInt(formData.experience) || 0) : undefined,
+      hourly_rate: userType === "pm" ? (parseInt(formData.rate) || 0) : undefined,
+    };
+
+    // Prepare data for profiles table upsert
     const profileData: any = {
-      id: user.id,
+      id: user.id, // Assuming 'id' is the foreign key to auth.users
       user_type: userType,
       updated_at: new Date().toISOString(),
       full_name: formData.displayName,
@@ -99,22 +112,28 @@ export default function OnboardingClientContent() {
       profileData.hourly_rate = parseInt(formData.rate) || 0;
     }
 
-    const { data, error } = await supabase.auth.updateUser({
-        data: { 
-            user_type: userType,
-            full_name: formData.displayName,
-            bio: formData.bio,
-            company_name: userType === "client" ? formData.companyName : undefined,
-            position: userType === "client" ? formData.position : undefined,
-            skills: userType === "pm" ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
-            experience_years: userType === "pm" ? (parseInt(formData.experience) || 0) : undefined,
-            hourly_rate: userType === "pm" ? (parseInt(formData.rate) || 0) : undefined,
-         }
+    // First, update the auth.users table (or user metadata)
+    const { data: updatedUser, error: updateUserError } = await supabase.auth.updateUser({
+        data: userUpdateData
     });
 
+    if (updateUserError) {
+      setSaving(false);
+      alert("ユーザー情報の更新に失敗しました: " + updateUserError.message);
+      return;
+    }
+
+    // Next, upsert into the profiles table
+    // profilesテーブルのスキーマに合わせて調整してください。
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert(profileData, { onConflict: 'id' }); // 'id' をコンフリクトターゲットとして指定
+
     setSaving(false);
-    if (error) {
-      alert("プロフィールの保存に失敗しました: " + error.message);
+
+    if (profileError) {
+      alert("プロフィールの保存に失敗しました: " + profileError.message);
+      // updateUserは成功したがprofileの保存に失敗した場合のロールバック処理を検討することもできます
     } else {
       alert("プロフィールを保存しました！");
       localStorage.setItem("userType", userType || "");
