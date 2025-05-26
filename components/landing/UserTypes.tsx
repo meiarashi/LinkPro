@@ -62,7 +62,7 @@ export default function UserTypes() {
                   <span>新規プロジェクトの立ち上げ担当者</span>
                 </li>
               </ul>
-              <Button asChild variant="accent" className="w-full">
+              <Button asChild variant="default" className="w-full">
                 <Link href="/signup?type=client">クライアントとして登録</Link>
               </Button>
             </div>
@@ -105,7 +105,7 @@ export default function UserTypes() {
                   <span>キャリアアップを目指すPM</span>
                 </li>
               </ul>
-              <Button asChild variant="default" className="w-full">
+              <Button asChild variant="accent" className="w-full">
                 <Link href="/signup?type=pm">PMとして登録</Link>
               </Button>
             </div>

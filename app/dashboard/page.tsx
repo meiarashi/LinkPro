@@ -2,104 +2,150 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
 import { Button } from "../../components/ui/button";
-import { UserButton } from "@clerk/nextjs";
+import { createClient } from "../../utils/supabase/client"; // Use client-side client for now
+import { User } from "@supabase/supabase-js";
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isLoaded, isSignedIn } = useUser();
+  const supabase = createClient();
+  const [user, setUser] = useState<User | null>(null);
   const [userType, setUserType] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // ユーザーがログインしていない場合はログインページにリダイレクト
-    if (isLoaded && !isSignedIn) {
-      router.push("/login");
-      return;
-    }
-    
-    // ローカルストレージからユーザータイプを取得
-    const storedType = localStorage.getItem("userType");
-    if (storedType && (storedType === "client" || storedType === "pm")) {
-      setUserType(storedType);
-    }
-    
-    // TODO: または、Supabaseなどからユーザー情報を取得する
-    // const fetchUserProfile = async () => {
-    //   const profile = await getUserProfile(user.id);
-    //   setUserType(profile.userType);
-    // };
-    // 
-    // if (isLoaded && isSignedIn) {
-    //   fetchUserProfile();
-    // }
-  }, [isLoaded, isSignedIn, router, user]);
+    const getUserData = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+      
+      if (!currentUser) {
+        router.push("/login");
+        return;
+      }
 
-  if (!isLoaded || !isSignedIn) {
+      // ローカルストレージからユーザータイプを取得 (フォールバック)
+      const storedType = localStorage.getItem("userType");
+      if (storedType && (storedType === "client" || storedType === "pm")) {
+        setUserType(storedType);
+      }
+
+      // TODO: Supabaseのユーザーメタデータや別テーブルからuserTypeを取得する
+      // 例: if (currentUser && currentUser.user_metadata && currentUser.user_metadata.user_type) {
+      //   setUserType(currentUser.user_metadata.user_type);
+      // } else if (currentUser) { 
+      //   // console.log("Fetching profile for user:", currentUser.id)
+      //   // const { data: profile, error } = await supabase
+      //   //   .from('profiles') 
+      //   //   .select('user_type')
+      //   //   .eq('id', currentUser.id)
+      //   //   .single();
+      //   // if (error) console.error("Error fetching profile:", error);
+      //   // if (profile) setUserType(profile.user_type);
+      // }
+      setLoading(false);
+    };
+
+    getUserData();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/login');
+      }
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, [router, supabase]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    // The onAuthStateChange listener will handle redirecting to /login
+    router.push('/'); // Or directly to login if preferred
+    router.refresh();
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
+  
+  if (!user) {
+    // This case should ideally be handled by the redirect in useEffect, 
+    // but as a fallback or if the redirect hasn't happened yet:
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center">
+            <p>認証されていません。ログインページにリダイレクトします...</p>
+        </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ヘッダー */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">LinkPro</h1>
+    <div className="min-h-screen bg-gray-100">
+      {/* Header with User Button/Menu */}
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <Link href="/" className="text-xl font-bold text-primary">LinkPro Dashboard</Link>
           <div className="flex items-center space-x-4">
-            <UserButton afterSignOutUrl="/" />
+            <span className="text-sm text-gray-600">{user.email}</span>
+            <Button onClick={handleSignOut} variant="outline">
+              ログアウト
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* メインコンテンツ */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-6">ようこそ、{user.firstName || "ゲスト"}さん</h2>
+      {/* Main Content */}
+      <main className="container mx-auto p-4 md:p-8">
+        <div className="bg-white p-8 rounded-lg shadow-lg">
+          <h1 className="text-3xl font-bold mb-6 text-gray-800">
+            ようこそ、{userType === "client" ? "クライアント" : userType === "pm" ? "PM" : "ユーザー"}さん！
+          </h1>
           
-          {userType === "client" ? (
+          <p className="text-gray-600 mb-4">
+            こちらはあなたのダッシュボードです。現在ログインしているユーザーは <span className="font-semibold">{user.email}</span> です。
+          </p>
+          
+          {userType && (
+            <p className="text-gray-600 mb-6">
+              あなたのユーザータイプは <span className="font-semibold">{userType === "client" ? "クライアント" : "プロジェクトマネージャー"}</span> です。
+            </p>
+          )}
+
+          {/* TODO: ユーザータイプに応じたコンテンツを表示 */}
+          {userType === "client" && (
             <div>
-              <h3 className="text-lg font-medium mb-4">クライアントダッシュボード</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">プロジェクト作成</h4>
-                  <p className="text-sm text-gray-600 mb-4">新しいプロジェクトを作成して、PMを募集しましょう。</p>
-                  <Button>新規プロジェクト作成</Button>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">PM検索</h4>
-                  <p className="text-sm text-gray-600 mb-4">条件に合うPMを検索して、直接スカウトすることができます。</p>
-                  <Button variant="outline">PM検索</Button>
-                </div>
-              </div>
-            </div>
-          ) : userType === "pm" ? (
-            <div>
-              <h3 className="text-lg font-medium mb-4">PMダッシュボード</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">プロジェクト検索</h4>
-                  <p className="text-sm text-gray-600 mb-4">あなたのスキルに合ったプロジェクトを探しましょう。</p>
-                  <Button>プロジェクト検索</Button>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">プロフィール管理</h4>
-                  <p className="text-sm text-gray-600 mb-4">プロフィールを充実させて、クライアントからのスカウトを増やしましょう。</p>
-                  <Button variant="outline">プロフィール編集</Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center">
-              <p className="text-gray-600 mb-4">ユーザータイプが設定されていません。プロフィール設定を完了してください。</p>
-              <Button onClick={() => router.push("/onboarding")}>
-                プロフィール設定
-              </Button>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-700">クライアント向け情報</h2>
+              {/* クライアント向けのコンポーネントや情報をここに表示 */}
+              <p>プロジェクト管理、PM検索などが利用可能です。</p>
             </div>
           )}
+
+          {userType === "pm" && (
+            <div>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-700">PM向け情報</h2>
+              {/* PM向けのコンポーネントや情報をここに表示 */}
+              <p>案件検索、プロフィール設定などが利用可能です。</p>
+            </div>
+          )}
+
+          {!userType && (
+            <p className="text-yellow-600 bg-yellow-50 p-3 rounded-md">
+              ユーザータイプが設定されていません。オンボーディングを完了するか、プロフィールを更新してください。
+              <Link href="/onboarding" className="text-primary hover:underline ml-2">オンボーディングへ</Link>
+            </p>
+          )}
+        
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">アカウント情報</h3>
+            <p className="text-sm text-gray-500">ユーザーID: {user.id}</p>
+            {/* 他のユーザー情報を表示 */}
+          </div>
         </div>
       </main>
     </div>

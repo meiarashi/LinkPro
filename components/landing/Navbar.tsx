@@ -1,18 +1,45 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { UserButton } from "@clerk/nextjs"
-import { useUser } from "@clerk/nextjs"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "../ui/button"
+import { createClient } from "../../utils/supabase/client"
+import { useEffect, useState } from "react"
+import { User } from "@supabase/supabase-js"
 
 export default function Navbar() {
   const pathname = usePathname()
-  const { isSignedIn } = useUser()
+  const router = useRouter()
+  const supabase = createClient()
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
+    getUser()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      authListener?.subscription.unsubscribe()
+    }
+  }, [supabase])
   
   // ダッシュボードページではナビゲーションを表示しない
   if (pathname?.startsWith("/dashboard")) {
     return null
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/') // ホームにリダイレクト
+    router.refresh() // サーバーコンポーネントを再フェッチしてUIを更新
   }
 
   return (
@@ -35,14 +62,16 @@ export default function Navbar() {
         </nav>
         
         <div className="flex items-center space-x-4">
-          {isSignedIn ? (
+          {!loading && user ? (
             <>
               <Button asChild variant="outline">
                 <Link href="/dashboard">ダッシュボード</Link>
               </Button>
-              <UserButton afterSignOutUrl="/" />
+              {/* ここにSupabase用のユーザーメニュー/ボタンを配置できます */}
+              {/* 例: <UserMenu user={user} onSignOut={handleSignOut} /> */}
+              <Button onClick={handleSignOut} variant="outline">ログアウト</Button>
             </>
-          ) : (
+          ) : !loading && !user ? (
             <>
               <Button asChild variant="outline">
                 <Link href="/login">ログイン</Link>
@@ -51,6 +80,9 @@ export default function Navbar() {
                 <Link href="/signup">無料登録</Link>
               </Button>
             </>
+          ) : (
+            // ローディング中のプレースホルダーなど
+            <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
           )}
         </div>
       </div>

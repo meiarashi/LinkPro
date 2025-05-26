@@ -2,28 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
-import { Button } from "../../components/ui/button"; // パス確認
+import { Button } from "../../components/ui/button";
 import Link from "next/link";
+import { createClient } from "../../utils/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 export default function OnboardingClientContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isLoaded, isSignedIn } = useUser();
+  const supabase = createClient();
+  const [user, setUser] = useState<User | null>(null);
   const [userType, setUserType] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // フォームの状態
   const [formData, setFormData] = useState({
-    // 共通フィールド
     displayName: "",
     bio: "",
-    
-    // クライアント向けフィールド
     companyName: "",
     position: "",
-    
-    // PM向けフィールド
     skills: "",
     experience: "",
     rate: "",
@@ -31,7 +28,6 @@ export default function OnboardingClientContent() {
 
   useEffect(() => {
     const typeFromUrl = searchParams.get("type");
-    
     if (typeFromUrl && (typeFromUrl === "client" || typeFromUrl === "pm")) {
       setUserType(typeFromUrl);
     } else {
@@ -40,18 +36,38 @@ export default function OnboardingClientContent() {
         setUserType(storedType);
       }
     }
-    
-    if (isLoaded && !isSignedIn) {
-      router.push("/login");
-    }
 
-    if (isLoaded && isSignedIn && user) {
-      setFormData(prev => ({
-        ...prev,
-        displayName: user.firstName ? `${user.firstName} ${user.lastName || ""}` : ""
-      }));
-    }
-  }, [isLoaded, isSignedIn, user, router, searchParams]);
+    const getUserData = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+      setLoading(false);
+
+      if (!currentUser) {
+        router.push("/login");
+        return;
+      }
+
+      if (currentUser) {
+        setFormData(prev => ({
+          ...prev,
+          displayName: currentUser.email || ""
+        }));
+      }
+    };
+
+    getUserData();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      if (event === 'SIGNED_OUT') {
+        router.push('/login');
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, [router, searchParams, supabase]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -61,20 +77,52 @@ export default function OnboardingClientContent() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+    if (!user) return;
+    setSaving(true);
 
-    try {
-      // TODO: Supabase save logic
+    const profileData: any = {
+      id: user.id,
+      user_type: userType,
+      updated_at: new Date().toISOString(),
+      full_name: formData.displayName,
+      bio: formData.bio,
+    };
+
+    if (userType === "client") {
+      profileData.company_name = formData.companyName;
+      profileData.position = formData.position;
+    } else if (userType === "pm") {
+      profileData.skills = formData.skills.split(',').map(s => s.trim()).filter(s => s);
+      profileData.experience_years = parseInt(formData.experience) || 0;
+      profileData.hourly_rate = parseInt(formData.rate) || 0;
+    }
+
+    const { data, error } = await supabase.auth.updateUser({
+        data: { 
+            user_type: userType,
+            full_name: formData.displayName,
+            bio: formData.bio,
+            company_name: userType === "client" ? formData.companyName : undefined,
+            position: userType === "client" ? formData.position : undefined,
+            skills: userType === "pm" ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+            experience_years: userType === "pm" ? (parseInt(formData.experience) || 0) : undefined,
+            hourly_rate: userType === "pm" ? (parseInt(formData.rate) || 0) : undefined,
+         }
+    });
+
+    setSaving(false);
+    if (error) {
+      alert("プロフィールの保存に失敗しました: " + error.message);
+    } else {
+      alert("プロフィールを保存しました！");
+      localStorage.setItem("userType", userType || "");
       router.push("/dashboard");
-    } catch (error) {
-      console.error("プロフィールの保存に失敗しました", error);
-      setLoading(false);
     }
   };
 
-  if (!isLoaded || !userType) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -82,35 +130,52 @@ export default function OnboardingClientContent() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900">
-            プロフィール設定
-          </h1>
-          <p className="mt-2 text-gray-600">
-            {userType === "client" 
-              ? "クライアントとして必要な情報を入力してください" 
-              : "PMとして必要な情報を入力してください"}
-          </p>
+  if (!user) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center">
+            <p>ユーザー情報を読み込んでいます...</p>
         </div>
+    );
+  }
+  
+  if (!userType) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center">
+            <p className="text-red-500 mb-4">ユーザータイプが不明です。サインアップページからやり直してください。</p>
+            <Link href="/signup">
+                <Button variant="outline">サインアップページへ</Button>
+            </Link>
+        </div>
+    );
+  }
 
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* 共通フィールド */}
+  return (
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-white shadow-xl rounded-lg overflow-hidden">
+          <div className="bg-primary px-6 py-8 text-white">
+            <h1 className="text-3xl font-bold">
+              {userType === "client" ? "クライアント情報入力" : "PM情報入力"}
+            </h1>
+            <p className="mt-2 opacity-90">
+              ようこそ、{formData.displayName || user.email}さん！<br />
+              プロジェクトを開始するために、以下の情報を入力してください。
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
                 表示名
               </label>
               <input
                 type="text"
-                id="displayName"
                 name="displayName"
+                id="displayName"
                 value={formData.displayName}
                 onChange={handleChange}
                 required
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
               />
             </div>
 
@@ -119,16 +184,16 @@ export default function OnboardingClientContent() {
                 自己紹介
               </label>
               <textarea
-                id="bio"
                 name="bio"
+                id="bio"
+                rows={3}
                 value={formData.bio}
                 onChange={handleChange}
-                rows={4}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                placeholder={userType === "client" ? "どのようなプロジェクトを依頼したいか、会社の簡単な紹介など" : "あなたのスキル、経験、得意なプロジェクト分野など"}
               />
             </div>
 
-            {/* クライアント向けフィールド */}
             {userType === "client" && (
               <>
                 <div>
@@ -137,95 +202,84 @@ export default function OnboardingClientContent() {
                   </label>
                   <input
                     type="text"
-                    id="companyName"
                     name="companyName"
+                    id="companyName"
                     value={formData.companyName}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                   />
                 </div>
-
                 <div>
                   <label htmlFor="position" className="block text-sm font-medium text-gray-700">
-                    役職
+                    役職・担当
                   </label>
                   <input
                     type="text"
-                    id="position"
                     name="position"
+                    id="position"
                     value={formData.position}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                   />
                 </div>
               </>
             )}
 
-            {/* PM向けフィールド */}
             {userType === "pm" && (
               <>
                 <div>
                   <label htmlFor="skills" className="block text-sm font-medium text-gray-700">
-                    スキル（カンマ区切りで入力）
+                    スキル (カンマ区切り 例: React, Node.js, AWS)
                   </label>
                   <input
                     type="text"
-                    id="skills"
                     name="skills"
+                    id="skills"
                     value={formData.skills}
                     onChange={handleChange}
-                    placeholder="例: プロジェクト管理, アジャイル, Jira"
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                   />
                 </div>
-
                 <div>
                   <label htmlFor="experience" className="block text-sm font-medium text-gray-700">
-                    経験年数
+                    PM経験年数 (数字のみ)
                   </label>
                   <input
-                    type="text"
-                    id="experience"
+                    type="number"
                     name="experience"
+                    id="experience"
                     value={formData.experience}
                     onChange={handleChange}
-                    placeholder="例: 5年"
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                   />
                 </div>
-
                 <div>
                   <label htmlFor="rate" className="block text-sm font-medium text-gray-700">
-                    希望単価（月額）
+                    希望時間単価 (円、数字のみ)
                   </label>
                   <input
-                    type="text"
-                    id="rate"
+                    type="number"
                     name="rate"
+                    id="rate"
                     value={formData.rate}
                     onChange={handleChange}
-                    placeholder="例: 100万円〜"
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                   />
                 </div>
               </>
             )}
 
-            <div className="flex justify-between pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push("/")}
-                disabled={loading}
-              >
-                キャンセル
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-              >
-                {loading ? "保存中..." : "保存して続ける"}
-              </Button>
+            <div className="pt-5">
+              <div className="flex justify-end space-x-3">
+                <Link href="/dashboard">
+                    <Button type="button" variant="outline">
+                        後で設定する
+                    </Button>
+                </Link>
+                <Button type="submit" disabled={saving || loading}>
+                  {saving ? "保存中..." : "プロフィールを保存して開始"}
+                </Button>
+              </div>
             </div>
           </form>
         </div>

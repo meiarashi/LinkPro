@@ -22,7 +22,7 @@ export default function CtaSection() {
             登録は無料です。数分で完了します。あなたに最適なパートナーとの出会いをお手伝いします。
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" variant="accent" className="rounded-full text-base font-bold px-8">
+            <Button asChild size="lg" variant="default" className="rounded-full text-base font-bold px-8">
               <Link href="/signup">無料でサインアップ</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full text-base">
