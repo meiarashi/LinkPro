@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '../../../utils/supabase/client'; // Adjusted import path
+import Image from 'next/image'; // Imageコンポーネントをインポート
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -166,9 +167,7 @@ export default function SignUpPage() {
                   disabled={loading}
                   className="w-full flex items-center justify-center px-8 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                     <path fillRule="evenodd" d="M20 10c0-5.523-4.477-10-10-10S0 4.477 0 10c0 4.991 3.657 9.128 8.438 9.878V14.89H5.898v-4.99h2.54V7.599c0-2.504 1.495-3.89 3.776-3.89 1.091 0 2.024.082 2.298.118v4.277h-2.54c-1.225 0-1.464.582-1.464 1.436v1.874h4.783l-.623 4.99H10.46V19.878A10.001 10.001 0 0020 10z" clipRule="evenodd" />
-                  </svg>
+                  <Image src="/image/google-logo.png" alt="Google logo" width={20} height={20} className="mr-2" />
                   <span>Googleで登録</span>
                 </button>
               </div>
