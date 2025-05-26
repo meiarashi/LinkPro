@@ -49,10 +49,10 @@ export default function SignUpPage() {
     if (error) {
       setError(error.message);
     } else {
-      //サインアップ成功後、オンボーディングページにリダイレクト
+      //サインアップ成功後、ダッシュボードページにリダイレクト
       // Supabaseのメール認証を有効にしている場合は、ユーザーはメールを確認する必要がある
       // その場合、ここでは /auth/confirm-email のようなページにリダイレクトするか、メッセージを表示する
-      router.push(userType ? `/onboarding?type=${userType}` : '/onboarding');
+      router.push('/dashboard');
     }
     setLoading(false);
   };
@@ -63,9 +63,9 @@ export default function SignUpPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?type=${userType || ''}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard&type=${userType || ''}`,
         // userTypeがURLクエリパラメータやlocalStorageから取得できている前提
-        // これにより、コールバック後に /onboarding?type=... へ誘導しやすくなる
+        // これにより、コールバック後に /dashboard?type=... へ誘導しやすくなる
       },
     });
     if (error) {
