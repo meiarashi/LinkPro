@@ -45,7 +45,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`, // 必要に応じて設定
+        redirectTo: `${window.location.origin}/sso-callback?redirect_url=/dashboard`, // redirect_url を使用
       },
     });
     if (error) {

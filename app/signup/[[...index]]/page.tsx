@@ -63,7 +63,7 @@ export default function SignUpPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard&type=${userType || ''}`,
+        redirectTo: `${window.location.origin}/sso-callback?redirect_url=/dashboard&type=${userType || ''}`,
         // userTypeがURLクエリパラメータやlocalStorageから取得できている前提
         // これにより、コールバック後に /dashboard?type=... へ誘導しやすくなる
       },
