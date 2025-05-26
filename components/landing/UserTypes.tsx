@@ -20,7 +20,7 @@ export default function UserTypes() {
             あなたに最適な<span className="text-primary">ユーザー体験</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            クライアントとプロジェクトマネージャー、それぞれのニーズに合わせた機能を提供します
+            クライアントとPM、それぞれのニーズに合わせた機能を提供します
           </p>
         </motion.div>
 
@@ -46,19 +46,19 @@ export default function UserTypes() {
               <h4 className="font-semibold mb-4 text-gray-900">こんな方におすすめ</h4>
               <ul className="space-y-2 mb-6">
                 <li className="flex items-start">
-                  <span className="text-accent mr-2">•</span>
+                  <span className="text-primary mr-2">•</span>
                   <span>スタートアップ企業の経営者・役員</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-accent mr-2">•</span>
+                  <span className="text-primary mr-2">•</span>
                   <span>中小企業のIT担当責任者</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-accent mr-2">•</span>
+                  <span className="text-primary mr-2">•</span>
                   <span>大企業の事業部門責任者</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-accent mr-2">•</span>
+                  <span className="text-primary mr-2">•</span>
                   <span>新規プロジェクトの立ち上げ担当者</span>
                 </li>
               </ul>
@@ -89,19 +89,19 @@ export default function UserTypes() {
               <h4 className="font-semibold mb-4 text-gray-900">こんな方におすすめ</h4>
               <ul className="space-y-2 mb-6">
                 <li className="flex items-start">
-                  <span className="text-primary mr-2">•</span>
+                  <span className="text-accent mr-2">•</span>
                   <span>ITプロジェクトマネージャー経験者</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-primary mr-2">•</span>
+                  <span className="text-accent mr-2">•</span>
                   <span>フリーランスのPM</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-primary mr-2">•</span>
+                  <span className="text-accent mr-2">•</span>
                   <span>副業・複業としてPM業務を行いたい方</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-primary mr-2">•</span>
+                  <span className="text-accent mr-2">•</span>
                   <span>キャリアアップを目指すPM</span>
                 </li>
               </ul>

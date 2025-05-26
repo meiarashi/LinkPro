@@ -15,16 +15,16 @@ export default function Hero() {
         >
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
             最高のPMと出会い、<br />
-            プロジェクトを<span className="text-primary">成功</span>に導く
+            プロジェクトを<span className="text-accent">成功</span>に導く
           </h1>
           <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto mb-10">
             LinkProは、厳選されたプロフェッショナルなPMと、プロジェクトを成功させたい企業をつなぐマッチングプラットフォームです。
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="rounded-full text-base font-bold px-8">
+            <Button asChild size="lg" className="rounded-full text-lg font-bold px-12 py-3">
               <Link href="/signup?type=client">クライアントとして登録</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-full text-base">
+            <Button asChild size="lg" variant="outline" className="rounded-full text-lg px-12 py-3">
               <Link href="/signup?type=pm">PMとして登録</Link>
             </Button>
           </div>
