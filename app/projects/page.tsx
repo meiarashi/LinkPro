@@ -51,28 +51,14 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      // まずシンプルに全プロジェクトを取得してみる
-      const { data: allProjectsTest, error: allProjectsError } = await supabase
-        .from('projects')
-        .select('*');
-
-      console.log('All projects test:', allProjectsTest);
-      console.log('All projects error:', allProjectsError);
-
-      // 公開中のプロジェクトを取得（シンプルなクエリ）
+      // 公開中のプロジェクトを取得
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
         .eq('status', 'public')
         .order('created_at', { ascending: false });
 
-      if (projectsError) {
-        console.error('Error fetching projects:', projectsError);
-        console.error('Error details:', projectsError);
-        throw projectsError;
-      }
-
-      console.log('Fetched public projects:', projectsData);
+      if (projectsError) throw projectsError;
 
       // 各プロジェクトの応募数とクライアント情報を取得
       if (projectsData) {
