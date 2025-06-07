@@ -51,33 +51,49 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      // 公開中のプロジェクトを取得
+      // まずシンプルに全プロジェクトを取得してみる
+      const { data: allProjectsTest, error: allProjectsError } = await supabase
+        .from('projects')
+        .select('*');
+
+      console.log('All projects test:', allProjectsTest);
+      console.log('All projects error:', allProjectsError);
+
+      // 公開中のプロジェクトを取得（シンプルなクエリ）
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select(`
-          *,
-          client:profiles!projects_client_id_fkey(
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('status', 'public')
         .order('created_at', { ascending: false });
 
-      if (projectsError) throw projectsError;
+      if (projectsError) {
+        console.error('Error fetching projects:', projectsError);
+        console.error('Error details:', projectsError);
+        throw projectsError;
+      }
 
-      // 各プロジェクトの応募数を取得
+      console.log('Fetched public projects:', projectsData);
+
+      // 各プロジェクトの応募数とクライアント情報を取得
       if (projectsData) {
         const projectsWithCounts = await Promise.all(
           projectsData.map(async (project: any) => {
+            // 応募数を取得
             const { count } = await supabase
               .from('applications')
               .select('*', { count: 'exact', head: true })
               .eq('project_id', project.id);
             
+            // クライアント情報を取得
+            const { data: clientData } = await supabase
+              .from('profiles')
+              .select('id, full_name, avatar_url')
+              .eq('id', project.client_id)
+              .single();
+            
             return {
               ...project,
+              client: clientData,
               _count: {
                 applications: count || 0
               }
@@ -98,7 +114,10 @@ export default function ProjectsPage() {
         setAllSkills(Array.from(skills).sort());
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error('Error in fetchProjects:', error);
+      // エラーが発生しても空の配列をセットして表示を続ける
+      setProjects([]);
+      setFilteredProjects([]);
     } finally {
       setLoading(false);
     }
