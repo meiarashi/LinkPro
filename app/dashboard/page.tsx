@@ -3,16 +3,51 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
-import { createClient } from "../../utils/supabase/client"; // Use client-side client for now
+import { createClient } from "../../utils/supabase/client";
 import { User } from "@supabase/supabase-js";
 import Link from 'next/link';
+import { Plus, FolderOpen, Users, MessageSquare, AlertCircle } from 'lucide-react';
+
+interface Profile {
+  id: string;
+  user_type: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
+interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  budget: string | null;
+  duration: string | null;
+  status: 'draft' | 'public' | 'private' | 'completed' | 'cancelled';
+  created_at: string;
+  applications_count?: number;
+}
+
+interface Application {
+  id: string;
+  project_id: string;
+  pm_id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  message: string | null;
+  created_at: string;
+  pm_profile?: {
+    full_name: string | null;
+    profile_details: any;
+  };
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
-  const [userType, setUserType] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [recentApplications, setRecentApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   
   useEffect(() => {
     const getUserData = async () => {
@@ -24,26 +59,75 @@ export default function DashboardPage() {
         return;
       }
 
-      // ローカルストレージからユーザータイプを取得 (フォールバック)
-      const storedType = localStorage.getItem("userType");
-      if (storedType && (storedType === "client" || storedType === "pm")) {
-        setUserType(storedType);
-      }
+      // プロフィール情報を取得
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
 
-      // TODO: Supabaseのユーザーメタデータや別テーブルからuserTypeを取得する
-      // 例: if (currentUser && currentUser.user_metadata && currentUser.user_metadata.user_type) {
-      //   setUserType(currentUser.user_metadata.user_type);
-      // } else if (currentUser) { 
-      //   // console.log("Fetching profile for user:", currentUser.id)
-      //   // const { data: profile, error } = await supabase
-      //   //   .from('profiles') 
-      //   //   .select('user_type')
-      //   //   .eq('id', currentUser.id)
-      //   //   .single();
-      //   // if (error) console.error("Error fetching profile:", error);
-      //   // if (profile) setUserType(profile.user_type);
-      // }
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      } else if (profileData) {
+        setProfile(profileData);
+        
+        // クライアントの場合、プロジェクトと応募情報を取得
+        if (profileData.user_type === 'client') {
+          await fetchClientData(currentUser.id);
+        }
+      }
+      
       setLoading(false);
+    };
+
+    const fetchClientData = async (userId: string) => {
+      setProjectsLoading(true);
+      
+      // プロジェクト一覧を取得
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('client_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (projectsError) {
+        console.error("Error fetching projects:", projectsError);
+      } else if (projectsData) {
+        // 各プロジェクトの応募数を取得
+        const projectsWithCounts = await Promise.all(
+          projectsData.map(async (project) => {
+            const { count } = await supabase
+              .from('applications')
+              .select('*', { count: 'exact', head: true })
+              .eq('project_id', project.id);
+            
+            return { ...project, applications_count: count || 0 };
+          })
+        );
+        
+        setProjects(projectsWithCounts);
+        
+        // 最新の応募を取得
+        const projectIds = projectsData.map(p => p.id);
+        if (projectIds.length > 0) {
+          const { data: applicationsData } = await supabase
+            .from('applications')
+            .select(`
+              *,
+              pm_profile:profiles!applications_pm_id_fkey(full_name, profile_details)
+            `)
+            .in('project_id', projectIds)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(5);
+          
+          if (applicationsData) {
+            setRecentApplications(applicationsData);
+          }
+        }
+      }
+      
+      setProjectsLoading(false);
     };
 
     getUserData();
@@ -62,9 +146,25 @@ export default function DashboardPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    // The onAuthStateChange listener will handle redirecting to /login
-    router.push('/'); // Or directly to login if preferred
+    router.push('/');
     router.refresh();
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusMap = {
+      draft: { label: '下書き', className: 'bg-gray-100 text-gray-700' },
+      public: { label: '公開中', className: 'bg-green-100 text-green-700' },
+      private: { label: '非公開', className: 'bg-yellow-100 text-yellow-700' },
+      completed: { label: '完了', className: 'bg-blue-100 text-blue-700' },
+      cancelled: { label: '中止', className: 'bg-red-100 text-red-700' }
+    };
+    
+    const config = statusMap[status as keyof typeof statusMap] || statusMap.draft;
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${config.className}`}>
+        {config.label}
+      </span>
+    );
   };
 
   if (loading) {
@@ -75,25 +175,23 @@ export default function DashboardPage() {
     );
   }
   
-  if (!user) {
-    // This case should ideally be handled by the redirect in useEffect, 
-    // but as a fallback or if the redirect hasn't happened yet:
+  if (!user || !profile) {
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center">
-            <p>認証されていません。ログインページにリダイレクトします...</p>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <p>認証されていません。ログインページにリダイレクトします...</p>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header with User Button/Menu */}
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="text-xl font-bold text-primary">LinkPro Dashboard</Link>
+          <Link href="/" className="text-xl font-bold text-primary">LinkPro</Link>
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">{user.email}</span>
-            <Button onClick={handleSignOut} variant="outline">
+            <span className="text-sm text-gray-600">{profile.full_name || user.email}</span>
+            <Button onClick={handleSignOut} variant="outline" size="sm">
               ログアウト
             </Button>
           </div>
@@ -102,52 +200,174 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="container mx-auto p-4 md:p-8">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <h1 className="text-3xl font-bold mb-6 text-gray-800">
-            ようこそ、{userType === "client" ? "クライアント" : userType === "pm" ? "PM" : "ユーザー"}さん！
-          </h1>
-          
-          <p className="text-gray-600 mb-4">
-            こちらはあなたのダッシュボードです。現在ログインしているユーザーは <span className="font-semibold">{user.email}</span> です。
-          </p>
-          
-          {userType && (
-            <p className="text-gray-600 mb-6">
-              あなたのユーザータイプは <span className="font-semibold">{userType === "client" ? "クライアント" : "プロジェクトマネージャー"}</span> です。
-            </p>
-          )}
+        {/* クライアントダッシュボード */}
+        {profile.user_type === 'client' && (
+          <div className="space-y-6">
+            {/* ヘッダーセクション */}
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">ダッシュボード</h1>
+                  <p className="text-gray-600 mt-1">プロジェクトと応募状況を管理</p>
+                </div>
+                <Link href="/projects/new">
+                  <Button className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    新規プロジェクト作成
+                  </Button>
+                </Link>
+              </div>
 
-          {/* TODO: ユーザータイプに応じたコンテンツを表示 */}
-          {userType === "client" && (
-            <div>
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700">クライアント向け情報</h2>
-              {/* クライアント向けのコンポーネントや情報をここに表示 */}
-              <p>プロジェクト管理、PM検索などが利用可能です。</p>
+              {/* サマリーカード */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">総プロジェクト数</p>
+                      <p className="text-2xl font-bold text-gray-800">{projects.length}</p>
+                    </div>
+                    <FolderOpen className="w-8 h-8 text-gray-400" />
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">公開中</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        {projects.filter(p => p.status === 'public').length}
+                      </p>
+                    </div>
+                    <Users className="w-8 h-8 text-gray-400" />
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">新着応募</p>
+                      <p className="text-2xl font-bold text-blue-600">{recentApplications.length}</p>
+                    </div>
+                    <MessageSquare className="w-8 h-8 text-gray-400" />
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
 
-          {userType === "pm" && (
-            <div>
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700">PM向け情報</h2>
-              {/* PM向けのコンポーネントや情報をここに表示 */}
-              <p>案件検索、プロフィール設定などが利用可能です。</p>
+            {/* 最新の応募 */}
+            {recentApplications.length > 0 && (
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-blue-500" />
+                  新着応募
+                </h2>
+                <div className="space-y-3">
+                  {recentApplications.map((application) => (
+                    <div key={application.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                      <p className="font-medium text-gray-800">
+                        {application.pm_profile?.full_name || 'PM'} さんからの応募
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">{application.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(application.created_at).toLocaleDateString('ja-JP')}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* プロジェクト一覧 */}
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">プロジェクト一覧</h2>
+              {projectsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
+                </div>
+              ) : projects.length === 0 ? (
+                <div className="text-center py-8">
+                  <FolderOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">まだプロジェクトがありません</p>
+                  <Link href="/projects/new">
+                    <Button variant="link" className="mt-2">
+                      最初のプロジェクトを作成
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4 font-medium text-gray-700">タイトル</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700">ステータス</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700">予算</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700">期間</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700">応募数</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700">作成日</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {projects.map((project) => (
+                        <tr key={project.id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <Link href={`/projects/${project.id}`} className="text-blue-600 hover:underline">
+                              {project.title}
+                            </Link>
+                          </td>
+                          <td className="py-3 px-4">{getStatusBadge(project.status)}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600">{project.budget || '-'}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600">{project.duration || '-'}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600">{project.applications_count}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {new Date(project.created_at).toLocaleDateString('ja-JP')}
+                          </td>
+                          <td className="py-3 px-4">
+                            <Link href={`/projects/${project.id}/edit`}>
+                              <Button variant="ghost" size="sm">編集</Button>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
-
-          {!userType && (
-            <p className="text-yellow-600 bg-yellow-50 p-3 rounded-md">
-              ユーザータイプが設定されていません。オンボーディングを完了するか、プロフィールを更新してください。
-              <Link href="/onboarding" className="text-primary hover:underline ml-2">オンボーディングへ</Link>
-            </p>
-          )}
-        
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">アカウント情報</h3>
-            <p className="text-sm text-gray-500">ユーザーID: {user.id}</p>
-            {/* 他のユーザー情報を表示 */}
           </div>
-        </div>
+        )}
+
+        {/* PM向けダッシュボード */}
+        {profile.user_type === 'pm' && (
+          <div className="bg-white p-8 rounded-lg shadow-sm">
+            <h1 className="text-2xl font-bold mb-6 text-gray-800">PMダッシュボード</h1>
+            <p className="text-gray-600 mb-4">
+              案件検索、プロフィール設定などが利用可能です。
+            </p>
+            <div className="space-y-4">
+              <Link href="/projects">
+                <Button className="w-full md:w-auto">案件を探す</Button>
+              </Link>
+              <Link href="/profile/edit">
+                <Button variant="outline" className="w-full md:w-auto ml-0 md:ml-4">
+                  プロフィール編集
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ユーザータイプ未設定 */}
+        {!profile.user_type && (
+          <div className="bg-white p-8 rounded-lg shadow-sm">
+            <p className="text-yellow-600 bg-yellow-50 p-4 rounded-md">
+              ユーザータイプが設定されていません。オンボーディングを完了してください。
+              <Link href="/onboarding" className="text-primary hover:underline ml-2">
+                オンボーディングへ
+              </Link>
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );
-} 
+}
