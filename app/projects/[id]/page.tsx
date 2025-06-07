@@ -54,6 +54,11 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [applicationStatusUpdating, setApplicationStatusUpdating] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [applicationMessage, setApplicationMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchProjectData();
@@ -83,6 +88,27 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       setProject(projectData);
       setIsOwner(projectData.client_id === user.id);
 
+      // ユーザープロフィールを取得
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      
+      setUserProfile(profileData);
+
+      // PMの場合、既に応募しているかチェック
+      if (profileData?.user_type === 'pm') {
+        const { data: existingApplication } = await supabase
+          .from("applications")
+          .select("id")
+          .eq("project_id", params.id)
+          .eq("pm_id", user.id)
+          .single();
+        
+        setHasApplied(!!existingApplication);
+      }
+
       // プロジェクトオーナーの場合は応募情報も取得
       if (projectData.client_id === user.id) {
         const { data: applicationsData, error: applicationsError } = await supabase
@@ -110,6 +136,37 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       console.error("Error:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApplicationSubmit = async () => {
+    if (!userProfile || userProfile.user_type !== 'pm') return;
+    
+    setSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from("applications")
+        .insert({
+          project_id: params.id,
+          pm_id: user.id,
+          status: 'pending',
+          message: applicationMessage
+        });
+
+      if (error) throw error;
+
+      setHasApplied(true);
+      setShowApplicationModal(false);
+      setApplicationMessage('');
+      alert('応募が完了しました！');
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      alert('応募に失敗しました。もう一度お試しください。');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -230,7 +287,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <div className="mt-6">
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">求めるスキル</h3>
                   <div className="flex flex-wrap gap-2">
-                    {project.required_skills.map((skill) => (
+                    {project.required_skills.map((skill: string) => (
                       <span
                         key={skill}
                         className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
@@ -287,6 +344,24 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                   更新日: {new Date(project.updated_at).toLocaleDateString('ja-JP')}
                 </p>
               </div>
+
+              {/* PMの応募ボタン */}
+              {userProfile?.user_type === 'pm' && !isOwner && (
+                <div className="mt-4 pt-4 border-t">
+                  {hasApplied ? (
+                    <Button disabled className="w-full">
+                      応募済み
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => setShowApplicationModal(true)}
+                      className="w-full"
+                    >
+                      この案件に応募する
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -348,6 +423,47 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           </div>
         )}
       </main>
+
+      {/* 応募モーダル */}
+      {showApplicationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-lg w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">案件に応募する</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                応募メッセージ
+              </label>
+              <textarea
+                value={applicationMessage}
+                onChange={(e) => setApplicationMessage(e.target.value)}
+                rows={5}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                placeholder="クライアントへのメッセージを入力してください。あなたの経験やこのプロジェクトへの興味、貢献できることなどを記載しましょう。"
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowApplicationModal(false);
+                  setApplicationMessage('');
+                }}
+                disabled={submitting}
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={handleApplicationSubmit}
+                disabled={submitting || !applicationMessage.trim()}
+              >
+                {submitting ? '送信中...' : '応募する'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
