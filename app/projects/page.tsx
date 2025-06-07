@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
-import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from "../../components/ui/button";
@@ -37,17 +36,14 @@ export default function ProjectsPage() {
   const [showFilters, setShowFilters] = useState(false);
   
   const supabase = createClient();
-  const { user } = useUser();
   const router = useRouter();
 
   // 全スキルのリストを取得
   const [allSkills, setAllSkills] = useState<string[]>([]);
 
   useEffect(() => {
-    if (user) {
-      fetchProjects();
-    }
-  }, [user]);
+    fetchProjects();
+  }, []);
 
   useEffect(() => {
     filterProjects();
