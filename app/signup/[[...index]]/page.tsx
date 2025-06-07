@@ -50,7 +50,7 @@ export default function SignUpPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -62,8 +62,28 @@ export default function SignUpPage() {
 
     if (error) {
       setError(error.message);
-    } else {
-      router.push('/dashboard');
+      setLoading(false);
+    } else if (authData.user) {
+      // profilesテーブルにレコードを作成
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          user_type: userType,
+          full_name: email.split('@')[0], // メールアドレスから暫定的な名前を設定
+          visibility: true,
+          profile_details: {},
+          contact_info: {},
+          rate_info: {},
+          availability: {},
+        });
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        // プロフィール作成に失敗してもオンボーディングで再作成できるので続行
+      }
+      
+      router.push('/onboarding?type=' + userType);
     }
     setLoading(false);
   };

@@ -96,21 +96,23 @@ export default function OnboardingClientContent() {
 
     // Prepare data for profiles table upsert
     const profileData: any = {
-      id: user.id, // Assuming 'id' is the foreign key to auth.users
+      id: user.id, // profilesテーブルのidはauth.users.idと同じ
       user_type: userType,
-      updated_at: new Date().toISOString(),
       full_name: formData.displayName,
-      bio: formData.bio,
+      profile_details: {
+        bio: formData.bio,
+        company_name: userType === "client" ? formData.companyName : undefined,
+        position: userType === "client" ? formData.position : undefined,
+        skills: userType === "pm" ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+        experience_years: userType === "pm" ? (parseInt(formData.experience) || 0) : undefined,
+      },
+      rate_info: userType === "pm" ? {
+        hourly_rate: parseInt(formData.rate) || 0
+      } : {},
+      availability: {}, // 後で拡張可能
+      contact_info: {}, // 後で拡張可能
+      visibility: true,
     };
-
-    if (userType === "client") {
-      profileData.company_name = formData.companyName;
-      profileData.position = formData.position;
-    } else if (userType === "pm") {
-      profileData.skills = formData.skills.split(',').map(s => s.trim()).filter(s => s);
-      profileData.experience_years = parseInt(formData.experience) || 0;
-      profileData.hourly_rate = parseInt(formData.rate) || 0;
-    }
 
     // First, update the auth.users table (or user metadata)
     const { data: updatedUser, error: updateUserError } = await supabase.auth.updateUser({
