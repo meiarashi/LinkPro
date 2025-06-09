@@ -333,7 +333,7 @@ export default function MessagesPage() {
         <div className="h-full flex">
           {/* 左側: 会話リスト */}
           <div className={`${showMobileChat ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 bg-white border-r`}>
-            <div className="p-4 border-b">
+            <div className="h-16 px-4 border-b flex items-center">
               <h2 className="font-semibold">メッセージ一覧</h2>
             </div>
             
@@ -415,8 +415,8 @@ export default function MessagesPage() {
             {selectedConversation ? (
               <>
                 {/* チャットヘッダー */}
-                <div className="bg-white border-b p-4">
-                  <div className="flex items-center justify-between">
+                <div className="h-16 px-4 bg-white border-b flex items-center">
+                  <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-3">
                       <Button
                         variant="ghost"

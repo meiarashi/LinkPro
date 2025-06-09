@@ -39,12 +39,14 @@ interface ClientDashboardProps {
   projects: Project[];
   recentApplications: Application[];
   projectsLoading: boolean;
+  unreadMessageCount?: number;
 }
 
 export default function ClientDashboard({ 
   projects, 
   recentApplications, 
-  projectsLoading 
+  projectsLoading,
+  unreadMessageCount = 0 
 }: ClientDashboardProps) {
   const router = useRouter();
   const supabase = createClient();
@@ -129,9 +131,14 @@ export default function ClientDashboard({
           </div>
           <div className="flex gap-2">
             <Link href="/messages">
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2 relative">
                 <MessageSquare className="w-4 h-4" />
                 メッセージ
+                {unreadMessageCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                  </span>
+                )}
               </Button>
             </Link>
             <Link href="/projects/new">

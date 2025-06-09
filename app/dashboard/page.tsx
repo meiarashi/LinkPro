@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const [pmApplications, setPmApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   
   useEffect(() => {
     const getUserData = async () => {
@@ -92,6 +93,9 @@ export default function DashboardPage() {
         } else if (profileData.user_type === 'pm') {
           await fetchPMData(currentUser.id);
         }
+        
+        // 未読メッセージ数を取得
+        await fetchUnreadMessageCount(currentUser.id);
       }
       
       setLoading(false);
@@ -191,6 +195,19 @@ export default function DashboardPage() {
       setProjectsLoading(false);
     };
 
+    const fetchUnreadMessageCount = async (userId: string) => {
+      // 未読メッセージ数を取得
+      const { count, error } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver_id', userId)
+        .eq('read_status', false);
+      
+      if (!error && count !== null) {
+        setUnreadMessageCount(count);
+      }
+    };
+
     getUserData();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -250,6 +267,7 @@ export default function DashboardPage() {
             projects={projects}
             recentApplications={recentApplications}
             projectsLoading={projectsLoading}
+            unreadMessageCount={unreadMessageCount}
           />
         )}
 
@@ -259,6 +277,7 @@ export default function DashboardPage() {
             profile={profile}
             pmApplications={pmApplications}
             projectsLoading={projectsLoading}
+            unreadMessageCount={unreadMessageCount}
           />
         )}
 
