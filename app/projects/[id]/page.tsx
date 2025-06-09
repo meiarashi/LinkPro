@@ -314,7 +314,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <h3 className="font-semibold text-gray-800">プロジェクト情報</h3>
                 {isOwner && (
                   <Link href={`/projects/${project.id}/edit`}>
-                    <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" className="flex items-center gap-1">
                       <Edit className="w-4 h-4" />
                       編集
                     </Button>

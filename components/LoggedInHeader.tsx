@@ -103,13 +103,13 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
               
               {userProfile.user_type === 'pm' && (
                 <NavLink href="/projects" isActive={pathname.startsWith('/projects')}>
-                  案件を探す
+                  プロジェクトを探す
                 </NavLink>
               )}
               
               {userProfile.user_type === 'client' && (
                 <NavLink href="/projects/new" isActive={pathname === '/projects/new'}>
-                  案件を作成
+                  プロジェクトを作成
                 </NavLink>
               )}
               
@@ -128,12 +128,9 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
 
           {/* 右側: ユーザーメニュー */}
           <div className="flex items-center space-x-4">
-            <Link 
-              href="/profile/edit" 
-              className="hidden md:block text-sm text-gray-600 hover:text-gray-900"
-            >
+            <span className="hidden md:block text-sm text-gray-600">
               {userProfile.full_name || userEmail || 'ユーザー'}
-            </Link>
+            </span>
             <Link
               href="/settings"
               className="hidden md:flex p-2 text-gray-600 hover:text-gray-900"
@@ -174,13 +171,13 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
               
               {userProfile.user_type === 'pm' && (
                 <NavLink href="/projects" isActive={pathname.startsWith('/projects')}>
-                  案件を探す
+                  プロジェクトを探す
                 </NavLink>
               )}
               
               {userProfile.user_type === 'client' && (
                 <NavLink href="/projects/new" isActive={pathname === '/projects/new'}>
-                  案件を作成
+                  プロジェクトを作成
                 </NavLink>
               )}
               
@@ -195,13 +192,6 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
                 </span>
               </NavLink>
               
-              <Link 
-                href="/profile/edit" 
-                className="text-sm text-gray-600"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                プロフィール編集
-              </Link>
               
               <Link 
                 href="/settings" 
