@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "../../components/ui/button";
 import { createClient } from "../../utils/supabase/client";
-import { ArrowLeft, MessageSquare, Clock, CheckCircle, User, Loader2 } from "lucide-react";
+import { ArrowLeft, MessageSquare, Clock, CheckCircle, User, Loader2, Send, X } from "lucide-react";
 
 interface Conversation {
   id: string;
@@ -35,13 +35,32 @@ interface Conversation {
   unread_count?: number;
 }
 
+interface Message {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
+  read_status: boolean;
+  sender_profile?: {
+    full_name: string | null;
+  };
+}
+
 export default function MessagesPage() {
   const router = useRouter();
   const supabase = createClient();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
 
   useEffect(() => {
     loadConversations();
@@ -141,6 +160,117 @@ export default function MessagesPage() {
     }
   };
 
+  const loadMessages = async (conversationId: string) => {
+    setMessagesLoading(true);
+    try {
+      // メッセージを取得
+      const { data: messagesData, error: messagesError } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+
+      if (messagesError) {
+        console.error("Error fetching messages:", messagesError);
+      } else if (messagesData) {
+        // プロフィール情報を追加
+        const senderIds = Array.from(new Set(messagesData.map(m => m.sender_id)));
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", senderIds);
+
+        const messagesWithProfiles = messagesData.map(msg => ({
+          ...msg,
+          sender_profile: profiles?.find(p => p.id === msg.sender_id)
+        }));
+
+        setMessages(messagesWithProfiles);
+
+        // 自分宛ての未読メッセージを既読にする
+        const unreadMessageIds = messagesData
+          .filter(m => m.receiver_id === currentUser?.id && !m.read_status)
+          .map(m => m.id);
+
+        if (unreadMessageIds.length > 0) {
+          await supabase
+            .from("messages")
+            .update({ read_status: true })
+            .in("id", unreadMessageIds);
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setMessagesLoading(false);
+    }
+  };
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newMessage.trim() || !selectedConversation || !currentUser) return;
+    
+    setSending(true);
+    
+    try {
+      const receiverId = selectedConversation.client_id === currentUser.id 
+        ? selectedConversation.pm_id 
+        : selectedConversation.client_id;
+
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: selectedConversation.id,
+          sender_id: currentUser.id,
+          receiver_id: receiverId,
+          content: newMessage.trim(),
+          message_type: "normal",
+          project_id: selectedConversation.project_id
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error sending message:", error);
+        alert("メッセージの送信に失敗しました");
+      } else if (data) {
+        // メッセージをローカルに追加
+        setMessages(prev => [...prev, {
+          ...data,
+          sender_profile: { full_name: userProfile?.full_name || null }
+        }]);
+        setNewMessage("");
+
+        // 会話の最終メッセージ時刻を更新
+        await supabase
+          .from("conversations")
+          .update({ last_message_at: new Date().toISOString() })
+          .eq("id", selectedConversation.id);
+        
+        // 会話リストを更新
+        await loadConversations();
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("エラーが発生しました");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleConversationSelect = async (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+    setShowMobileChat(true);
+    await loadMessages(conversation.id);
+  };
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -158,6 +288,21 @@ export default function MessagesPage() {
     }
   };
 
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('ja-JP', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const formatDateForChat = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -167,10 +312,10 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* ヘッダー */}
       <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
+        <div className="px-4 py-4">
           <div className="flex items-center gap-4">
             <Link href="/dashboard">
               <Button variant="ghost" size="sm" className="flex items-center gap-2">
@@ -184,77 +329,211 @@ export default function MessagesPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main className="container mx-auto p-4 md:p-8 max-w-4xl">
-        {conversations.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">メッセージはまだありません</p>
-            <p className="text-sm text-gray-400 mt-2">
-              {userProfile?.user_type === 'client' 
-                ? 'PMからの応募を承認すると、メッセージのやり取りができるようになります'
-                : 'プロジェクトへの応募が承認されると、メッセージのやり取りができるようになります'}
-            </p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm divide-y">
-            {conversations.map((conversation) => {
-              const otherUser = userProfile?.user_type === 'client' 
-                ? conversation.pm_profile 
-                : conversation.client_profile;
+      <main className="flex-1 overflow-hidden">
+        <div className="h-full flex">
+          {/* 左側: 会話リスト */}
+          <div className={`${showMobileChat ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 bg-white border-r`}>
+            <div className="p-4 border-b">
+              <h2 className="font-semibold">メッセージ一覧</h2>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {conversations.length === 0 ? (
+                <div className="p-8 text-center">
+                  <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">メッセージはまだありません</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    {userProfile?.user_type === 'client' 
+                      ? 'PMからの応募を承認すると、メッセージのやり取りができるようになります'
+                      : 'プロジェクトへの応募が承認されると、メッセージのやり取りができるようになります'}
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {conversations.map((conversation) => {
+                    const otherUser = userProfile?.user_type === 'client' 
+                      ? conversation.pm_profile 
+                      : conversation.client_profile;
+                    const isSelected = selectedConversation?.id === conversation.id;
 
-              return (
-                <Link
-                  key={conversation.id}
-                  href={`/messages/${conversation.id}`}
-                  className="block hover:bg-gray-50 transition-colors"
-                >
-                  <div className="p-4 md:p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-3 flex-1">
-                        <div className="flex-shrink-0">
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <User className="w-6 h-6 text-gray-500" />
-                          </div>
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="font-medium text-gray-900 truncate">
-                              {otherUser?.full_name || 'ユーザー'}
-                            </p>
-                            <div className="flex items-center space-x-2">
-                              {conversation.unread_count && conversation.unread_count > 0 && (
-                                <span className="bg-primary text-white text-xs px-2 py-1 rounded-full">
-                                  {conversation.unread_count}
-                                </span>
-                              )}
-                              <span className="text-xs text-gray-500">
-                                {conversation.last_message 
-                                  ? formatDate(conversation.last_message.created_at)
-                                  : formatDate(conversation.created_at)}
-                              </span>
+                    return (
+                      <div
+                        key={conversation.id}
+                        onClick={() => handleConversationSelect(conversation)}
+                        className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                          isSelected ? 'bg-blue-50 border-l-4 border-l-primary' : ''
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                              <User className="w-5 h-5 text-gray-500" />
                             </div>
                           </div>
                           
-                          <p className="text-sm text-gray-600 mb-1">
-                            {conversation.project?.title}
-                          </p>
-                          
-                          {conversation.last_message && (
-                            <p className="text-sm text-gray-500 truncate">
-                              {conversation.last_message.sender_id === currentUser?.id && '自分: '}
-                              {conversation.last_message.content}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="font-medium text-gray-900 truncate">
+                                {otherUser?.full_name || 'ユーザー'}
+                              </p>
+                              <div className="flex items-center space-x-2">
+                                {(conversation.unread_count ?? 0) > 0 && (
+                                  <span className="bg-primary text-white text-xs px-2 py-1 rounded-full">
+                                    {conversation.unread_count}
+                                  </span>
+                                )}
+                                <span className="text-xs text-gray-500">
+                                  {conversation.last_message 
+                                    ? formatDate(conversation.last_message.created_at)
+                                    : formatDate(conversation.created_at)}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <p className="text-sm text-gray-600 mb-1 truncate">
+                              {conversation.project?.title}
                             </p>
-                          )}
+                            
+                            {conversation.last_message && (
+                              <p className="text-sm text-gray-500 truncate">
+                                {conversation.last_message.sender_id === currentUser?.id && '自分: '}
+                                {conversation.last_message.content}
+                              </p>
+                            )}
+                          </div>
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 右側: チャットエリア */}
+          <div className={`${showMobileChat ? 'flex' : 'hidden md:flex'} flex-col flex-1 bg-gray-50`}>
+            {selectedConversation ? (
+              <>
+                {/* チャットヘッダー */}
+                <div className="bg-white border-b p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="md:hidden"
+                        onClick={() => setShowMobileChat(false)}
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                      </Button>
+                      <div>
+                        <h3 className="font-semibold">
+                          {userProfile?.user_type === 'client' 
+                            ? selectedConversation.pm_profile?.full_name 
+                            : selectedConversation.client_profile?.full_name || 'ユーザー'}
+                        </h3>
+                        <p className="text-sm text-gray-500">{selectedConversation.project?.title}</p>
                       </div>
                     </div>
                   </div>
-                </Link>
-              );
-            })}
+                </div>
+
+                {/* メッセージエリア */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {messagesLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">メッセージを送信して会話を始めましょう</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-w-4xl mx-auto">
+                      {messages.map((message, index) => {
+                        const isMyMessage = message.sender_id === currentUser?.id;
+                        const showDate = index === 0 || 
+                          formatDateForChat(message.created_at) !== formatDateForChat(messages[index - 1].created_at);
+
+                        return (
+                          <div key={message.id}>
+                            {showDate && (
+                              <div className="text-center my-4">
+                                <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                                  {formatDateForChat(message.created_at)}
+                                </span>
+                              </div>
+                            )}
+                            
+                            <div className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-xs md:max-w-md ${isMyMessage ? 'order-2' : 'order-1'}`}>
+                                {!isMyMessage && (
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+                                      <User className="w-4 h-4 text-gray-500" />
+                                    </div>
+                                    <span className="text-xs text-gray-500">
+                                      {message.sender_profile?.full_name || 'ユーザー'}
+                                    </span>
+                                  </div>
+                                )}
+                                
+                                <div className={`px-4 py-2 rounded-lg ${
+                                  isMyMessage 
+                                    ? 'bg-primary text-white' 
+                                    : 'bg-white border border-gray-200'
+                                }`}>
+                                  <p className="text-sm whitespace-pre-wrap break-words">
+                                    {message.content}
+                                  </p>
+                                </div>
+                                
+                                <p className={`text-xs text-gray-500 mt-1 ${
+                                  isMyMessage ? 'text-right' : 'text-left'
+                                }`}>
+                                  {formatTime(message.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  )}
+                </div>
+
+                {/* メッセージ入力エリア */}
+                <div className="bg-white border-t p-4">
+                  <form onSubmit={sendMessage} className="flex gap-2 max-w-4xl mx-auto">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="メッセージを入力..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      disabled={sending}
+                    />
+                    <Button type="submit" disabled={sending || !newMessage.trim()}>
+                      {sending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="text-center">
+                  <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p>左側から会話を選択してください</p>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </main>
     </div>
   );
