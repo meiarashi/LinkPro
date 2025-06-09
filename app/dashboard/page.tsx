@@ -8,6 +8,7 @@ import { User } from "@supabase/supabase-js";
 import Link from 'next/link';
 import ClientDashboard from './ClientDashboard';
 import PMDashboard from './PMDashboard';
+import LoggedInHeader from '../../components/LoggedInHeader';
 
 interface Profile {
   id: string;
@@ -222,11 +223,6 @@ export default function DashboardPage() {
     };
   }, [router, supabase]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
-  };
 
   if (loading) {
     return (
@@ -247,17 +243,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="text-xl font-bold text-primary">LinkPro</Link>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">{profile.full_name || user.email}</span>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              ログアウト
-            </Button>
-          </div>
-        </div>
-      </header>
+      <LoggedInHeader userProfile={profile} userEmail={user.email} />
 
       {/* Main Content */}
       <main className="container mx-auto p-4 md:p-8">

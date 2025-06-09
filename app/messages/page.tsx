@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "../../components/ui/button";
 import { createClient } from "../../utils/supabase/client";
+import LoggedInHeader from "../../components/LoggedInHeader";
 import { ArrowLeft, MessageSquare, Clock, CheckCircle, User, Loader2, Send, X } from "lucide-react";
 
 interface Conversation {
@@ -65,6 +66,69 @@ export default function MessagesPage() {
   useEffect(() => {
     loadConversations();
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // リアルタイム購読の設定
+    const channel = supabase
+      .channel('messages-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${currentUser.id}`,
+        },
+        async (payload) => {
+          // 新着メッセージを受信
+          const newMessage = payload.new as any;
+          
+          // 現在選択中の会話のメッセージの場合、メッセージリストに追加
+          if (selectedConversation?.id === newMessage.conversation_id) {
+            // プロフィール情報を取得
+            const { data: senderProfile } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .eq('id', newMessage.sender_id)
+              .single();
+
+            setMessages(prev => [...prev, {
+              ...newMessage,
+              sender_profile: senderProfile
+            }]);
+
+            // 既読にする
+            await supabase
+              .from('messages')
+              .update({ read_status: true })
+              .eq('id', newMessage.id);
+          }
+          
+          // 会話一覧を更新
+          await loadConversations();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${currentUser.id}`,
+        },
+        async (payload) => {
+          // 自分が送信したメッセージの場合も会話一覧を更新
+          await loadConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id, selectedConversation?.id]);
 
   const loadConversations = async () => {
     try {
@@ -235,7 +299,7 @@ export default function MessagesPage() {
         console.error("Error sending message:", error);
         alert("メッセージの送信に失敗しました");
       } else if (data) {
-        // メッセージをローカルに追加
+        // メッセージをローカルに追加（送信者自身の画面用）
         setMessages(prev => [...prev, {
           ...data,
           sender_profile: { full_name: userProfile?.full_name || null }
@@ -247,9 +311,6 @@ export default function MessagesPage() {
           .from("conversations")
           .update({ last_message_at: new Date().toISOString() })
           .eq("id", selectedConversation.id);
-        
-        // 会話リストを更新
-        await loadConversations();
       }
     } catch (error) {
       console.error("Error:", error);
@@ -314,19 +375,9 @@ export default function MessagesPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* ヘッダー */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                戻る
-              </Button>
-            </Link>
-            <h1 className="text-xl font-bold">メッセージ</h1>
-          </div>
-        </div>
-      </header>
+      {userProfile && (
+        <LoggedInHeader userProfile={userProfile} userEmail={currentUser?.email} />
+      )}
 
       {/* メインコンテンツ */}
       <main className="flex-1 overflow-hidden">

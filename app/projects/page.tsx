@@ -5,6 +5,7 @@ import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from "../../components/ui/button";
+import LoggedInHeader from '../../components/LoggedInHeader';
 import { Search, Filter, Briefcase, Clock, DollarSign, ChevronRight, Users } from 'lucide-react';
 
 interface Project {
@@ -34,6 +35,8 @@ export default function ProjectsPage() {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [budgetFilter, setBudgetFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   
   const supabase = createClient();
   const router = useRouter();
@@ -51,6 +54,25 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
+      // ユーザー情報を取得
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+      setCurrentUser(user);
+
+      // プロフィール情報を取得
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileData) {
+        setUserProfile(profileData);
+      }
+
       // 公開中のプロジェクトを取得
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
@@ -174,8 +196,13 @@ export default function ProjectsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* ヘッダー */}
+      {userProfile && (
+        <LoggedInHeader userProfile={userProfile} userEmail={currentUser?.email} />
+      )}
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ヘッダー */}
+        {/* ページタイトル */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">案件を探す</h1>
           <p className="mt-2 text-gray-600">スキルに合った案件を見つけて応募しましょう</p>

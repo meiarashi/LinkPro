@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "../../../components/ui/button";
 import { createClient } from "../../../utils/supabase/client";
 import Link from "next/link";
+import LoggedInHeader from "../../../components/LoggedInHeader";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 
 interface Profile {
@@ -132,22 +133,16 @@ export default function ProfileEditPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ヘッダー */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                戻る
-              </Button>
-            </Link>
-            <h1 className="text-xl font-bold">プロフィール編集</h1>
-          </div>
-        </div>
-      </header>
+      <LoggedInHeader userProfile={profile} />
 
       {/* メインコンテンツ */}
       <main className="container mx-auto p-4 md:p-8 max-w-4xl">
+        {/* ページタイトル */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">プロフィール編集</h1>
+          <p className="mt-2 text-gray-600">あなたの情報を最新に保ちましょう</p>
+        </div>
+        
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 基本情報 */}
           <div className="bg-white p-6 rounded-lg shadow-sm">
