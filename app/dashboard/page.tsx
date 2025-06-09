@@ -110,6 +110,7 @@ export default function DashboardPage() {
       if (projectsError) {
         console.error("Error fetching projects:", projectsError);
       } else if (projectsData) {
+        console.log("Projects fetched:", projectsData.length, "projects");
         // 各プロジェクトの応募数を取得
         const projectsWithCounts = await Promise.all(
           projectsData.map(async (project) => {

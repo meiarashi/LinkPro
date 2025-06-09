@@ -50,6 +50,10 @@ export default function ClientDashboard({
   const supabase = createClient();
   const [processingApplicationId, setProcessingApplicationId] = useState<string | null>(null);
   
+  // デバッグログ
+  console.log('ClientDashboard - Projects:', projects.length, projects);
+  console.log('ClientDashboard - Loading:', projectsLoading);
+  
   const handleApplicationAction = async (applicationId: string, action: 'accept' | 'reject') => {
     setProcessingApplicationId(applicationId);
     
