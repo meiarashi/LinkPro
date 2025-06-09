@@ -1,46 +1,127 @@
 # LinkPro データベース構造とポリシー
-更新日: 2024年
+更新日: 2025年1月
 
-## 1. messagesテーブル
+## 1. profilesテーブル
+
+### テーブル構造
+```sql
+CREATE TABLE public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_type VARCHAR(10) NOT NULL CHECK (user_type IN ('client', 'pm')),
+    full_name VARCHAR(255),
+    avatar_url TEXT,
+    profile_details JSONB DEFAULT '{}',
+    rate_info JSONB DEFAULT '{}',
+    contact_info JSONB DEFAULT '{}',
+    availability JSONB DEFAULT '{}',
+    visibility BOOLEAN DEFAULT true,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    notification_settings JSONB DEFAULT '{
+        "email_notifications": true,
+        "new_message": true,
+        "new_application": true,
+        "application_status": true
+    }',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+### RLSポリシー
+- SELECT: 全ユーザーが閲覧可能（visibility=trueかつdeleted_atがNULLの場合）
+- INSERT: 自分のプロフィールのみ作成可能
+- UPDATE: 自分のプロフィールのみ更新可能
+- DELETE: なし（ソフトデリートのみ）
+
+## 2. projectsテーブル
+
+### テーブル構造
+```sql
+CREATE TABLE public.projects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    budget VARCHAR(100),
+    duration VARCHAR(100),
+    required_skills TEXT[],
+    status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'public', 'private', 'completed', 'cancelled')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+### RLSポリシー
+- SELECT: 
+  - 公開プロジェクト（status='public'）は全員閲覧可能
+  - 自分が作成したプロジェクトは全て閲覧可能
+- INSERT: クライアントユーザーのみ作成可能
+- UPDATE: 自分が作成したプロジェクトのみ更新可能
+- DELETE: 自分が作成したプロジェクトのみ削除可能
+
+## 3. applicationsテーブル
+
+### テーブル構造
+```sql
+CREATE TABLE public.applications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+    pm_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+    message TEXT,
+    attachments JSONB DEFAULT '[]',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(project_id, pm_id)
+);
+```
+
+### インデックス
+- idx_applications_status (status)
+- idx_applications_pm_id (pm_id)
+- idx_applications_project_id (project_id)
+- idx_applications_created_at (created_at DESC)
+
+### RLSポリシー
+- SELECT: 
+  - 自分が作成したプロジェクトへの応募を表示
+  - 自分が送った応募を表示
+- INSERT: PMユーザーのみ応募可能
+- UPDATE: 
+  - クライアントは自分のプロジェクトへの応募のステータスを更新可能
+  - PMは自分の応募を取り下げ可能
+
+## 4. messagesテーブル
 
 ### テーブル構造
 ```sql
 CREATE TABLE public.messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
     sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     receiver_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
-    application_id UUID REFERENCES public.applications(id) ON DELETE CASCADE,
-    conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    message_type VARCHAR(50) DEFAULT 'normal' CHECK (message_type IN ('normal', 'application', 'scout')),
+    message_type VARCHAR(50) DEFAULT 'normal' CHECK (message_type IN ('normal', 'system')),
     read_status BOOLEAN DEFAULT false,
+    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ```
 
 ### インデックス
-- idx_public_messages_sender_id (sender_id)
-- idx_public_messages_receiver_id (receiver_id)
-- idx_public_messages_project_id (project_id)
-- idx_public_messages_created_at (created_at DESC)
 - idx_messages_conversation_id (conversation_id)
+- idx_messages_sender_id (sender_id)
+- idx_messages_receiver_id (receiver_id)
+- idx_messages_created_at (created_at DESC)
 
 ### RLSポリシー
-1. **Users can view their own messages** (SELECT)
-   - `auth.uid() = sender_id OR auth.uid() = receiver_id`
+- SELECT: 自分が送信者または受信者のメッセージのみ表示
+- INSERT: アクティブな会話の参加者のみ送信可能
+- UPDATE: 受信者のみread_statusを更新可能
+- DELETE: なし（メッセージは削除不可）
 
-2. **Users can send messages** (INSERT)
-   - `auth.uid() = sender_id`
-
-3. **Users can update read status** (UPDATE)
-   - `auth.uid() = receiver_id`
-
-### トリガー
-- update_messages_updated_at: updated_at自動更新
-
-## 2. conversationsテーブル
+## 5. conversationsテーブル
 
 ### テーブル構造
 ```sql
@@ -67,40 +148,39 @@ CREATE TABLE public.conversations (
 - idx_conversations_last_message (last_message_at DESC)
 
 ### RLSポリシー
-1. **Users can view their own conversations** (SELECT)
-   - `auth.uid() = client_id OR auth.uid() = pm_id`
+- SELECT: 自分が参加している会話のみ表示
+- INSERT: 承認された応募から自動的に作成
+- UPDATE: 参加者のみlast_message_atを更新可能
+- DELETE: なし（会話は削除不可）
 
-2. **Users can create conversations** (INSERT)
-   - `auth.uid() IN (client_id, pm_id)`
+## 6. 認証とセキュリティ
 
-3. **Users can update their own conversations** (UPDATE)
-   - `auth.uid() IN (client_id, pm_id)`
+### Authentication
+- Supabase Auth を使用
+- メール/パスワード認証
+- ソーシャルログイン（Google OAuth）
+- サーバーサイド認証フロー（/auth/callback）
 
-### トリガー
-- update_conversations_updated_at: updated_at自動更新
+### セキュリティ機能
+- Row Level Security (RLS) による細かいアクセス制御
+- ソフトデリート（deleted_atフィールド）
+- 全テーブルでupdated_atの自動更新トリガー
 
-## 3. applicationsテーブル（既存、確認済み）
+## 7. リアルタイム機能
 
-### テーブル構造
-```sql
-- id: UUID (PRIMARY KEY)
-- project_id: UUID (REFERENCES projects)
-- pm_id: UUID (REFERENCES auth.users)
-- application_date: TIMESTAMP WITH TIME ZONE
-- message: TEXT
-- status: TEXT (CHECK IN ('pending', 'accepted', 'rejected'))
-- attachments: JSONB
-- created_at: TIMESTAMP WITH TIME ZONE
-- updated_at: TIMESTAMP WITH TIME ZONE
-```
+### Realtime Subscriptions
+- メッセージの新着通知
+- 未読メッセージ数の自動更新
+- 会話リストの自動更新
+- Supabase Realtime を使用
 
-### インデックス（推奨）
-- idx_applications_status (status)
-- idx_applications_pm_id (pm_id)
-- idx_applications_project_id (project_id)
-- idx_applications_created_at (created_at DESC)
+### 通知設定
+- email_notifications: メール通知の有効/無効
+- new_message: 新着メッセージ通知
+- new_application: 新規応募通知（クライアント用）
+- application_status: 応募ステータス変更通知（PM用）
 
-## 4. メッセージング機能の仕様
+## 8. メッセージング機能の仕様
 
 ### メッセージ送信権限
 1. **PM → クライアント（応募ベース）**
@@ -124,11 +204,20 @@ CREATE TABLE public.conversations (
 3. conversationレコード自動作成（status='active', initiated_by='application'）
 4. 双方向メッセージが可能に
 
-## 5. 今後の実装予定
+## 9. オプション機能
 
-1. メッセージ一覧ページ (/messages)
-2. メッセージ詳細（チャット）ページ (/messages/[conversationId])
-3. リアルタイム更新（Supabase Realtime）
-4. 既読機能の実装
-5. 通知機能
-6. スカウト機能
+### アカウント削除
+```sql
+-- ユーザー自身によるアカウント削除用RPC関数（オプション）
+CREATE OR REPLACE FUNCTION delete_user() 
+RETURNS void AS $$
+BEGIN
+    DELETE FROM auth.users WHERE id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### パフォーマンス最適化
+- 複合インデックスの追加
+- マテリアライズドビューの使用（統計情報用）
+- 定期的なVACUUM実行

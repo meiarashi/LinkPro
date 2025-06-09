@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { createClient } from "../utils/supabase/client";
-import { MessageSquare, Menu, X } from "lucide-react";
+import { MessageSquare, Menu, X, Settings } from "lucide-react";
 
 interface LoggedInHeaderProps {
   userProfile: {
@@ -134,6 +134,13 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
             >
               {userProfile.full_name || userEmail || 'ユーザー'}
             </Link>
+            <Link
+              href="/settings"
+              className="hidden md:flex p-2 text-gray-600 hover:text-gray-900"
+              title="設定"
+            >
+              <Settings className="w-5 h-5" />
+            </Link>
             <Button 
               onClick={handleSignOut} 
               variant="outline" 
@@ -194,6 +201,15 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
                 onClick={() => setMobileMenuOpen(false)}
               >
                 プロフィール編集
+              </Link>
+              
+              <Link 
+                href="/settings" 
+                className="text-sm text-gray-600 flex items-center gap-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Settings className="w-4 h-4" />
+                アカウント設定
               </Link>
               
               <div className="pt-4 border-t">
