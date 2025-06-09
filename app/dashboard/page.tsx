@@ -127,16 +127,20 @@ export default function DashboardPage() {
         // 最新の応募を取得
         const projectIds = projectsData.map(p => p.id);
         if (projectIds.length > 0) {
-          const { data: applicationsData } = await supabase
+          const { data: applicationsData, error: appError } = await supabase
             .from('applications')
             .select(`
               *,
-              pm_profile:profiles!applications_pm_id_fkey(full_name, profile_details)
+              pm_profile:profiles(full_name, profile_details),
+              project:projects(title)
             `)
             .in('project_id', projectIds)
-            .eq('status', 'pending')
             .order('created_at', { ascending: false })
-            .limit(5);
+            .limit(10);
+          
+          if (appError) {
+            console.error("Error fetching applications:", appError);
+          }
           
           if (applicationsData) {
             setRecentApplications(applicationsData);

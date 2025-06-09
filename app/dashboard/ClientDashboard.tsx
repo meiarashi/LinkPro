@@ -153,7 +153,9 @@ export default function ClientDashboard({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">新着応募</p>
-                <p className="text-2xl font-bold text-blue-600">{recentApplications.length}</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {recentApplications.filter(a => a.status === 'pending').length}
+                </p>
               </div>
               <MessageSquare className="w-8 h-8 text-gray-400" />
             </div>
@@ -166,14 +168,23 @@ export default function ClientDashboard({
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-blue-500" />
-            新着応募
+            応募一覧（最新10件）
           </h2>
           <div className="space-y-3">
             {recentApplications.map((application) => (
               <div key={application.id} className="border-l-4 border-blue-500 pl-4 py-2">
-                <p className="font-medium text-gray-800">
-                  {application.pm_profile?.full_name || 'PM'} さんからの応募
-                </p>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">
+                      {application.pm_profile?.full_name || 'PM'} さんからの応募
+                    </p>
+                    {application.project && (
+                      <p className="text-xs text-gray-500">
+                        プロジェクト: {application.project.title}
+                      </p>
+                    )}
+                  </div>
+                </div>
                 <p className="text-sm text-gray-600 mt-1">{application.message}</p>
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-xs text-gray-500">
