@@ -29,6 +29,10 @@ interface Application {
     full_name: string | null;
     profile_details: any;
   };
+  project?: {
+    id: string;
+    title: string;
+  };
 }
 
 interface ClientDashboardProps {
