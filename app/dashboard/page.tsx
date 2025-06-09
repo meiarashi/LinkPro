@@ -129,14 +129,29 @@ export default function DashboardPage() {
         if (projectIds.length > 0) {
           const { data: applicationsData, error: appError } = await supabase
             .from('applications')
-            .select(`
-              *,
-              pm_profile:profiles(full_name, profile_details),
-              project:projects(title)
-            `)
+            .select('*, projects!inner(title)')
             .in('project_id', projectIds)
             .order('created_at', { ascending: false })
             .limit(10);
+          
+          // プロフィール情報を別途取得
+          if (applicationsData && applicationsData.length > 0) {
+            const pmIds = [...new Set(applicationsData.map(app => app.pm_id))];
+            const { data: profilesData } = await supabase
+              .from('profiles')
+              .select('id, full_name, profile_details')
+              .in('id', pmIds);
+            
+            // プロフィール情報をマージ
+            const applicationsWithProfiles = applicationsData.map(app => ({
+              ...app,
+              pm_profile: profilesData?.find(p => p.id === app.pm_id),
+              project: app.projects
+            }));
+            
+            setRecentApplications(applicationsWithProfiles);
+            return;
+          }
           
           if (appError) {
             console.error("Error fetching applications:", appError);

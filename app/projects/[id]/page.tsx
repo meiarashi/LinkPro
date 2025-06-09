@@ -113,23 +113,29 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       if (projectData.client_id === user.id) {
         const { data: applicationsData, error: applicationsError } = await supabase
           .from("applications")
-          .select(`
-            *,
-            pm_profile:profiles!applications_pm_id_fkey(
-              id,
-              full_name,
-              profile_details,
-              rate_info,
-              availability
-            )
-          `)
+          .select("*")
           .eq("project_id", params.id)
           .order("created_at", { ascending: false });
+        
+        if (applicationsData && applicationsData.length > 0) {
+          // プロフィール情報を別途取得
+          const pmIds = [...new Set(applicationsData.map(app => app.pm_id))];
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, full_name, profile_details, rate_info, availability')
+            .in('id', pmIds);
+          
+          // プロフィール情報をマージ
+          const applicationsWithProfiles = applicationsData.map(app => ({
+            ...app,
+            pm_profile: profilesData?.find(p => p.id === app.pm_id)
+          }));
+          
+          setApplications(applicationsWithProfiles);
+        }
 
         if (applicationsError) {
           console.error("Error fetching applications:", applicationsError);
-        } else if (applicationsData) {
-          setApplications(applicationsData);
         }
       }
     } catch (error) {
