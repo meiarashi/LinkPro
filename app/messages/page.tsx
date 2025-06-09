@@ -105,13 +105,14 @@ export default function MessagesPage() {
         const conversationsWithDetails = await Promise.all(
           conversationsData.map(async (conv) => {
             // 最新メッセージを取得
-            const { data: lastMessage } = await supabase
+            const { data: lastMessageData } = await supabase
               .from("messages")
               .select("content, created_at, sender_id")
               .eq("conversation_id", conv.id)
               .order("created_at", { ascending: false })
-              .limit(1)
-              .single();
+              .limit(1);
+            
+            const lastMessage = lastMessageData && lastMessageData.length > 0 ? lastMessageData[0] : null;
 
             // 未読メッセージ数を取得
             const { count: unreadCount } = await supabase

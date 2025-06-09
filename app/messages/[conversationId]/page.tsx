@@ -95,12 +95,7 @@ export default function ConversationPage({
       // 会話情報を取得
       const { data: convData, error: convError } = await supabase
         .from("conversations")
-        .select(`
-          *,
-          project:projects!inner(title),
-          client_profile:profiles!conversations_client_id_fkey(full_name),
-          pm_profile:profiles!conversations_pm_id_fkey(full_name)
-        `)
+        .select("*")
         .eq("id", params.conversationId)
         .single();
 
@@ -116,7 +111,27 @@ export default function ConversationPage({
         return;
       }
 
-      setConversation(convData);
+      // プロジェクト情報を別途取得
+      const { data: projectData } = await supabase
+        .from("projects")
+        .select("id, title")
+        .eq("id", convData.project_id)
+        .single();
+
+      // プロフィール情報を別途取得
+      const [clientProfile, pmProfile] = await Promise.all([
+        supabase.from("profiles").select("id, full_name").eq("id", convData.client_id).single(),
+        supabase.from("profiles").select("id, full_name").eq("id", convData.pm_id).single()
+      ]);
+
+      const conversationWithDetails = {
+        ...convData,
+        project: projectData,
+        client_profile: clientProfile.data,
+        pm_profile: pmProfile.data
+      };
+
+      setConversation(conversationWithDetails);
 
       // メッセージを取得
       const { data: messagesData, error: messagesError } = await supabase
