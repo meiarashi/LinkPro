@@ -63,7 +63,7 @@ export default function SettingsPage() {
   const [availability, setAvailability] = useState("");
   
   // UI状態
-  const [activeSection, setActiveSection] = useState("account");
+  const [activeSection, setActiveSection] = useState("profile");
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");

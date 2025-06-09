@@ -1,18 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../../../components/ui/button";
 import { createClient } from "../../../utils/supabase/client";
+import LoggedInHeader from "../../../components/LoggedInHeader";
 import Link from "next/link";
-import { ArrowLeft, Save, Eye } from "lucide-react";
+import { ArrowLeft, Save, Eye, Loader2 } from "lucide-react";
+
+interface Profile {
+  id: string;
+  user_type: string;
+  full_name: string | null;
+}
 
 export default function NewProjectPage() {
   const router = useRouter();
   const supabase = createClient();
   
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  const [user, setUser] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -24,6 +34,48 @@ export default function NewProjectPage() {
   });
   
   const [skillInput, setSkillInput] = useState("");
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (!currentUser) {
+        router.push("/login");
+        return;
+      }
+      
+      setUser(currentUser);
+
+      // プロフィール情報を取得
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser.id)
+        .single();
+
+      if (error || !profileData) {
+        console.error("Error fetching profile:", error);
+        router.push("/dashboard");
+        return;
+      }
+
+      // クライアントかチェック
+      if (profileData.user_type !== 'client') {
+        router.push("/dashboard");
+        return;
+      }
+
+      setUserProfile(profileData);
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -54,7 +106,7 @@ export default function NewProjectPage() {
 
   const handleSubmit = async (e: React.FormEvent, isDraft: boolean = true) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     setError(null);
 
     try {
@@ -87,31 +139,45 @@ export default function NewProjectPage() {
       console.error("Error creating project:", err);
       setError(err.message || "プロジェクトの作成に失敗しました");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>プロフィール情報が見つかりません</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  戻る
-                </Button>
-              </Link>
-              <h1 className="text-xl font-bold">新規プロジェクト作成</h1>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* 統一ヘッダー */}
+      <LoggedInHeader userProfile={userProfile} userEmail={user?.email} />
 
       {/* Main Content */}
       <main className="container mx-auto p-4 md:p-8 max-w-4xl">
+        {/* 戻るボタン */}
+        <div className="mb-6">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="sm" className="flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              ダッシュボードに戻る
+            </Button>
+          </Link>
+        </div>
+        
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">新規プロジェクト作成</h1>
+        
         <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-6">
           {error && (
             <div className="bg-red-50 text-red-600 p-4 rounded-lg">
@@ -282,17 +348,26 @@ export default function NewProjectPage() {
             <div className="flex gap-2">
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={saving}
                 variant="outline"
                 className="flex items-center gap-2"
               >
-                <Save className="w-4 h-4" />
-                下書き保存
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    下書き保存
+                  </>
+                )}
               </Button>
               
               <Button
                 type="button"
-                disabled={loading || !formData.title || !formData.description}
+                disabled={saving || !formData.title || !formData.description}
                 onClick={(e) => {
                   setFormData(prev => ({ ...prev, status: "public" }));
                   handleSubmit(e, false);
