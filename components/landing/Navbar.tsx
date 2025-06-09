@@ -31,8 +31,9 @@ export default function Navbar() {
     }
   }, [supabase])
   
-  // ダッシュボードページではナビゲーションを表示しない
-  if (pathname?.startsWith("/dashboard")) {
+  // ログイン後のページではナビゲーションを表示しない
+  const loggedInPages = ['/dashboard', '/messages', '/projects', '/profile'];
+  if (loggedInPages.some(page => pathname?.startsWith(page))) {
     return null
   }
 

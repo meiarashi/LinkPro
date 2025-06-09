@@ -66,6 +66,113 @@ export default function DashboardPage() {
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   
+  const fetchClientData = async (userId: string) => {
+    setProjectsLoading(true);
+    
+    // プロジェクト一覧を取得
+    const { data: projectsData, error: projectsError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('client_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (projectsError) {
+      console.error("Error fetching projects:", projectsError);
+    } else if (projectsData) {
+      console.log("Projects fetched:", projectsData.length, "projects");
+      // 各プロジェクトの応募数を取得
+      const projectsWithCounts = await Promise.all(
+        projectsData.map(async (project) => {
+          const { count } = await supabase
+            .from('applications')
+            .select('*', { count: 'exact', head: true })
+            .eq('project_id', project.id);
+          
+          return { ...project, applications_count: count || 0 };
+        })
+      );
+      
+      setProjects(projectsWithCounts);
+      
+      // 最新の応募を取得
+      const projectIds = projectsData.map(p => p.id);
+      if (projectIds.length > 0) {
+        const { data: applicationsData, error: appError } = await supabase
+          .from('applications')
+          .select('*, projects!inner(title)')
+          .in('project_id', projectIds)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        // プロフィール情報を別途取得
+        if (applicationsData && applicationsData.length > 0) {
+          const pmIds = Array.from(new Set(applicationsData.map(app => app.pm_id)));
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, full_name, profile_details')
+            .in('id', pmIds);
+          
+          // プロフィール情報をマージ
+          const applicationsWithProfiles = applicationsData.map(app => ({
+            ...app,
+            pm_profile: profilesData?.find(p => p.id === app.pm_id),
+            project: app.projects
+          }));
+          
+          setRecentApplications(applicationsWithProfiles);
+        } else if (appError) {
+          console.error("Error fetching applications:", appError);
+        } else if (applicationsData) {
+          setRecentApplications(applicationsData);
+        }
+      }
+    }
+    
+    setProjectsLoading(false);
+  };
+
+  const fetchPMData = async (userId: string) => {
+    setProjectsLoading(true);
+    
+    // PMの応募情報を取得
+    const { data: applicationsData, error: applicationsError } = await supabase
+      .from('applications')
+      .select(`
+        *,
+        project:projects!applications_project_id_fkey(
+          id,
+          title,
+          budget,
+          duration,
+          status,
+          client_id
+        )
+      `)
+      .eq('pm_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (applicationsError) {
+      console.error("Error fetching PM applications:", applicationsError);
+    } else if (applicationsData) {
+      setPmApplications(applicationsData);
+    }
+    
+    setProjectsLoading(false);
+  };
+
+  const fetchUnreadMessageCount = async (userId: string) => {
+    // 未読メッセージ数を取得
+    const { count, error } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('receiver_id', userId)
+      .eq('read_status', false);
+    
+    if (!error && count !== null) {
+      setUnreadMessageCount(count);
+    }
+  };
+  
   useEffect(() => {
     const getUserData = async () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -102,112 +209,6 @@ export default function DashboardPage() {
       setLoading(false);
     };
 
-    const fetchClientData = async (userId: string) => {
-      setProjectsLoading(true);
-      
-      // プロジェクト一覧を取得
-      const { data: projectsData, error: projectsError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('client_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (projectsError) {
-        console.error("Error fetching projects:", projectsError);
-      } else if (projectsData) {
-        console.log("Projects fetched:", projectsData.length, "projects");
-        // 各プロジェクトの応募数を取得
-        const projectsWithCounts = await Promise.all(
-          projectsData.map(async (project) => {
-            const { count } = await supabase
-              .from('applications')
-              .select('*', { count: 'exact', head: true })
-              .eq('project_id', project.id);
-            
-            return { ...project, applications_count: count || 0 };
-          })
-        );
-        
-        setProjects(projectsWithCounts);
-        
-        // 最新の応募を取得
-        const projectIds = projectsData.map(p => p.id);
-        if (projectIds.length > 0) {
-          const { data: applicationsData, error: appError } = await supabase
-            .from('applications')
-            .select('*, projects!inner(title)')
-            .in('project_id', projectIds)
-            .order('created_at', { ascending: false })
-            .limit(10);
-          
-          // プロフィール情報を別途取得
-          if (applicationsData && applicationsData.length > 0) {
-            const pmIds = Array.from(new Set(applicationsData.map(app => app.pm_id)));
-            const { data: profilesData } = await supabase
-              .from('profiles')
-              .select('id, full_name, profile_details')
-              .in('id', pmIds);
-            
-            // プロフィール情報をマージ
-            const applicationsWithProfiles = applicationsData.map(app => ({
-              ...app,
-              pm_profile: profilesData?.find(p => p.id === app.pm_id),
-              project: app.projects
-            }));
-            
-            setRecentApplications(applicationsWithProfiles);
-          } else if (appError) {
-            console.error("Error fetching applications:", appError);
-          } else if (applicationsData) {
-            setRecentApplications(applicationsData);
-          }
-        }
-      }
-      
-      setProjectsLoading(false);
-    };
-
-    const fetchPMData = async (userId: string) => {
-      setProjectsLoading(true);
-      
-      // PMの応募情報を取得
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          project:projects!applications_project_id_fkey(
-            id,
-            title,
-            budget,
-            duration,
-            status,
-            client_id
-          )
-        `)
-        .eq('pm_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (applicationsError) {
-        console.error("Error fetching PM applications:", applicationsError);
-      } else if (applicationsData) {
-        setPmApplications(applicationsData);
-      }
-      
-      setProjectsLoading(false);
-    };
-
-    const fetchUnreadMessageCount = async (userId: string) => {
-      // 未読メッセージ数を取得
-      const { count, error } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('receiver_id', userId)
-        .eq('read_status', false);
-      
-      if (!error && count !== null) {
-        setUnreadMessageCount(count);
-      }
-    };
 
     getUserData();
 
@@ -254,6 +255,12 @@ export default function DashboardPage() {
             recentApplications={recentApplications}
             projectsLoading={projectsLoading}
             unreadMessageCount={unreadMessageCount}
+            onApplicationUpdate={() => {
+              // 応募情報を再取得
+              if (profile.user_type === 'client' && user) {
+                fetchClientData(user.id);
+              }
+            }}
           />
         )}
 

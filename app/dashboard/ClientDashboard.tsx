@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from 'next/link';
 import { Button } from "../../components/ui/button";
 import { Plus, FolderOpen, Users, MessageSquare, AlertCircle, Check, X } from 'lucide-react';
@@ -40,17 +40,24 @@ interface ClientDashboardProps {
   recentApplications: Application[];
   projectsLoading: boolean;
   unreadMessageCount?: number;
+  onApplicationUpdate?: () => void;
 }
 
 export default function ClientDashboard({ 
   projects, 
   recentApplications, 
   projectsLoading,
-  unreadMessageCount = 0 
+  unreadMessageCount = 0,
+  onApplicationUpdate
 }: ClientDashboardProps) {
   const router = useRouter();
   const supabase = createClient();
   const [processingApplicationId, setProcessingApplicationId] = useState<string | null>(null);
+  const [localApplications, setLocalApplications] = useState<Application[]>(recentApplications);
+  
+  useEffect(() => {
+    setLocalApplications(recentApplications);
+  }, [recentApplications]);
   
   // デバッグログ
   console.log('ClientDashboard - Projects:', projects.length, projects);
@@ -94,8 +101,19 @@ export default function ClientDashboard({
         }
       }
       
-      // ページをリフレッシュ
-      router.refresh();
+      // ローカルの応募ステータスを即座に更新
+      setLocalApplications(prev => 
+        prev.map(app => 
+          app.id === applicationId 
+            ? { ...app, status: newStatus } 
+            : app
+        )
+      );
+      
+      // 親コンポーネントに更新を通知
+      if (onApplicationUpdate) {
+        onApplicationUpdate();
+      }
     } catch (error) {
       console.error('Error processing application:', error);
     } finally {
@@ -194,7 +212,7 @@ export default function ClientDashboard({
             応募一覧（最新10件）
           </h2>
           <div className="space-y-3">
-            {recentApplications.map((application) => (
+            {localApplications.map((application) => (
               <div key={application.id} className="border-l-4 border-blue-500 pl-4 py-2">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
