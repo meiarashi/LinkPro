@@ -119,7 +119,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         
         if (applicationsData && applicationsData.length > 0) {
           // プロフィール情報を別途取得
-          const pmIds = [...new Set(applicationsData.map(app => app.pm_id))];
+          const pmIds = Array.from(new Set(applicationsData.map(app => app.pm_id)));
           const { data: profilesData } = await supabase
             .from('profiles')
             .select('id, full_name, profile_details, rate_info, availability')

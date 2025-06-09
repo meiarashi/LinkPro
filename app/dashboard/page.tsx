@@ -136,7 +136,7 @@ export default function DashboardPage() {
           
           // プロフィール情報を別途取得
           if (applicationsData && applicationsData.length > 0) {
-            const pmIds = [...new Set(applicationsData.map(app => app.pm_id))];
+            const pmIds = Array.from(new Set(applicationsData.map(app => app.pm_id)));
             const { data: profilesData } = await supabase
               .from('profiles')
               .select('id, full_name, profile_details')
