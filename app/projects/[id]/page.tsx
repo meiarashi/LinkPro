@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../../../components/ui/button";
 import { createClient } from "../../../utils/supabase/client";
+import LoggedInHeader from "../../../components/LoggedInHeader";
 import Link from "next/link";
 import { 
   ArrowLeft, 
@@ -15,6 +16,12 @@ import {
   XCircle,
   Clock
 } from "lucide-react";
+
+interface Profile {
+  id: string;
+  user_type: string;
+  full_name: string | null;
+}
 
 interface Project {
   id: string;
@@ -54,7 +61,8 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [applicationStatusUpdating, setApplicationStatusUpdating] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [applicationMessage, setApplicationMessage] = useState('');
@@ -66,11 +74,13 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
   const fetchProjectData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
         router.push("/login");
         return;
       }
+      
+      setUser(currentUser);
 
       // プロジェクト情報を取得
       const { data: projectData, error: projectError } = await supabase
@@ -86,16 +96,18 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       }
 
       setProject(projectData);
-      setIsOwner(projectData.client_id === user.id);
+      setIsOwner(projectData.client_id === currentUser.id);
 
       // ユーザープロフィールを取得
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", currentUser.id)
         .single();
       
-      setUserProfile(profileData);
+      if (profileData) {
+        setUserProfile(profileData);
+      }
 
       // PMの場合、既に応募しているかチェック
       if (profileData?.user_type === 'pm') {
@@ -103,14 +115,14 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           .from("applications")
           .select("id")
           .eq("project_id", params.id)
-          .eq("pm_id", user.id)
+          .eq("pm_id", currentUser.id)
           .single();
         
         setHasApplied(!!existingApplication);
       }
 
       // プロジェクトオーナーの場合は応募情報も取得
-      if (projectData.client_id === user.id) {
+      if (projectData.client_id === currentUser.id) {
         const { data: applicationsData, error: applicationsError } = await supabase
           .from("applications")
           .select("*")
@@ -249,33 +261,21 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href={isOwner ? "/dashboard" : "/projects"}>
-                <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  戻る
-                </Button>
-              </Link>
-              <h1 className="text-xl font-bold">プロジェクト詳細</h1>
-            </div>
-            {isOwner && (
-              <Link href={`/projects/${project.id}/edit`}>
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <Edit className="w-4 h-4" />
-                  編集
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* 統一ヘッダー */}
+      {userProfile && <LoggedInHeader userProfile={userProfile} userEmail={user?.email} />}
 
       {/* Main Content */}
       <main className="container mx-auto p-4 md:p-8 max-w-6xl">
+        {/* 戻るボタン */}
+        <div className="mb-6">
+          <Link href={isOwner ? "/dashboard" : "/projects"}>
+            <Button variant="ghost" size="sm" className="flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              {isOwner ? "ダッシュボードに戻る" : "案件一覧に戻る"}
+            </Button>
+          </Link>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* プロジェクト情報 */}
           <div className="lg:col-span-2 space-y-6">
@@ -310,7 +310,17 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           {/* サイドバー */}
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-gray-800 mb-4">プロジェクト情報</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">プロジェクト情報</h3>
+                {isOwner && (
+                  <Link href={`/projects/${project.id}/edit`}>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                      <Edit className="w-4 h-4" />
+                      編集
+                    </Button>
+                  </Link>
+                )}
+              </div>
               
               <div className="space-y-3">
                 {project.budget && (
