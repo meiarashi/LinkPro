@@ -127,12 +127,20 @@ export default function ClientDashboard({
             <h1 className="text-2xl font-bold text-gray-800">ダッシュボード</h1>
             <p className="text-gray-600 mt-1">プロジェクトと応募状況を管理</p>
           </div>
-          <Link href="/projects/new">
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              新規プロジェクト作成
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/messages">
+              <Button variant="outline" className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                メッセージ
+              </Button>
+            </Link>
+            <Link href="/projects/new">
+              <Button className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                新規プロジェクト作成
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* サマリーカード */}

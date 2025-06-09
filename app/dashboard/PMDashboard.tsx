@@ -50,12 +50,20 @@ export default function PMDashboard({
             <h1 className="text-2xl font-bold text-gray-800">PMダッシュボード</h1>
             <p className="text-gray-600 mt-1">案件への応募状況を管理</p>
           </div>
-          <Link href="/projects">
-            <Button className="flex items-center gap-2">
-              <FolderOpen className="w-4 h-4" />
-              案件を探す
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/messages">
+              <Button variant="outline" className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                メッセージ
+              </Button>
+            </Link>
+            <Link href="/projects">
+              <Button className="flex items-center gap-2">
+                <FolderOpen className="w-4 h-4" />
+                案件を探す
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* サマリーカード */}
