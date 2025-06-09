@@ -1,0 +1,134 @@
+# LinkPro データベース構造とポリシー
+更新日: 2024年
+
+## 1. messagesテーブル
+
+### テーブル構造
+```sql
+CREATE TABLE public.messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    receiver_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    application_id UUID REFERENCES public.applications(id) ON DELETE CASCADE,
+    conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    message_type VARCHAR(50) DEFAULT 'normal' CHECK (message_type IN ('normal', 'application', 'scout')),
+    read_status BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+### インデックス
+- idx_public_messages_sender_id (sender_id)
+- idx_public_messages_receiver_id (receiver_id)
+- idx_public_messages_project_id (project_id)
+- idx_public_messages_created_at (created_at DESC)
+- idx_messages_conversation_id (conversation_id)
+
+### RLSポリシー
+1. **Users can view their own messages** (SELECT)
+   - `auth.uid() = sender_id OR auth.uid() = receiver_id`
+
+2. **Users can send messages** (INSERT)
+   - `auth.uid() = sender_id`
+
+3. **Users can update read status** (UPDATE)
+   - `auth.uid() = receiver_id`
+
+### トリガー
+- update_messages_updated_at: updated_at自動更新
+
+## 2. conversationsテーブル
+
+### テーブル構造
+```sql
+CREATE TABLE public.conversations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+    client_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    pm_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    application_id UUID REFERENCES public.applications(id) ON DELETE SET NULL,
+    initiated_by VARCHAR(50) NOT NULL CHECK (initiated_by IN ('application', 'scout')),
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'closed')),
+    last_message_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(project_id, client_id, pm_id)
+);
+```
+
+### インデックス
+- idx_conversations_project_id (project_id)
+- idx_conversations_client_id (client_id)
+- idx_conversations_pm_id (pm_id)
+- idx_conversations_status (status)
+- idx_conversations_last_message (last_message_at DESC)
+
+### RLSポリシー
+1. **Users can view their own conversations** (SELECT)
+   - `auth.uid() = client_id OR auth.uid() = pm_id`
+
+2. **Users can create conversations** (INSERT)
+   - `auth.uid() IN (client_id, pm_id)`
+
+3. **Users can update their own conversations** (UPDATE)
+   - `auth.uid() IN (client_id, pm_id)`
+
+### トリガー
+- update_conversations_updated_at: updated_at自動更新
+
+## 3. applicationsテーブル（既存、確認済み）
+
+### テーブル構造
+```sql
+- id: UUID (PRIMARY KEY)
+- project_id: UUID (REFERENCES projects)
+- pm_id: UUID (REFERENCES auth.users)
+- application_date: TIMESTAMP WITH TIME ZONE
+- message: TEXT
+- status: TEXT (CHECK IN ('pending', 'accepted', 'rejected'))
+- attachments: JSONB
+- created_at: TIMESTAMP WITH TIME ZONE
+- updated_at: TIMESTAMP WITH TIME ZONE
+```
+
+### インデックス（推奨）
+- idx_applications_status (status)
+- idx_applications_pm_id (pm_id)
+- idx_applications_project_id (project_id)
+- idx_applications_created_at (created_at DESC)
+
+## 4. メッセージング機能の仕様
+
+### メッセージ送信権限
+1. **PM → クライアント（応募ベース）**
+   - PMは応募時の初回メッセージのみ送信可能
+   - クライアントが応募を「承認」(accepted)した場合のみ、双方向メッセージが開始
+   - 承認前：PMは追加メッセージ送信不可
+
+2. **クライアント → PM（スカウトベース）**
+   - クライアントはいつでもPMにスカウトメッセージを送信可能
+   - スカウトを受けた時点で双方向メッセージが可能
+   - initiated_by = 'scout'として記録
+
+### conversationのステータス
+- **pending**: 会話開始前（応募はあるが未承認）
+- **active**: メッセージのやり取りが可能
+- **closed**: 会話終了
+
+### 応募承認フロー
+1. PMがプロジェクトに応募 → applicationsレコード作成（status='pending'）
+2. クライアントが承認 → status='accepted'に更新
+3. conversationレコード自動作成（status='active', initiated_by='application'）
+4. 双方向メッセージが可能に
+
+## 5. 今後の実装予定
+
+1. メッセージ一覧ページ (/messages)
+2. メッセージ詳細（チャット）ページ (/messages/[conversationId])
+3. リアルタイム更新（Supabase Realtime）
+4. 既読機能の実装
+5. 通知機能
+6. スカウト機能

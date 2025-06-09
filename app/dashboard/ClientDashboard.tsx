@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from 'next/link';
 import { Button } from "../../components/ui/button";
-import { Plus, FolderOpen, Users, MessageSquare, AlertCircle } from 'lucide-react';
+import { Plus, FolderOpen, Users, MessageSquare, AlertCircle, Check, X } from 'lucide-react';
+import { createClient } from '../../utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 interface Project {
   id: string;
@@ -40,6 +42,56 @@ export default function ClientDashboard({
   recentApplications, 
   projectsLoading 
 }: ClientDashboardProps) {
+  const router = useRouter();
+  const supabase = createClient();
+  const [processingApplicationId, setProcessingApplicationId] = useState<string | null>(null);
+  
+  const handleApplicationAction = async (applicationId: string, action: 'accept' | 'reject') => {
+    setProcessingApplicationId(applicationId);
+    
+    try {
+      // 応募のステータスを更新
+      const newStatus = action === 'accept' ? 'accepted' : 'rejected';
+      const { error: updateError } = await supabase
+        .from('applications')
+        .update({ status: newStatus })
+        .eq('id', applicationId);
+      
+      if (updateError) throw updateError;
+      
+      // 承認の場合、会話を作成
+      if (action === 'accept') {
+        const application = recentApplications.find(a => a.id === applicationId);
+        if (application) {
+          // conversationを作成
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { error: convError } = await supabase
+              .from('conversations')
+              .insert({
+                project_id: application.project_id,
+                client_id: user.id,
+                pm_id: application.pm_id,
+                application_id: applicationId,
+                initiated_by: 'application',
+                status: 'active'
+              });
+            
+            if (convError && convError.code !== '23505') { // 重複エラーは無視
+              console.error('Error creating conversation:', convError);
+            }
+          }
+        }
+      }
+      
+      // ページをリフレッシュ
+      router.refresh();
+    } catch (error) {
+      console.error('Error processing application:', error);
+    } finally {
+      setProcessingApplicationId(null);
+    }
+  };
   
   const getStatusBadge = (status: string) => {
     const statusMap = {
@@ -123,9 +175,41 @@ export default function ClientDashboard({
                   {application.pm_profile?.full_name || 'PM'} さんからの応募
                 </p>
                 <p className="text-sm text-gray-600 mt-1">{application.message}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(application.created_at).toLocaleDateString('ja-JP')}
-                </p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-gray-500">
+                    {new Date(application.created_at).toLocaleDateString('ja-JP')}
+                  </p>
+                  {application.status === 'pending' && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 hover:bg-green-50"
+                        onClick={() => handleApplicationAction(application.id, 'accept')}
+                        disabled={processingApplicationId === application.id}
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        承認
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:bg-red-50"
+                        onClick={() => handleApplicationAction(application.id, 'reject')}
+                        disabled={processingApplicationId === application.id}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        却下
+                      </Button>
+                    </div>
+                  )}
+                  {application.status === 'accepted' && (
+                    <span className="text-xs text-green-600 font-medium">承認済み</span>
+                  )}
+                  {application.status === 'rejected' && (
+                    <span className="text-xs text-red-600 font-medium">却下済み</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
