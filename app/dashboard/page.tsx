@@ -151,14 +151,9 @@ export default function DashboardPage() {
             }));
             
             setRecentApplications(applicationsWithProfiles);
-            return;
-          }
-          
-          if (appError) {
+          } else if (appError) {
             console.error("Error fetching applications:", appError);
-          }
-          
-          if (applicationsData) {
+          } else if (applicationsData) {
             setRecentApplications(applicationsData);
           }
         }
