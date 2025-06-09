@@ -71,9 +71,9 @@ export async function middleware(request: NextRequest) {
     '/terms',
     '/privacy',
     '/company',
-    '/sso-callback',
     '/api(.*)', // API経路もパブリックとして扱う
-    '/auth(.*)' //認証関連のパスを追加
+    '/auth(.*)', // 認証関連のパスを追加
+    '/auth/callback' // OAuth callbackを明示的に追加
   ];
 
   //  リクエストされたパスがpublicPathsに含まれるかチェック

@@ -99,7 +99,7 @@ export default function SignUpPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/sso-callback?redirect_url=/dashboard&type=${userType || ''}`,
+        redirectTo: `${window.location.origin}/auth/callback?type=${userType}`,
       },
     });
     if (error) {
