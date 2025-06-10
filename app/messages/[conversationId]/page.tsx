@@ -526,13 +526,17 @@ export default function ConversationPage({
                             {formatTime(message.created_at)}
                           </p>
                           
+                          {/* デバッグ情報 */}
+                          <span className="text-xs text-green-500 ml-2">
+                            {isMyMessage ? "自分" : "相手"} / 削除: {message.is_deleted ? "Yes" : "No"}
+                          </span>
+                          
                           {/* 自分のメッセージにのみメニューボタンを表示 */}
                           {isMyMessage && !message.is_deleted && (
                             <div className="relative">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 w-6 p-0"
+                              <span className="text-xs text-red-500 mr-2">編集</span>
+                              <button
+                                className="h-6 w-6 p-1 bg-gray-200 hover:bg-gray-300 rounded"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setShowMenuForMessage(
@@ -540,8 +544,8 @@ export default function ConversationPage({
                                   );
                                 }}
                               >
-                                <MoreVertical className="w-3 h-3" />
-                              </Button>
+                                ⋮
+                              </button>
                               
                               {showMenuForMessage === message.id && (
                                 <div className="absolute right-0 bottom-full mb-1 w-32 bg-white rounded-md shadow-lg z-10 border">
