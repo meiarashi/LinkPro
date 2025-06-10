@@ -1,4 +1,4 @@
--- ÝXUŒ_"aöÆüÖë
+-- Create saved searches table
 CREATE TABLE saved_searches (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -8,13 +8,13 @@ CREATE TABLE saved_searches (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- ¤óÇÃ¯¹
+-- Create index
 CREATE INDEX idx_saved_searches_user_id ON saved_searches(user_id);
 
--- RLSÝê·ü
+-- Enable RLS
 ALTER TABLE saved_searches ENABLE ROW LEVEL SECURITY;
 
--- æü¶üoênÝXW_"aönÂgûÍ\ïý
+-- RLS policies
 CREATE POLICY "Users can view own saved searches" ON saved_searches
   FOR SELECT USING (auth.uid() = user_id);
 
