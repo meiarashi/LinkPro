@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Button } from "../../components/ui/button";
 import { Slider } from "../../components/ui/slider";
 import LoggedInHeader from '../../components/LoggedInHeader';
-import { Search, Filter, Briefcase, Clock, DollarSign, ChevronRight, Users, Save, Bookmark, Trash2 } from 'lucide-react';
+import { Search, Filter, Briefcase, Clock, DollarSign, ChevronRight, Users, Save, Bookmark, Trash2, History } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -45,6 +45,8 @@ export default function ProjectsPage() {
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [searchName, setSearchName] = useState('');
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [showSearchHistory, setShowSearchHistory] = useState(false);
   
   const supabase = createClient();
   const router = useRouter();
@@ -55,6 +57,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     fetchProjects();
     fetchSavedSearches();
+    loadSearchHistory();
   }, []);
 
   useEffect(() => {
@@ -138,6 +141,26 @@ export default function ProjectsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadSearchHistory = () => {
+    const history = localStorage.getItem('searchHistory');
+    if (history) {
+      setSearchHistory(JSON.parse(history));
+    }
+  };
+
+  const saveToHistory = (query: string) => {
+    if (!query.trim()) return;
+    
+    const updatedHistory = [query, ...searchHistory.filter(h => h !== query)].slice(0, 10);
+    setSearchHistory(updatedHistory);
+    localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    saveToHistory(query);
   };
 
   const filterProjects = () => {
@@ -340,8 +363,34 @@ export default function ProjectsPage() {
                   placeholder="キーワード、スキルで検索..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      saveToHistory(searchQuery);
+                    }
+                  }}
+                  onFocus={() => setShowSearchHistory(true)}
+                  onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                {showSearchHistory && searchHistory.length > 0 && (
+                  <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                    <div className="p-2">
+                      <div className="text-xs text-gray-500 px-2 pb-1 flex items-center gap-1">
+                        <History className="w-3 h-3" />
+                        検索履歴
+                      </div>
+                      {searchHistory.map((history, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleSearch(history)}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm"
+                        >
+                          {history}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               {searchQuery && (
                 <div className="mt-2 flex items-center gap-2">
