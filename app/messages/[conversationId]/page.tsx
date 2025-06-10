@@ -449,7 +449,7 @@ export default function ConversationPage({
                       </div>
                     )}
                     
-                    <div className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'} group`}>
+                    <div className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-xs md:max-w-md ${isMyMessage ? 'order-2' : 'order-1'} relative`}>
                         {!isMyMessage && (
                           <div className="flex items-center gap-2 mb-1">
@@ -519,24 +519,18 @@ export default function ConversationPage({
                           )}
                         </div>
                         
-                        <div className={`flex items-center gap-2 mt-1 ${
+                        <div className={`flex items-center gap-1 mt-1 ${
                           isMyMessage ? 'justify-end' : 'justify-start'
                         }`}>
                           <p className="text-xs text-gray-500">
                             {formatTime(message.created_at)}
                           </p>
                           
-                          {/* デバッグ情報 */}
-                          <span className="text-xs text-green-500 ml-2">
-                            {isMyMessage ? "自分" : "相手"} / ID: {currentUserId ? currentUserId.slice(0, 8) : "null"}
-                          </span>
-                          
-                          {/* 自分のメッセージにのみメニューボタンを表示 */}
+                          {/* 自分のメッセージにのみメニューボタンを表示（常に表示） */}
                           {isMyMessage && !message.is_deleted && (
-                            <div className="relative">
-                              <span className="text-xs text-red-500 mr-2">編集</span>
+                            <div className="relative ml-2">
                               <button
-                                className="h-6 w-6 p-1 bg-gray-200 hover:bg-gray-300 rounded"
+                                className="p-1 hover:bg-gray-200 rounded transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setShowMenuForMessage(
@@ -544,7 +538,7 @@ export default function ConversationPage({
                                   );
                                 }}
                               >
-                                ⋮
+                                <MoreVertical className="w-4 h-4 text-gray-400 hover:text-gray-600" />
                               </button>
                               
                               {showMenuForMessage === message.id && (
