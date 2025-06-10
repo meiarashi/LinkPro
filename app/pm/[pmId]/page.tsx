@@ -54,6 +54,7 @@ export default function PMDetailPage({
   const [loading, setLoading] = useState(true);
   const [pmProfile, setPmProfile] = useState<PMProfile | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const [userProjects, setUserProjects] = useState<any[]>([]);
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function PMDetailPage({
       // ユーザープロフィールを確認（クライアントのみアクセス可能）
       const { data: userProfile } = await supabase
         .from("profiles")
-        .select("user_type")
+        .select("*")
         .eq("id", user.id)
         .single();
 
@@ -82,6 +83,8 @@ export default function PMDetailPage({
         router.push("/dashboard");
         return;
       }
+
+      setCurrentUserProfile(userProfile);
 
       // PMプロフィールを取得
       const { data: pm, error } = await supabase
@@ -140,7 +143,12 @@ export default function PMDetailPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <LoggedInHeader />
+      {currentUserProfile && (
+        <LoggedInHeader 
+          userProfile={currentUserProfile} 
+          userEmail={currentUser?.email}
+        />
+      )}
       
       <main className="container mx-auto px-4 py-8">
         {/* 戻るボタン */}

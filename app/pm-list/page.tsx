@@ -39,6 +39,7 @@ export default function PMListPage() {
   const [userProjects, setUserProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [showScoutModal, setShowScoutModal] = useState(false);
   const [selectedPm, setSelectedPm] = useState<PMProfile | null>(null);
@@ -80,7 +81,7 @@ export default function PMListPage() {
       // ユーザープロフィールを確認（クライアントのみアクセス可能）
       const { data: profile } = await supabase
         .from("profiles")
-        .select("user_type")
+        .select("*")
         .eq("id", user.id)
         .single();
 
@@ -88,6 +89,8 @@ export default function PMListPage() {
         router.push("/dashboard");
         return;
       }
+
+      setUserProfile(profile);
 
       // PM一覧を取得
       const { data: pms, error: pmsError } = await supabase
@@ -218,7 +221,12 @@ export default function PMListPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <LoggedInHeader />
+      {userProfile && (
+        <LoggedInHeader 
+          userProfile={userProfile} 
+          userEmail={currentUser?.email}
+        />
+      )}
       
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
