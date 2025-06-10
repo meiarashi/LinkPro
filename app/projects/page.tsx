@@ -455,34 +455,36 @@ export default function ProjectsPage() {
                     </button>
                   </div>
                   
-                  {useBudgetSlider ? (
-                    <div>
-                      <Slider
-                        min={0}
-                        max={10000000}
-                        step={100000}
-                        value={budgetRange}
-                        onValueChange={setBudgetRange}
-                        className="mb-2"
-                      />
-                      <div className="flex justify-between text-xs text-gray-600">
-                        <span>{budgetRange[0].toLocaleString()}円</span>
-                        <span>{budgetRange[1].toLocaleString()}円</span>
+                  <div className="h-[46px]">
+                    {useBudgetSlider ? (
+                      <div className="h-full flex flex-col justify-center">
+                        <Slider
+                          min={0}
+                          max={10000000}
+                          step={100000}
+                          value={budgetRange}
+                          onValueChange={setBudgetRange}
+                          className="mb-1"
+                        />
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>{budgetRange[0].toLocaleString()}円</span>
+                          <span>{budgetRange[1].toLocaleString()}円</span>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <select
-                      value={budgetFilter}
-                      onChange={(e) => setBudgetFilter(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="all">すべて</option>
-                      <option value="under50">50万円未満</option>
-                      <option value="50to100">50万円〜100万円</option>
-                      <option value="100to300">100万円〜300万円</option>
-                      <option value="over300">300万円以上</option>
-                    </select>
-                  )}
+                    ) : (
+                      <select
+                        value={budgetFilter}
+                        onChange={(e) => setBudgetFilter(e.target.value)}
+                        className="w-full h-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="all">すべて</option>
+                        <option value="under50">50万円未満</option>
+                        <option value="50to100">50万円〜100万円</option>
+                        <option value="100to300">100万円〜300万円</option>
+                        <option value="over300">300万円以上</option>
+                      </select>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

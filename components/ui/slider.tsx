@@ -18,6 +18,8 @@ export function Slider({
   className = "",
 }: SliderProps) {
   const [localValue, setLocalValue] = React.useState(value)
+  const [isDragging, setIsDragging] = React.useState<number | null>(null)
+  const sliderRef = React.useRef<HTMLDivElement>(null)
   
   React.useEffect(() => {
     setLocalValue(value)
@@ -25,7 +27,7 @@ export function Slider({
 
   const handleChange = (index: number, newValue: number) => {
     const newValues = [...localValue]
-    newValues[index] = newValue
+    newValues[index] = Math.round(newValue / step) * step
     
     // 値の順序を保つ
     if (index === 0 && newValues[0] > newValues[1]) {
@@ -40,41 +42,55 @@ export function Slider({
 
   const percentage = (val: number) => ((val - min) / (max - min)) * 100
 
+  const handleMouseDown = (index: number) => (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsDragging(index)
+  }
+
+  const handleMouseMove = React.useCallback((e: MouseEvent) => {
+    if (isDragging === null || !sliderRef.current) return
+
+    const rect = sliderRef.current.getBoundingClientRect()
+    const percent = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
+    const newValue = (percent / 100) * (max - min) + min
+    
+    handleChange(isDragging, newValue)
+  }, [isDragging, max, min, step])
+
+  const handleMouseUp = React.useCallback(() => {
+    setIsDragging(null)
+  }, [])
+
+  React.useEffect(() => {
+    if (isDragging !== null) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp])
+
   return (
-    <div className={`relative w-full ${className}`}>
-      <div className="relative h-2 bg-gray-200 rounded-full">
+    <div ref={sliderRef} className={`relative w-full h-6 flex items-center ${className}`}>
+      <div className="relative w-full h-2 bg-gray-200 rounded-full">
         <div
-          className="absolute h-2 bg-blue-500 rounded-full"
+          className="absolute h-2 bg-blue-500 rounded-full transition-none"
           style={{
             left: `${percentage(localValue[0])}%`,
             width: `${percentage(localValue[1]) - percentage(localValue[0])}%`,
           }}
         />
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={localValue[0]}
-          onChange={(e) => handleChange(0, Number(e.target.value))}
-          className="absolute w-full h-2 opacity-0 cursor-pointer"
-        />
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={localValue[1]}
-          onChange={(e) => handleChange(1, Number(e.target.value))}
-          className="absolute w-full h-2 opacity-0 cursor-pointer"
+        <div
+          className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full -mt-1.5 cursor-grab hover:scale-110 transition-transform"
+          style={{ left: `calc(${percentage(localValue[0])}% - 10px)` }}
+          onMouseDown={handleMouseDown(0)}
         />
         <div
-          className="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full -mt-1 cursor-pointer"
-          style={{ left: `calc(${percentage(localValue[0])}% - 8px)` }}
-        />
-        <div
-          className="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full -mt-1 cursor-pointer"
-          style={{ left: `calc(${percentage(localValue[1])}% - 8px)` }}
+          className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full -mt-1.5 cursor-grab hover:scale-110 transition-transform"
+          style={{ left: `calc(${percentage(localValue[1])}% - 10px)` }}
+          onMouseDown={handleMouseDown(1)}
         />
       </div>
     </div>
