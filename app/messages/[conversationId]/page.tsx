@@ -517,7 +517,7 @@ export default function ConversationPage({
                               
                               {/* 自分のメッセージにのみメニューボタンを表示 */}
                               {isMyMessage && (
-                                <div className="absolute -left-8 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute -right-10 top-0 group-hover:opacity-100 transition-opacity z-10" style={{ opacity: 1 }}>
                                   <Button
                                     size="sm"
                                     variant="ghost"
