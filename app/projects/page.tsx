@@ -64,6 +64,17 @@ export default function ProjectsPage() {
     filterProjects();
   }, [searchQuery, selectedSkills, budgetFilter, projects, searchMode, skillsMode, budgetRange, useBudgetSlider]);
 
+  // 検索履歴の保存（デバウンス）
+  useEffect(() => {
+    if (!searchQuery.trim()) return;
+    
+    const timer = setTimeout(() => {
+      saveToHistory(searchQuery);
+    }, 5000); // 5秒後に保存
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const fetchProjects = async () => {
     try {
       // ユーザー情報を取得
@@ -363,11 +374,6 @@ export default function ProjectsPage() {
                   placeholder="キーワード、スキルで検索..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      saveToHistory(searchQuery);
-                    }
-                  }}
                   onFocus={() => setShowSearchHistory(true)}
                   onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
