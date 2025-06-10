@@ -5,8 +5,9 @@ import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from "../../components/ui/button";
+import { Slider } from "../../components/ui/slider";
 import LoggedInHeader from '../../components/LoggedInHeader';
-import { Search, Filter, Briefcase, Clock, DollarSign, ChevronRight, Users } from 'lucide-react';
+import { Search, Filter, Briefcase, Clock, DollarSign, ChevronRight, Users, Save, Bookmark } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -37,6 +38,13 @@ export default function ProjectsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [searchMode, setSearchMode] = useState<'and' | 'or'>('and');
+  const [skillsMode, setSkillsMode] = useState<'and' | 'or'>('and');
+  const [budgetRange, setBudgetRange] = useState<number[]>([0, 10000000]);
+  const [useBudgetSlider, setUseBudgetSlider] = useState(false);
+  const [savedSearches, setSavedSearches] = useState<any[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [searchName, setSearchName] = useState('');
   
   const supabase = createClient();
   const router = useRouter();
@@ -46,11 +54,12 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     fetchProjects();
+    fetchSavedSearches();
   }, []);
 
   useEffect(() => {
     filterProjects();
-  }, [searchQuery, selectedSkills, budgetFilter, projects]);
+  }, [searchQuery, selectedSkills, budgetFilter, projects, searchMode, skillsMode, budgetRange, useBudgetSlider]);
 
   const fetchProjects = async () => {
     try {
@@ -136,26 +145,60 @@ export default function ProjectsPage() {
 
     // 検索クエリでフィルター
     if (searchQuery) {
-      filtered = filtered.filter((project: Project) => 
-        project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.required_skills?.some((skill: string) => 
-          skill.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      );
+      const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+      
+      filtered = filtered.filter((project: Project) => {
+        if (searchMode === 'and') {
+          // AND検索: すべての検索語が含まれている必要がある
+          return searchTerms.every(term =>
+            project.title.toLowerCase().includes(term) ||
+            project.description?.toLowerCase().includes(term) ||
+            project.required_skills?.some((skill: string) => 
+              skill.toLowerCase().includes(term)
+            )
+          );
+        } else {
+          // OR検索: いずれかの検索語が含まれていればOK
+          return searchTerms.some(term =>
+            project.title.toLowerCase().includes(term) ||
+            project.description?.toLowerCase().includes(term) ||
+            project.required_skills?.some((skill: string) => 
+              skill.toLowerCase().includes(term)
+            )
+          );
+        }
+      });
     }
 
     // スキルでフィルター
     if (selectedSkills.length > 0) {
-      filtered = filtered.filter((project: Project) =>
-        selectedSkills.every((skill: string) =>
-          project.required_skills?.includes(skill)
-        )
-      );
+      filtered = filtered.filter((project: Project) => {
+        if (!project.required_skills) return false;
+        
+        if (skillsMode === 'and') {
+          // AND: すべての選択スキルが必要
+          return selectedSkills.every((skill: string) =>
+            project.required_skills?.includes(skill)
+          );
+        } else {
+          // OR: いずれかの選択スキルがあればOK
+          return selectedSkills.some((skill: string) =>
+            project.required_skills?.includes(skill)
+          );
+        }
+      });
     }
 
     // 予算でフィルター
-    if (budgetFilter !== 'all') {
+    if (useBudgetSlider) {
+      // スライダーを使用する場合
+      filtered = filtered.filter((project: Project) => {
+        if (!project.budget) return false;
+        const budgetValue = parseInt(project.budget.replace(/[^0-9]/g, ''));
+        return budgetValue >= budgetRange[0] && budgetValue <= budgetRange[1];
+      });
+    } else if (budgetFilter !== 'all') {
+      // ドロップダウンを使用する場合
       filtered = filtered.filter((project: Project) => {
         if (!project.budget) return false;
         const budgetValue = parseInt(project.budget.replace(/[^0-9]/g, ''));
@@ -186,6 +229,70 @@ export default function ProjectsPage() {
     );
   };
 
+  const fetchSavedSearches = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('saved_searches')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSavedSearches(data || []);
+    } catch (error) {
+      console.error('Error fetching saved searches:', error);
+    }
+  };
+
+  const saveSearch = async () => {
+    if (!searchName.trim()) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const searchParams = {
+        searchQuery,
+        selectedSkills,
+        budgetFilter,
+        searchMode,
+        skillsMode,
+        budgetRange,
+        useBudgetSlider
+      };
+
+      const { error } = await supabase
+        .from('saved_searches')
+        .insert({
+          user_id: user.id,
+          name: searchName,
+          search_params: searchParams
+        });
+
+      if (error) throw error;
+
+      setShowSaveDialog(false);
+      setSearchName('');
+      fetchSavedSearches();
+    } catch (error) {
+      console.error('Error saving search:', error);
+    }
+  };
+
+  const loadSavedSearch = (savedSearch: any) => {
+    const params = savedSearch.search_params;
+    setSearchQuery(params.searchQuery || '');
+    setSelectedSkills(params.selectedSkills || []);
+    setBudgetFilter(params.budgetFilter || 'all');
+    setSearchMode(params.searchMode || 'and');
+    setSkillsMode(params.skillsMode || 'and');
+    setBudgetRange(params.budgetRange || [0, 10000000]);
+    setUseBudgetSlider(params.useBudgetSlider || false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -211,29 +318,86 @@ export default function ProjectsPage() {
         {/* 検索・フィルターバー */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="キーワード、スキルで検索..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2"
-            >
-              <Filter className="w-4 h-4" />
-              フィルター
-              {(selectedSkills.length > 0 || budgetFilter !== 'all') && (
-                <span className="ml-1 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
-                  {selectedSkills.length + (budgetFilter !== 'all' ? 1 : 0)}
-                </span>
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="キーワード、スキルで検索..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              {searchQuery && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-sm text-gray-600">検索モード:</span>
+                  <button
+                    onClick={() => setSearchMode('and')}
+                    className={`px-2 py-1 text-xs rounded ${searchMode === 'and' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  >
+                    AND
+                  </button>
+                  <button
+                    onClick={() => setSearchMode('or')}
+                    className={`px-2 py-1 text-xs rounded ${searchMode === 'or' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  >
+                    OR
+                  </button>
+                </div>
               )}
-            </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                フィルター
+                {(selectedSkills.length > 0 || budgetFilter !== 'all' || useBudgetSlider) && (
+                  <span className="ml-1 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
+                    {selectedSkills.length + (budgetFilter !== 'all' || useBudgetSlider ? 1 : 0)}
+                  </span>
+                )}
+              </Button>
+              
+              {(searchQuery || selectedSkills.length > 0 || budgetFilter !== 'all' || useBudgetSlider) && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSaveDialog(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  保存
+                </Button>
+              )}
+              
+              {savedSearches.length > 0 && (
+                <div className="relative group">
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Bookmark className="w-4 h-4" />
+                    保存済み ({savedSearches.length})
+                  </Button>
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                    <div className="p-2">
+                      {savedSearches.map((saved) => (
+                        <button
+                          key={saved.id}
+                          onClick={() => loadSavedSearch(saved)}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded-md text-sm"
+                        >
+                          {saved.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* フィルターパネル */}
@@ -242,7 +406,23 @@ export default function ProjectsPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 {/* スキルフィルター */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">必要スキル</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-700">必要スキル</h3>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSkillsMode('and')}
+                        className={`px-2 py-1 text-xs rounded ${skillsMode === 'and' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                      >
+                        すべて含む
+                      </button>
+                      <button
+                        onClick={() => setSkillsMode('or')}
+                        className={`px-2 py-1 text-xs rounded ${skillsMode === 'or' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                      >
+                        いずれか含む
+                      </button>
+                    </div>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {allSkills.map((skill: string) => (
                       <button
@@ -262,18 +442,47 @@ export default function ProjectsPage() {
 
                 {/* 予算フィルター */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">予算</h3>
-                  <select
-                    value={budgetFilter}
-                    onChange={(e) => setBudgetFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="all">すべて</option>
-                    <option value="under50">50万円未満</option>
-                    <option value="50to100">50万円〜100万円</option>
-                    <option value="100to300">100万円〜300万円</option>
-                    <option value="over300">300万円以上</option>
-                  </select>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-700">予算</h3>
+                    <button
+                      onClick={() => {
+                        setUseBudgetSlider(!useBudgetSlider);
+                        if (!useBudgetSlider) setBudgetFilter('all');
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      {useBudgetSlider ? 'ドロップダウンに切替' : 'スライダーに切替'}
+                    </button>
+                  </div>
+                  
+                  {useBudgetSlider ? (
+                    <div>
+                      <Slider
+                        min={0}
+                        max={10000000}
+                        step={100000}
+                        value={budgetRange}
+                        onValueChange={setBudgetRange}
+                        className="mb-2"
+                      />
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>{budgetRange[0].toLocaleString()}円</span>
+                        <span>{budgetRange[1].toLocaleString()}円</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <select
+                      value={budgetFilter}
+                      onChange={(e) => setBudgetFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">すべて</option>
+                      <option value="under50">50万円未満</option>
+                      <option value="50to100">50万円〜100万円</option>
+                      <option value="100to300">100万円〜300万円</option>
+                      <option value="over300">300万円以上</option>
+                    </select>
+                  )}
                 </div>
               </div>
             </div>
@@ -384,6 +593,36 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {/* 保存ダイアログ */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96">
+            <h3 className="text-lg font-semibold mb-4">検索条件を保存</h3>
+            <input
+              type="text"
+              placeholder="検索条件の名前"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowSaveDialog(false);
+                  setSearchName('');
+                }}
+              >
+                キャンセル
+              </Button>
+              <Button onClick={saveSearch}>
+                保存
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
