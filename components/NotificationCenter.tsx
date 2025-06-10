@@ -25,23 +25,32 @@ export default function NotificationCenter() {
   const supabase = createClient();
 
   useEffect(() => {
-    fetchNotifications();
-    
-    // リアルタイム更新の設定
-    const channel = supabase
-      .channel('notifications')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications'
-      }, (payload) => {
-        fetchNotifications();
-      })
-      .subscribe();
+    const setupNotifications = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    return () => {
-      supabase.removeChannel(channel);
+      fetchNotifications();
+      
+      // リアルタイム更新の設定
+      const channel = supabase
+        .channel('notifications')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          console.log('New notification:', payload);
+          fetchNotifications();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
+
+    setupNotifications();
   }, []);
 
   const fetchNotifications = async () => {
