@@ -449,8 +449,8 @@ export default function ConversationPage({
                       </div>
                     )}
                     
-                    <div className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-xs md:max-w-md ${isMyMessage ? 'order-2' : 'order-1'}`}>
+                    <div className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'} group`}>
+                      <div className={`max-w-xs md:max-w-md ${isMyMessage ? 'order-2' : 'order-1'} relative`}>
                         {!isMyMessage && (
                           <div className="flex items-center gap-2 mb-1">
                             <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
@@ -462,7 +462,7 @@ export default function ConversationPage({
                           </div>
                         )}
                         
-                        <div className="relative group">
+                        <div className="relative">
                           {message.is_deleted ? (
                             <div className="px-4 py-2 rounded-lg bg-gray-100 text-gray-500 italic">
                               <p className="text-sm">このメッセージは削除されました</p>
@@ -515,52 +515,55 @@ export default function ConversationPage({
                                 )}
                               </div>
                               
-                              {/* 自分のメッセージにのみメニューボタンを表示 */}
-                              {isMyMessage && (
-                                <div className="absolute -right-10 top-0 group-hover:opacity-100 transition-opacity z-10" style={{ opacity: 1 }}>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 w-8 p-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setShowMenuForMessage(
-                                        showMenuForMessage === message.id ? null : message.id
-                                      );
-                                    }}
-                                  >
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                  
-                                  {showMenuForMessage === message.id && (
-                                    <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-10 border">
-                                      <button
-                                        className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100 text-left"
-                                        onClick={() => startEditingMessage(message)}
-                                      >
-                                        <Edit2 className="w-3 h-3" />
-                                        編集
-                                      </button>
-                                      <button
-                                        className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100 text-left text-red-600"
-                                        onClick={() => handleDeleteMessage(message.id)}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                        削除
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
                             </>
                           )}
                         </div>
                         
-                        <p className={`text-xs text-gray-500 mt-1 ${
-                          isMyMessage ? 'text-right' : 'text-left'
+                        <div className={`flex items-center gap-2 mt-1 ${
+                          isMyMessage ? 'justify-end' : 'justify-start'
                         }`}>
-                          {formatTime(message.created_at)}
-                        </p>
+                          <p className="text-xs text-gray-500">
+                            {formatTime(message.created_at)}
+                          </p>
+                          
+                          {/* 自分のメッセージにのみメニューボタンを表示 */}
+                          {isMyMessage && !message.is_deleted && (
+                            <div className="relative">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowMenuForMessage(
+                                    showMenuForMessage === message.id ? null : message.id
+                                  );
+                                }}
+                              >
+                                <MoreVertical className="w-3 h-3" />
+                              </Button>
+                              
+                              {showMenuForMessage === message.id && (
+                                <div className="absolute right-0 bottom-full mb-1 w-32 bg-white rounded-md shadow-lg z-10 border">
+                                  <button
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100 text-left"
+                                    onClick={() => startEditingMessage(message)}
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                    編集
+                                  </button>
+                                  <button
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100 text-left text-red-600"
+                                    onClick={() => handleDeleteMessage(message.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    削除
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
