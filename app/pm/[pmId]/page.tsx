@@ -32,6 +32,8 @@ interface PMProfile {
   rate_info: {
     hourly_rate?: string;
     project_rate?: string;
+    consultation_rate?: string;
+    [key: string]: string | undefined;
   } | null;
   availability?: {
     status?: string;
@@ -56,6 +58,11 @@ export default function PMDetailPage({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const [userProjects, setUserProjects] = useState<any[]>([]);
+  const [matchedProjects, setMatchedProjects] = useState<string[]>([]);
+  const [showScoutModal, setShowScoutModal] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [scoutMessage, setScoutMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     loadPmProfile();
@@ -106,12 +113,27 @@ export default function PMDetailPage({
       // クライアントのプロジェクトを取得
       const { data: projects } = await supabase
         .from("projects")
-        .select("id, title")
+        .select("id, title, status")
         .eq("client_id", user.id)
         .eq("status", "public");
 
       if (projects) {
         setUserProjects(projects);
+        if (projects.length > 0) {
+          setSelectedProjectId(projects[0].id);
+        }
+      }
+
+      // 既存の会話（マッチング）を確認
+      const { data: existingConversations } = await supabase
+        .from("conversations")
+        .select("project_id")
+        .eq("client_id", user.id)
+        .eq("pm_id", params.pmId);
+
+      if (existingConversations) {
+        const matchedIds = existingConversations.map(conv => conv.project_id);
+        setMatchedProjects(matchedIds);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -121,12 +143,76 @@ export default function PMDetailPage({
   };
 
   const handleStartConversation = () => {
+    const availableProjects = userProjects.filter(p => !matchedProjects.includes(p.id));
+    
     if (userProjects.length === 0) {
       alert("スカウトするには、まず公開中のプロジェクトが必要です。");
       return;
     }
-    // PM一覧ページのスカウト機能を使う
-    router.push("/pm-list");
+    
+    if (availableProjects.length === 0) {
+      alert("すべてのプロジェクトで既にマッチングしています。");
+      return;
+    }
+    
+    // 最初の利用可能なプロジェクトを選択
+    const firstAvailable = availableProjects[0];
+    setSelectedProjectId(firstAvailable.id);
+    setShowScoutModal(true);
+  };
+
+  const sendScoutMessage = async () => {
+    if (!scoutMessage.trim() || !selectedProjectId) return;
+
+    setSending(true);
+
+    try {
+      // 新しい会話を作成
+      const { data: newConv, error: convError } = await supabase
+        .from("conversations")
+        .insert({
+          project_id: selectedProjectId,
+          client_id: currentUser.id,
+          pm_id: pmProfile!.id,
+          initiated_by: 'scout',
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (convError) {
+        console.error("Error creating conversation:", convError);
+        alert("会話の作成に失敗しました");
+        return;
+      }
+
+      // メッセージを送信
+      const { error: msgError } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: newConv.id,
+          sender_id: currentUser.id,
+          receiver_id: pmProfile!.id,
+          content: scoutMessage.trim(),
+          message_type: "normal",
+          project_id: selectedProjectId
+        });
+
+      if (msgError) {
+        console.error("Error sending message:", msgError);
+        alert("メッセージの送信に失敗しました");
+      } else {
+        alert("スカウトメッセージを送信しました！");
+        setShowScoutModal(false);
+        setScoutMessage("");
+        router.push("/messages");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("エラーが発生しました");
+    } finally {
+      setSending(false);
+    }
   };
 
   if (loading) {
@@ -235,21 +321,52 @@ export default function PMDetailPage({
           <div className="space-y-6">
             {/* アクションボタン */}
             <Card className="p-6">
-              <Button 
-                className="w-full mb-3"
-                size="lg"
-                onClick={handleStartConversation}
-              >
-                <MessageSquare className="w-5 h-5 mr-2" />
-                スカウトメッセージを送る
-              </Button>
-              <p className="text-sm text-gray-600 text-center">
-                プロジェクトを選択してメッセージを送信できます
-              </p>
+              {userProjects.length === 0 ? (
+                <div className="text-center">
+                  <p className="text-gray-600 mb-3">
+                    スカウトするには公開中のプロジェクトが必要です
+                  </p>
+                  <Button 
+                    className="w-full"
+                    onClick={() => router.push("/projects/new")}
+                  >
+                    プロジェクトを作成
+                  </Button>
+                </div>
+              ) : matchedProjects.length === userProjects.length ? (
+                <div className="text-center">
+                  <p className="text-gray-600 mb-3">
+                    すべてのプロジェクトで既にマッチングしています
+                  </p>
+                  <Button 
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => router.push("/messages")}
+                  >
+                    メッセージを見る
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Button 
+                    className="w-full mb-3"
+                    size="lg"
+                    onClick={handleStartConversation}
+                  >
+                    <MessageSquare className="w-5 h-5 mr-2" />
+                    スカウトメッセージを送る
+                  </Button>
+                  {matchedProjects.length > 0 && (
+                    <p className="text-sm text-gray-600 text-center">
+                      {userProjects.length - matchedProjects.length}個のプロジェクトでスカウト可能
+                    </p>
+                  )}
+                </>
+              )}
             </Card>
 
             {/* 料金情報 */}
-            {pmProfile.rate_info && (
+            {pmProfile.rate_info && Object.keys(pmProfile.rate_info).length > 0 && (
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">料金</h3>
                 {pmProfile.rate_info.hourly_rate && (
@@ -261,10 +378,18 @@ export default function PMDetailPage({
                   </div>
                 )}
                 {pmProfile.rate_info.project_rate && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-gray-600">プロジェクト単価</span>
                     <span className="font-semibold text-lg">
                       ¥{pmProfile.rate_info.project_rate}〜
+                    </span>
+                  </div>
+                )}
+                {pmProfile.rate_info.consultation_rate && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">相談料</span>
+                    <span className="font-semibold text-lg">
+                      ¥{pmProfile.rate_info.consultation_rate}/回
                     </span>
                   </div>
                 )}
@@ -302,6 +427,79 @@ export default function PMDetailPage({
           </div>
         </div>
       </main>
+
+      {/* スカウトモーダル */}
+      {showScoutModal && pmProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 className="text-xl font-bold mb-4">
+              {pmProfile.full_name}さんをスカウト
+            </h2>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">
+                プロジェクトを選択
+              </label>
+              <select
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {userProjects.map((project) => {
+                  const isMatched = matchedProjects.includes(project.id);
+                  return (
+                    <option 
+                      key={project.id} 
+                      value={project.id}
+                      disabled={isMatched}
+                    >
+                      {project.title} {isMatched && '（マッチ済み）'}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">
+                スカウトメッセージ
+              </label>
+              <textarea
+                value={scoutMessage}
+                onChange={(e) => setScoutMessage(e.target.value)}
+                placeholder="プロジェクトの概要や、なぜこのPMに興味を持ったのかを書いてください..."
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                rows={5}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowScoutModal(false);
+                  setScoutMessage("");
+                }}
+                disabled={sending}
+              >
+                キャンセル
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={sendScoutMessage}
+                disabled={sending || !scoutMessage.trim() || matchedProjects.includes(selectedProjectId)}
+              >
+                {sending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "送信"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

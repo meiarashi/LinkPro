@@ -32,7 +32,7 @@ export default function Navbar() {
   }, [supabase])
   
   // ログイン後のページではナビゲーションを表示しない
-  const loggedInPages = ['/dashboard', '/messages', '/projects', '/profile', '/settings'];
+  const loggedInPages = ['/dashboard', '/messages', '/projects', '/profile', '/settings', '/pm-list', '/pm'];
   if (loggedInPages.some(page => pathname?.startsWith(page))) {
     return null
   }
