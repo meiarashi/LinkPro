@@ -25,6 +25,7 @@ interface Conversation {
   client_id: string;
   pm_id: string;
   status: string;
+  application_id?: string;
   project?: {
     title: string;
   };
@@ -124,11 +125,20 @@ export default function ConversationPage({
         supabase.from("profiles").select("id, full_name").eq("id", convData.pm_id).single()
       ]);
 
+      // application_id を取得
+      const { data: applicationData } = await supabase
+        .from("applications")
+        .select("id")
+        .eq("project_id", convData.project_id)
+        .eq("pm_id", convData.pm_id)
+        .single();
+
       const conversationWithDetails = {
         ...convData,
         project: projectData,
         client_profile: clientProfile.data,
-        pm_profile: pmProfile.data
+        pm_profile: pmProfile.data,
+        application_id: applicationData?.id
       };
 
       setConversation(conversationWithDetails);
@@ -196,7 +206,8 @@ export default function ConversationPage({
           receiver_id: receiverId,
           content: newMessage.trim(),
           message_type: "normal",
-          project_id: conversation.project_id
+          project_id: conversation.project_id,
+          application_id: conversation.application_id || null
         })
         .select()
         .single();
