@@ -109,9 +109,14 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
               )}
               
               {userProfile.user_type === 'client' && (
-                <NavLink href="/projects/new" isActive={pathname === '/projects/new'}>
-                  プロジェクトを作成
-                </NavLink>
+                <>
+                  <NavLink href="/projects/new" isActive={pathname === '/projects/new'}>
+                    プロジェクトを作成
+                  </NavLink>
+                  <NavLink href="/pm-list" isActive={pathname === '/pm-list'}>
+                    PMを探す
+                  </NavLink>
+                </>
               )}
               
               <NavLink href="/messages" isActive={pathname.startsWith('/messages')}>
