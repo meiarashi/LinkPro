@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Button } from "../../components/ui/button";
 import { Slider } from "../../components/ui/slider";
 import LoggedInHeader from '../../components/LoggedInHeader';
-import { Search, Filter, Briefcase, Clock, DollarSign, ChevronRight, Users, Save, Bookmark } from 'lucide-react';
+import { Search, Filter, Briefcase, Clock, DollarSign, ChevronRight, Users, Save, Bookmark, Trash2 } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -293,6 +293,20 @@ export default function ProjectsPage() {
     setUseBudgetSlider(params.useBudgetSlider || false);
   };
 
+  const deleteSavedSearch = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('saved_searches')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchSavedSearches();
+    } catch (error) {
+      console.error('Error deleting saved search:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -383,15 +397,28 @@ export default function ProjectsPage() {
                     保存済み ({savedSearches.length})
                   </Button>
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                    <div className="p-2">
+                    <div className="p-2 max-h-80 overflow-y-auto">
                       {savedSearches.map((saved) => (
-                        <button
+                        <div
                           key={saved.id}
-                          onClick={() => loadSavedSearch(saved)}
-                          className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded-md text-sm"
+                          className="flex items-center justify-between hover:bg-gray-100 rounded-md group/item"
                         >
-                          {saved.name}
-                        </button>
+                          <button
+                            onClick={() => loadSavedSearch(saved)}
+                            className="flex-1 text-left px-3 py-2 text-sm"
+                          >
+                            {saved.name}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSavedSearch(saved.id);
+                            }}
+                            className="px-2 py-1 text-red-500 hover:text-red-700 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </div>
