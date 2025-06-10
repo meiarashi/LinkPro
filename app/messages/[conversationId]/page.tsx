@@ -54,7 +54,7 @@ export default function ConversationPage({
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
@@ -92,7 +92,7 @@ export default function ConversationPage({
             }]);
             
             // 自分宛てのメッセージなら既読にする
-            if (currentUser && newMessage.receiver_id === currentUser.id && !newMessage.read_status) {
+            if (currentUserId && newMessage.receiver_id === currentUserId && !newMessage.read_status) {
               await supabase
                 .from("messages")
                 .update({ read_status: true })
@@ -114,7 +114,7 @@ export default function ConversationPage({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [params.conversationId, currentUser]);
+  }, [params.conversationId, currentUserId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -147,7 +147,7 @@ export default function ConversationPage({
         return;
       }
       
-      setCurrentUser(user);
+      setCurrentUserId(user.id);
 
       // ユーザープロフィールを取得
       const { data: profileData } = await supabase
@@ -288,7 +288,7 @@ export default function ConversationPage({
         .update({ 
           is_deleted: true, 
           deleted_at: new Date().toISOString(),
-          deleted_by: currentUser?.id 
+          deleted_by: currentUserId 
         })
         .eq("id", messageId);
 
@@ -324,12 +324,12 @@ export default function ConversationPage({
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newMessage.trim() || !conversation || !currentUser) return;
+    if (!newMessage.trim() || !conversation || !currentUserId) return;
     
     setSending(true);
     
     try {
-      const receiverId = conversation.client_id === currentUser.id 
+      const receiverId = conversation.client_id === currentUserId 
         ? conversation.pm_id 
         : conversation.client_id;
 
@@ -337,7 +337,7 @@ export default function ConversationPage({
         .from("messages")
         .insert({
           conversation_id: params.conversationId,
-          sender_id: currentUser.id,
+          sender_id: currentUserId,
           receiver_id: receiverId,
           content: newMessage.trim(),
           message_type: "normal",
@@ -435,7 +435,7 @@ export default function ConversationPage({
           ) : (
             <>
               {messages.map((message, index) => {
-                const isMyMessage = message.sender_id === currentUser?.id;
+                const isMyMessage = message.sender_id === currentUserId;
                 const showDate = index === 0 || 
                   formatDate(message.created_at) !== formatDate(messages[index - 1].created_at);
 
@@ -528,7 +528,7 @@ export default function ConversationPage({
                           
                           {/* デバッグ情報 */}
                           <span className="text-xs text-green-500 ml-2">
-                            {isMyMessage ? "自分" : "相手"} / 削除: {message.is_deleted ? "Yes" : "No"}
+                            {isMyMessage ? "自分" : "相手"} / ID: {currentUserId ? currentUserId.slice(0, 8) : "null"}
                           </span>
                           
                           {/* 自分のメッセージにのみメニューボタンを表示 */}
