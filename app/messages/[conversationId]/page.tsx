@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "../../../components/ui/button";
 import { createClient } from "../../../utils/supabase/client";
-import { ArrowLeft, Send, Loader2, User } from "lucide-react";
+import { ArrowLeft, Send, Loader2, User, MoreVertical, Edit2, Trash2, X, Check } from "lucide-react";
 
 interface Message {
   id: string;
@@ -14,6 +14,9 @@ interface Message {
   content: string;
   created_at: string;
   read_status: boolean;
+  edited_at?: string | null;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
   sender_profile?: {
     full_name: string | null;
   };
@@ -53,21 +56,83 @@ export default function ConversationPage({
   const [newMessage, setNewMessage] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [showMenuForMessage, setShowMenuForMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadConversationAndMessages();
     
-    // リアルタイム更新の設定（後で実装）
-    // const subscription = setupRealtimeSubscription();
+    // リアルタイム更新の設定
+    const channel = supabase
+      .channel(`messages:${params.conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${params.conversationId}`
+        },
+        async (payload) => {
+          if (payload.eventType === 'INSERT') {
+            // 新しいメッセージが追加された場合
+            const newMessage = payload.new as Message;
+            
+            // 送信者のプロフィール情報を取得
+            const { data: senderProfile } = await supabase
+              .from("profiles")
+              .select("id, full_name")
+              .eq("id", newMessage.sender_id)
+              .single();
+            
+            setMessages(prev => [...prev, {
+              ...newMessage,
+              sender_profile: senderProfile || undefined
+            }]);
+            
+            // 自分宛てのメッセージなら既読にする
+            if (currentUser && newMessage.receiver_id === currentUser.id && !newMessage.read_status) {
+              await supabase
+                .from("messages")
+                .update({ read_status: true })
+                .eq("id", newMessage.id);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            // メッセージが更新された場合（編集・削除）
+            const updatedMessage = payload.new as Message;
+            setMessages(prev => prev.map(msg => 
+              msg.id === updatedMessage.id 
+                ? { ...updatedMessage, sender_profile: msg.sender_profile }
+                : msg
+            ));
+          }
+        }
+      )
+      .subscribe();
     
-    // return () => {
-    //   subscription?.unsubscribe();
-    // };
-  }, [params.conversationId]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [params.conversationId, currentUser]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 外部クリックでメニューを閉じる
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowMenuForMessage(null);
+    };
+
+    if (showMenuForMessage) {
+      document.addEventListener('click', handleClickOutside);
+      return () => {
+        document.removeEventListener('click', handleClickOutside);
+      };
+    }
+  }, [showMenuForMessage]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -143,7 +208,7 @@ export default function ConversationPage({
 
       setConversation(conversationWithDetails);
 
-      // メッセージを取得
+      // メッセージを取得（削除されたメッセージも含む）
       const { data: messagesData, error: messagesError } = await supabase
         .from("messages")
         .select("*")
@@ -184,6 +249,76 @@ export default function ConversationPage({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditMessage = async (messageId: string) => {
+    if (!editingContent.trim()) return;
+    
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .update({ content: editingContent.trim() })
+        .eq("id", messageId);
+
+      if (error) {
+        console.error("Error editing message:", error);
+        alert("メッセージの編集に失敗しました");
+      } else {
+        // ローカルのメッセージを更新
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, content: editingContent.trim(), edited_at: new Date().toISOString() }
+            : msg
+        ));
+        setEditingMessageId(null);
+        setEditingContent("");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("エラーが発生しました");
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm("このメッセージを削除しますか？")) return;
+    
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .update({ 
+          is_deleted: true, 
+          deleted_at: new Date().toISOString(),
+          deleted_by: currentUser?.id 
+        })
+        .eq("id", messageId);
+
+      if (error) {
+        console.error("Error deleting message:", error);
+        alert("メッセージの削除に失敗しました");
+      } else {
+        // ローカルのメッセージを更新
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, is_deleted: true, deleted_at: new Date().toISOString() }
+            : msg
+        ));
+        setShowMenuForMessage(null);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("エラーが発生しました");
+    }
+  };
+
+  const startEditingMessage = (message: Message) => {
+    setEditingMessageId(message.id);
+    setEditingContent(message.content);
+    setShowMenuForMessage(null);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditingContent("");
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -327,14 +462,98 @@ export default function ConversationPage({
                           </div>
                         )}
                         
-                        <div className={`px-4 py-2 rounded-lg ${
-                          isMyMessage 
-                            ? 'bg-primary text-white' 
-                            : 'bg-white border border-gray-200'
-                        }`}>
-                          <p className="text-sm whitespace-pre-wrap break-words">
-                            {message.content}
-                          </p>
+                        <div className="relative group">
+                          {message.is_deleted ? (
+                            <div className="px-4 py-2 rounded-lg bg-gray-100 text-gray-500 italic">
+                              <p className="text-sm">このメッセージは削除されました</p>
+                            </div>
+                          ) : editingMessageId === message.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editingContent}
+                                onChange={(e) => setEditingContent(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                                rows={3}
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleEditMessage(message.id)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <Check className="w-3 h-3" />
+                                  保存
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={cancelEditing}
+                                  className="flex items-center gap-1"
+                                >
+                                  <X className="w-3 h-3" />
+                                  キャンセル
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className={`px-4 py-2 rounded-lg ${
+                                isMyMessage 
+                                  ? 'bg-primary text-white' 
+                                  : 'bg-white border border-gray-200'
+                              }`}>
+                                <p className="text-sm whitespace-pre-wrap break-words">
+                                  {message.content}
+                                </p>
+                                {message.edited_at && (
+                                  <p className={`text-xs mt-1 ${
+                                    isMyMessage ? 'text-white/70' : 'text-gray-400'
+                                  }`}>
+                                    (編集済み)
+                                  </p>
+                                )}
+                              </div>
+                              
+                              {/* 自分のメッセージにのみメニューボタンを表示 */}
+                              {isMyMessage && (
+                                <div className="absolute -left-8 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowMenuForMessage(
+                                        showMenuForMessage === message.id ? null : message.id
+                                      );
+                                    }}
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                  
+                                  {showMenuForMessage === message.id && (
+                                    <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-10 border">
+                                      <button
+                                        className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100 text-left"
+                                        onClick={() => startEditingMessage(message)}
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                        編集
+                                      </button>
+                                      <button
+                                        className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100 text-left text-red-600"
+                                        onClick={() => handleDeleteMessage(message.id)}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                        削除
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
                         
                         <p className={`text-xs text-gray-500 mt-1 ${

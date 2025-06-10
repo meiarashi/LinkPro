@@ -28,10 +28,14 @@
   - 将来的に定義済みスキルマスターを作成し、選択形式に変更することを検討
 - [x] 予算範囲のスライダーUI実装
 - [x] 検索条件の保存機能
-- [ ] 検索履歴の実装
+- [x] 検索履歴の実装
 
 ### 通知システム
-- [ ] アプリ内通知センターの実装
+- [x] データベーストリガーによる通知作成機能（完了）
+  - notify_new_message_fixed: メッセージ送信時の通知（SECURITY DEFINER追加で解決）
+  - notify_new_application: 新規応募時の通知
+  - notify_application_status_update: 応募ステータス更新時の通知
+- [x] アプリ内通知センターの実装
 - [ ] メール通知の実装（SendGrid/Resend連携）
 - [ ] プッシュ通知の実装（Web Push API）
 - [ ] 通知の既読管理
@@ -45,7 +49,11 @@
 - [ ] 画像の自動リサイズ機能
 
 ### メッセージング機能の拡張
-- [ ] メッセージの編集・削除機能
+- [x] メッセージの編集・削除機能（2025年6月11日完了）
+  - 編集履歴の保存（edit_history JSONB）
+  - 論理削除（is_deleted, deleted_at, deleted_by）
+  - リアルタイム更新対応
+  - 編集済み表示
 - [ ] ファイル添付機能
 - [ ] 絵文字リアクション
 - [ ] メッセージの検索機能
@@ -188,3 +196,20 @@
 - [ ] セキュリティ監査（四半期ごと）
 - [ ] バックアップ戦略の見直し（半年ごと）
 - [ ] ユーザーフィードバックの収集と分析（継続的）
+
+## 🔧 最近の修正内容（2025年6月11日）
+
+### Supabaseデータベース構造の調査と修正
+1. **テーブル構造の確認**
+   - 7つのテーブル：applications, conversations, messages, notifications, profiles, projects, saved_searches
+   - 全テーブルでUUID主キー、JSONB活用、自動タイムスタンプを使用
+
+2. **メッセージ通知が機能しない問題の解決**
+   - 原因1: messagesテーブルのapplication_idがNULLだったが、トリガーがこれを使用していた
+   - 原因2: notify_new_message_fixed関数にSECURITY DEFINERが設定されていなかった
+   - 解決策: receiver_idを直接使用するように修正し、SECURITY DEFINERを追加
+   - 結果: メッセージ送信時に正常に通知が作成されるようになった
+
+3. **セキュリティ設定の確認**
+   - 全テーブルでRLS（Row Level Security）が有効
+   - 適切なポリシーが設定されており、マルチテナント型アプリケーションに適した構成
