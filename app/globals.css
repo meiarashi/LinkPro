@@ -73,6 +73,11 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* スクロールバーによるレイアウトずれを防ぐ */
+  html {
+    scrollbar-gutter: stable;
+  }
 }
 
 .font-sans {
