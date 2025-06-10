@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { createClient } from "../utils/supabase/client";
 import { MessageSquare, Menu, X, Settings } from "lucide-react";
+import NotificationCenter from './NotificationCenter';
 
 interface LoggedInHeaderProps {
   userProfile: {
@@ -124,6 +125,9 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
                 </span>
               </NavLink>
             </nav>
+            
+            {/* 通知センター */}
+            <NotificationCenter />
           </div>
 
           {/* 右側: ユーザーメニュー */}
