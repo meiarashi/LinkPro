@@ -436,6 +436,12 @@ export default function ConversationPage({
             <>
               {messages.map((message, index) => {
                 const isMyMessage = message.sender_id === currentUserId;
+                console.log('Debug:', {
+                  messageId: message.id,
+                  senderId: message.sender_id,
+                  currentUserId: currentUserId,
+                  isMyMessage: isMyMessage
+                });
                 const showDate = index === 0 || 
                   formatDate(message.created_at) !== formatDate(messages[index - 1].created_at);
 
@@ -519,6 +525,13 @@ export default function ConversationPage({
                           )}
                         </div>
                         
+                        {/* デバッグ：メッセージの状態を表示 */}
+                        <div className="text-xs text-red-500 mt-1">
+                          送信者: {message.sender_id === currentUserId ? '自分' : '相手'} | 
+                          削除: {message.is_deleted ? 'true' : 'false'} |
+                          currentUserId: {currentUserId ? 'あり' : 'なし'}
+                        </div>
+                        
                         <div className={`flex items-center gap-1 mt-1 ${
                           isMyMessage ? 'justify-end' : 'justify-start'
                         }`}>
@@ -526,11 +539,11 @@ export default function ConversationPage({
                             {formatTime(message.created_at)}
                           </p>
                           
-                          {/* 自分のメッセージにのみメニューボタンを表示（常に表示） */}
-                          {isMyMessage && !message.is_deleted && (
+                          {/* テスト：すべてのメッセージにボタンを表示 */}
+                          {!message.is_deleted ? (
                             <div className="relative ml-2">
                               <button
-                                className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                className="p-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setShowMenuForMessage(
@@ -538,7 +551,7 @@ export default function ConversationPage({
                                   );
                                 }}
                               >
-                                <MoreVertical className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                                <MoreVertical className="w-4 h-4" />
                               </button>
                               
                               {showMenuForMessage === message.id && (
@@ -560,7 +573,7 @@ export default function ConversationPage({
                                 </div>
                               )}
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     </div>
