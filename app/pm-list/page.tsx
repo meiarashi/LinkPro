@@ -6,7 +6,7 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { createClient } from "../../utils/supabase/client";
 import LoggedInHeader from "../../components/LoggedInHeader";
-import { User, MessageSquare, Star, Filter, Search, Loader2 } from "lucide-react";
+import { User, MessageSquare, Star, Filter, Search, Loader2, Clock, Globe, CheckCircle, Briefcase } from "lucide-react";
 
 interface PMProfile {
   id: string;
@@ -16,9 +16,17 @@ interface PMProfile {
     experience?: string;
     portfolio?: string;
     introduction?: string;
+    achievements?: string;
   } | null;
   rate_info: {
     hourly_rate?: string;
+    project_rate?: string;
+    consultation_rate?: string;
+    [key: string]: string | undefined;
+  } | null;
+  availability?: {
+    status?: string;
+    hours_per_week?: number;
   } | null;
   visibility: boolean;
 }
@@ -45,6 +53,7 @@ export default function PMListPage() {
   const [selectedPm, setSelectedPm] = useState<PMProfile | null>(null);
   const [scoutMessage, setScoutMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [matchedProjectsByPm, setMatchedProjectsByPm] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -123,6 +132,26 @@ export default function PMListPage() {
           setSelectedProjectId(projects[0].id);
         }
       }
+
+      // 全PMとの既存の会話（マッチング）を取得
+      if (pms && pms.length > 0) {
+        const { data: conversations } = await supabase
+          .from("conversations")
+          .select("pm_id, project_id")
+          .eq("client_id", user.id)
+          .in("pm_id", pms.map(pm => pm.id));
+
+        if (conversations) {
+          const matchedByPm: Record<string, string[]> = {};
+          conversations.forEach(conv => {
+            if (!matchedByPm[conv.pm_id]) {
+              matchedByPm[conv.pm_id] = [];
+            }
+            matchedByPm[conv.pm_id].push(conv.project_id);
+          });
+          setMatchedProjectsByPm(matchedByPm);
+        }
+      }
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -131,10 +160,21 @@ export default function PMListPage() {
   };
 
   const handleScoutPm = (pm: PMProfile) => {
+    const matchedProjects = matchedProjectsByPm[pm.id] || [];
+    const availableProjects = userProjects.filter(p => !matchedProjects.includes(p.id));
+    
     if (userProjects.length === 0) {
       alert("スカウトするには、まず公開中のプロジェクトが必要です。");
       return;
     }
+    
+    if (availableProjects.length === 0) {
+      alert("すべてのプロジェクトで既にマッチングしています。");
+      return;
+    }
+    
+    // 最初の利用可能なプロジェクトを選択
+    setSelectedProjectId(availableProjects[0].id);
     setSelectedPm(pm);
     setShowScoutModal(true);
   };
@@ -260,73 +300,173 @@ export default function PMListPage() {
             <p className="text-gray-500">該当するPMが見つかりません</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPmList.map((pm) => (
-              <Card key={pm.id} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-gray-500" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {filteredPmList.map((pm) => {
+              const matchedProjects = matchedProjectsByPm[pm.id] || [];
+              const availableProjects = userProjects.filter(p => !matchedProjects.includes(p.id));
+              const canScout = userProjects.length > 0 && availableProjects.length > 0;
+
+              return (
+                <Card key={pm.id} className="p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="w-8 h-8 text-gray-500" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{pm.full_name || '名前未設定'}</h3>
+                        
+                        {/* 料金情報 */}
+                        <div className="flex flex-wrap gap-3 mt-2 text-sm">
+                          {pm.rate_info?.hourly_rate && (
+                            <span className="text-gray-600">
+                              <span className="font-medium">¥{pm.rate_info.hourly_rate}</span>/時間
+                            </span>
+                          )}
+                          {pm.rate_info?.project_rate && (
+                            <span className="text-gray-600">
+                              プロジェクト: <span className="font-medium">¥{pm.rate_info.project_rate}〜</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 稼働状況 */}
+                        {pm.availability && (
+                          <div className="flex items-center gap-4 mt-2 text-sm">
+                            {pm.availability.status && (
+                              <div className="flex items-center gap-1">
+                                <div className={`w-2 h-2 rounded-full ${
+                                  pm.availability.status === 'available' 
+                                    ? 'bg-green-500' 
+                                    : 'bg-yellow-500'
+                                }`} />
+                                <span className="text-gray-600">
+                                  {pm.availability.status === 'available' ? '稼働可能' : '要相談'}
+                                </span>
+                              </div>
+                            )}
+                            {pm.availability.hours_per_week && (
+                              <div className="flex items-center gap-1 text-gray-600">
+                                <Clock className="w-3 h-3" />
+                                週{pm.availability.hours_per_week}時間
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{pm.full_name || '名前未設定'}</h3>
-                      {pm.rate_info?.hourly_rate && (
-                        <p className="text-sm text-gray-500">
-                          ¥{pm.rate_info.hourly_rate}/時間
+                  </div>
+
+                  {/* スキル */}
+                  {pm.profile_details?.skills && pm.profile_details.skills.length > 0 && (
+                    <div className="mb-3">
+                      <div className="flex flex-wrap gap-2">
+                        {pm.profile_details.skills.slice(0, 5).map((skill, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {pm.profile_details.skills.length > 5 && (
+                          <span className="px-2 py-1 text-gray-500 text-xs">
+                            +{pm.profile_details.skills.length - 5}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 自己紹介 */}
+                  {pm.profile_details?.introduction && (
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                      {pm.profile_details.introduction}
+                    </p>
+                  )}
+
+                  {/* 経験 */}
+                  {pm.profile_details?.experience && (
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 mb-1">経験・実績</p>
+                      <p className="text-sm text-gray-700 line-clamp-2">
+                        {pm.profile_details.experience}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* ポートフォリオ */}
+                  {pm.profile_details?.portfolio && (
+                    <div className="flex items-center gap-1 mb-3 text-sm">
+                      <Globe className="w-3 h-3 text-gray-500" />
+                      <a 
+                        href={pm.profile_details.portfolio}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline truncate"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        ポートフォリオ
+                      </a>
+                    </div>
+                  )}
+
+                  {/* マッチング状況 */}
+                  {matchedProjects.length > 0 && (
+                    <div className="mb-3 p-2 bg-gray-50 rounded text-sm">
+                      <div className="flex items-center gap-1 text-gray-600">
+                        <CheckCircle className="w-3 h-3" />
+                        <span>{matchedProjects.length}個のプロジェクトでマッチ済み</span>
+                      </div>
+                      {availableProjects.length > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {availableProjects.length}個のプロジェクトでスカウト可能
                         </p>
                       )}
                     </div>
+                  )}
+
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => router.push(`/pm/${pm.id}`)}
+                    >
+                      詳細を見る
+                    </Button>
+                    {canScout ? (
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleScoutPm(pm)}
+                      >
+                        <MessageSquare className="w-4 h-4 mr-1" />
+                        スカウト
+                      </Button>
+                    ) : userProjects.length === 0 ? (
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        variant="secondary"
+                        disabled
+                      >
+                        プロジェクトが必要
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        variant="secondary"
+                        disabled
+                      >
+                        全てマッチ済み
+                      </Button>
+                    )}
                   </div>
-                </div>
-
-                {/* スキル */}
-                {pm.profile_details?.skills && pm.profile_details.skills.length > 0 && (
-                  <div className="mb-4">
-                    <div className="flex flex-wrap gap-2">
-                      {pm.profile_details.skills.slice(0, 3).map((skill, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                      {pm.profile_details.skills.length > 3 && (
-                        <span className="px-2 py-1 text-gray-500 text-xs">
-                          +{pm.profile_details.skills.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* 自己紹介 */}
-                {pm.profile_details?.introduction && (
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                    {pm.profile_details.introduction}
-                  </p>
-                )}
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => router.push(`/pm/${pm.id}`)}
-                  >
-                    詳細を見る
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleScoutPm(pm)}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-1" />
-                    スカウト
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>
@@ -348,11 +488,18 @@ export default function PMListPage() {
                 onChange={(e) => setSelectedProjectId(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                {userProjects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.title}
-                  </option>
-                ))}
+                {userProjects.map((project) => {
+                  const isMatched = selectedPm && matchedProjectsByPm[selectedPm.id]?.includes(project.id);
+                  return (
+                    <option 
+                      key={project.id} 
+                      value={project.id}
+                      disabled={isMatched}
+                    >
+                      {project.title} {isMatched && '（マッチ済み）'}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -384,7 +531,7 @@ export default function PMListPage() {
               <Button
                 className="flex-1"
                 onClick={sendScoutMessage}
-                disabled={sending || !scoutMessage.trim()}
+                disabled={sending || !scoutMessage.trim() || (selectedPm && matchedProjectsByPm[selectedPm.id]?.includes(selectedProjectId))}
               >
                 {sending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
