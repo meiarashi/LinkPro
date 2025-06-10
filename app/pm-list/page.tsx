@@ -22,6 +22,8 @@ interface PMProfile {
     hourly_rate?: string;
     project_rate?: string;
     consultation_rate?: string;
+    minimum_rate?: string;
+    maximum_rate?: string;
     [key: string]: string | undefined;
   } | null;
   availability?: {
@@ -318,7 +320,16 @@ export default function PMListPage() {
                         
                         {/* 料金情報 */}
                         <div className="flex flex-wrap gap-3 mt-2 text-sm">
-                          {pm.rate_info?.hourly_rate && (
+                          {(pm.rate_info?.minimum_rate || pm.rate_info?.maximum_rate) && (
+                            <span className="text-gray-600">
+                              単価: <span className="font-medium">
+                                {pm.rate_info.minimum_rate && `¥${pm.rate_info.minimum_rate}`}
+                                {pm.rate_info.minimum_rate && pm.rate_info.maximum_rate && ' 〜 '}
+                                {pm.rate_info.maximum_rate && `¥${pm.rate_info.maximum_rate}`}
+                              </span>/時間
+                            </span>
+                          )}
+                          {pm.rate_info?.hourly_rate && !pm.rate_info?.minimum_rate && !pm.rate_info?.maximum_rate && (
                             <span className="text-gray-600">
                               <span className="font-medium">¥{pm.rate_info.hourly_rate}</span>/時間
                             </span>

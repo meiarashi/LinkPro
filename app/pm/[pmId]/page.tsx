@@ -33,6 +33,8 @@ interface PMProfile {
     hourly_rate?: string;
     project_rate?: string;
     consultation_rate?: string;
+    minimum_rate?: string;
+    maximum_rate?: string;
     [key: string]: string | undefined;
   } | null;
   availability?: {
@@ -369,7 +371,18 @@ export default function PMDetailPage({
             {pmProfile.rate_info && Object.keys(pmProfile.rate_info).length > 0 && (
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">料金</h3>
-                {pmProfile.rate_info.hourly_rate && (
+                {(pmProfile.rate_info.minimum_rate || pmProfile.rate_info.maximum_rate) && (
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-gray-600">時間単価</span>
+                    <span className="font-semibold text-lg">
+                      {pmProfile.rate_info.minimum_rate && `¥${pmProfile.rate_info.minimum_rate}`}
+                      {pmProfile.rate_info.minimum_rate && pmProfile.rate_info.maximum_rate && ' 〜 '}
+                      {pmProfile.rate_info.maximum_rate && `¥${pmProfile.rate_info.maximum_rate}`}
+                      /時間
+                    </span>
+                  </div>
+                )}
+                {pmProfile.rate_info.hourly_rate && !pmProfile.rate_info.minimum_rate && !pmProfile.rate_info.maximum_rate && (
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-gray-600">時間単価</span>
                     <span className="font-semibold text-lg">
