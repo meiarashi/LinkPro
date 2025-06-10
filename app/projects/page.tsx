@@ -359,8 +359,8 @@ export default function ProjectsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ページタイトル */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">案件を探す</h1>
-          <p className="mt-2 text-gray-600">スキルに合った案件を見つけて応募しましょう</p>
+          <h1 className="text-3xl font-bold text-gray-900">プロジェクトを探す</h1>
+          <p className="mt-2 text-gray-600">スキルに合ったプロジェクトを見つけて応募しましょう</p>
         </div>
 
         {/* 検索・フィルターバー */}
@@ -575,14 +575,14 @@ export default function ProjectsPage() {
 
         {/* 検索結果数 */}
         <div className="mb-4 text-sm text-gray-600">
-          {filteredProjects.length}件の案件が見つかりました
+          {filteredProjects.length}件のプロジェクトが見つかりました
         </div>
 
         {/* プロジェクト一覧 */}
         {filteredProjects.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">条件に合う案件が見つかりませんでした</p>
+            <p className="text-gray-500">条件に合うプロジェクトが見つかりませんでした</p>
             <p className="text-sm text-gray-400 mt-2">検索条件を変更してお試しください</p>
           </div>
         ) : (

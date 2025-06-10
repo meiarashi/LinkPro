@@ -50,7 +50,7 @@ export default function PMDashboard({
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">PMダッシュボード</h1>
-            <p className="text-gray-600 mt-1">案件への応募状況を管理</p>
+            <p className="text-gray-600 mt-1">プロジェクトへの応募状況を管理</p>
           </div>
           <div className="flex gap-2">
             <Link href="/messages">
@@ -67,7 +67,7 @@ export default function PMDashboard({
             <Link href="/projects">
               <Button className="flex items-center gap-2">
                 <FolderOpen className="w-4 h-4" />
-                案件を探す
+                プロジェクトを探す
               </Button>
             </Link>
           </div>
@@ -152,7 +152,7 @@ export default function PMDashboard({
             <p className="text-gray-500">まだ応募がありません</p>
             <Link href="/projects">
               <Button variant="link" className="mt-2">
-                案件を探す
+                プロジェクトを探す
               </Button>
             </Link>
           </div>

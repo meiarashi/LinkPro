@@ -271,7 +271,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           <Link href={isOwner ? "/dashboard" : "/projects"}>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
-              {isOwner ? "ダッシュボードに戻る" : "案件一覧に戻る"}
+              {isOwner ? "ダッシュボードに戻る" : "プロジェクト一覧に戻る"}
             </Button>
           </Link>
         </div>
@@ -373,7 +373,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                       onClick={() => setShowApplicationModal(true)}
                       className="w-full"
                     >
-                      この案件に応募する
+                      このプロジェクトに応募する
                     </Button>
                   )}
                 </div>
@@ -444,7 +444,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       {showApplicationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-lg w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">案件に応募する</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">プロジェクトに応募する</h3>
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
