@@ -11,8 +11,8 @@ const notoSansJP = Noto_Sans_JP({
 })
 
 export const metadata: Metadata = {
-  title: 'LinkPro - クライアント・PMマッチングプラットフォーム',
-  description: '信頼できるPMとクライアントをつなぐ、新しいマッチングプラットフォーム',
+  title: 'LinkPro - プロフェッショナルマッチングプラットフォーム',
+  description: '経験豊富なプロフェッショナルとクライアントをつなぐ、新しいマッチングプラットフォーム',
 }
 
 export default function RootLayout({

@@ -21,7 +21,7 @@ export default function SignUpPage() {
 
   useEffect(() => {
     setMounted(true);
-    if (initialTypeFromURL && (initialTypeFromURL === 'client' || initialTypeFromURL === 'pm')) {
+    if (initialTypeFromURL && (initialTypeFromURL === 'client' || initialTypeFromURL === 'pro')) {
       setUserType(initialTypeFromURL);
       if (typeof window !== 'undefined') {
         localStorage.setItem('userType', initialTypeFromURL);
@@ -29,7 +29,7 @@ export default function SignUpPage() {
     }
   }, [initialTypeFromURL]);
 
-  const selectUserType = (selectedType: 'client' | 'pm') => {
+  const selectUserType = (selectedType: 'client' | 'pro') => {
     setUserType(selectedType);
     const currentPath = window.location.pathname;
     const newSearchParams = new URLSearchParams(window.location.search);
@@ -117,12 +117,12 @@ export default function SignUpPage() {
         <h2 className="text-center text-3xl font-extrabold text-gray-900">
           {userType === 'client'
             ? 'クライアントとして登録'
-            : userType === 'pm'
-            ? 'PMとして登録'
+            : userType === 'pro'
+            ? 'プロフェッショナルとして登録'
             : 'アカウント情報を入力'}
         </h2>
         {/* <p className="mt-2 text-center text-sm text-gray-600">
-          {!userType ? 'まずアカウントタイプを選択してください。' : `選択中: ${userType === 'client' ? 'クライアント' : 'PM'}`}
+          {!userType ? 'まずアカウントタイプを選択してください。' : `選択中: ${userType === 'client' ? 'クライアント' : 'プロフェッショナル'}`}
         </p> */}
         <p className="mt-2 text-center text-sm text-gray-600">
           すでにアカウントをお持ちの方は{" "}
@@ -154,14 +154,14 @@ export default function SignUpPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => selectUserType('pm')}
+                    onClick={() => selectUserType('pro')}
                     className={`w-full flex justify-center py-2 px-4 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${ 
-                      userType === 'pm' 
-                        ? 'bg-primary text-white border-transparent focus:ring-primary' // PM用にデザインを調整する場合はここを変更 (例: bg-secondary, focus:ring-secondary)
+                      userType === 'pro' 
+                        ? 'bg-primary text-white border-transparent focus:ring-primary'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:ring-primary'
                     }`}
                   >
-                    PM
+                    プロフェッショナル
                   </button>
                 </div>
               </div>

@@ -102,7 +102,7 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
                 ダッシュボード
               </NavLink>
               
-              {userProfile.user_type === 'pm' && (
+              {userProfile.user_type === 'pro' && (
                 <NavLink href="/projects" isActive={pathname.startsWith('/projects')}>
                   プロジェクトを探す
                 </NavLink>
@@ -113,8 +113,8 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
                   <NavLink href="/projects/new" isActive={pathname === '/projects/new'}>
                     プロジェクトを作成
                   </NavLink>
-                  <NavLink href="/pm-list" isActive={pathname === '/pm-list'}>
-                    PMを探す
+                  <NavLink href="/pro-list" isActive={pathname === '/pro-list'}>
+                    プロフェッショナルを探す
                   </NavLink>
                 </>
               )}
@@ -198,7 +198,7 @@ export default function LoggedInHeader({ userProfile, userEmail }: LoggedInHeade
                 ダッシュボード
               </NavLink>
               
-              {userProfile.user_type === 'pm' && (
+              {userProfile.user_type === 'pro' && (
                 <NavLink href="/projects" isActive={pathname.startsWith('/projects')}>
                   プロジェクトを探す
                 </NavLink>

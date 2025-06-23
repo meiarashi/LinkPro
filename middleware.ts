@@ -66,7 +66,7 @@ export async function middleware(request: NextRequest) {
     '/about',
     '/pricing',
     '/for-clients',
-    '/for-pms',
+    '/for-pros',
     '/contact',
     '/terms',
     '/privacy',

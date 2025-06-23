@@ -39,11 +39,11 @@ interface Project {
 interface Application {
   id: string;
   project_id: string;
-  pm_id: string;
+  pro_id: string;
   status: 'pending' | 'accepted' | 'rejected';
   message: string | null;
   created_at: string;
-  pm_profile: {
+  pro_profile: {
     id: string;
     full_name: string | null;
     profile_details: any;
@@ -109,13 +109,13 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         setUserProfile(profileData);
       }
 
-      // PMの場合、既に応募しているかチェック
-      if (profileData?.user_type === 'pm') {
+      // プロフェッショナルの場合、既に応募しているかチェック
+      if (profileData?.user_type === 'pro') {
         const { data: existingApplication } = await supabase
           .from("applications")
           .select("id")
           .eq("project_id", params.id)
-          .eq("pm_id", currentUser.id)
+          .eq("pro_id", currentUser.id)
           .single();
         
         setHasApplied(!!existingApplication);
@@ -131,16 +131,16 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         
         if (applicationsData && applicationsData.length > 0) {
           // プロフィール情報を別途取得
-          const pmIds = Array.from(new Set(applicationsData.map(app => app.pm_id)));
+          const proIds = Array.from(new Set(applicationsData.map(app => app.pro_id)));
           const { data: profilesData } = await supabase
             .from('profiles')
             .select('id, full_name, profile_details, rate_info, availability')
-            .in('id', pmIds);
+            .in('id', proIds);
           
           // プロフィール情報をマージ
           const applicationsWithProfiles = applicationsData.map(app => ({
             ...app,
-            pm_profile: profilesData?.find(p => p.id === app.pm_id)
+            pro_profile: profilesData?.find(p => p.id === app.pro_id)
           }));
           
           setApplications(applicationsWithProfiles);
@@ -158,7 +158,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   };
 
   const handleApplicationSubmit = async () => {
-    if (!userProfile || userProfile.user_type !== 'pm') return;
+    if (!userProfile || userProfile.user_type !== 'pro') return;
     
     setSubmitting(true);
     try {
@@ -169,7 +169,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         .from("applications")
         .insert({
           project_id: params.id,
-          pm_id: user.id,
+          pro_id: user.id,
           status: 'pending',
           message: applicationMessage
         });
@@ -361,8 +361,8 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 </p>
               </div>
 
-              {/* PMの応募ボタン */}
-              {userProfile?.user_type === 'pm' && !isOwner && (
+              {/* プロフェッショナルの応募ボタン */}
+              {userProfile?.user_type === 'pro' && !isOwner && (
                 <div className="mt-4 pt-4 border-t">
                   {hasApplied ? (
                     <Button disabled className="w-full">
@@ -397,7 +397,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h4 className="font-medium text-gray-800">
-                            {application.pm_profile.full_name || 'プロフィール未設定'}
+                            {application.pro_profile.full_name || 'プロフィール未設定'}
                           </h4>
                           {getApplicationStatusIcon(application.status)}
                         </div>

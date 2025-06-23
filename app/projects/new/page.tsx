@@ -218,7 +218,7 @@ export default function NewProjectPage() {
                   value={formData.description}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="プロジェクトの概要、背景、求めるPMの役割などを詳しく記載してください"
+                  placeholder="プロジェクトの概要、背景、求めるプロフェッショナルの役割などを詳しく記載してください"
                 />
               </div>
 
@@ -332,7 +332,7 @@ export default function NewProjectPage() {
                 <option value="private">非公開</option>
               </select>
               <p className="text-sm text-gray-500 mt-1">
-                公開にすると、PMがプロジェクトを検索・閲覧できるようになります
+                公開にすると、プロフェッショナルがプロジェクトを検索・閲覧できるようになります
               </p>
             </div>
           </div>

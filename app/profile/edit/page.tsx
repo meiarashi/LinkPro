@@ -214,8 +214,8 @@ export default function ProfileEditPage() {
             </div>
           </div>
 
-          {/* 単価・稼働情報（PMのみ） */}
-          {profile.user_type === "pm" && (
+          {/* 単価・稼働情報（プロフェッショナルのみ） */}
+          {profile.user_type === "pro" && (
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h2 className="text-lg font-semibold mb-4">単価・稼働情報</h2>
               

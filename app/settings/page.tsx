@@ -57,7 +57,7 @@ export default function SettingsPage() {
   const [skills, setSkills] = useState("");
   const [experience, setExperience] = useState("");
   const [portfolio, setPortfolio] = useState("");
-  const [pmBio, setPmBio] = useState("");
+  const [proBio, setProBio] = useState("");
   const [minRate, setMinRate] = useState("");
   const [maxRate, setMaxRate] = useState("");
   const [availability, setAvailability] = useState("");
@@ -115,8 +115,8 @@ export default function SettingsPage() {
           setSkills(profileData.profile_details.skills?.join(", ") || "");
           setExperience(profileData.profile_details.experience || "");
           setPortfolio(profileData.profile_details.portfolio || "");
-          if (profileData.user_type === 'pm') {
-            setPmBio(profileData.profile_details.bio || "");
+          if (profileData.user_type === 'pro') {
+            setProBio(profileData.profile_details.bio || "");
           }
         }
         
@@ -202,8 +202,8 @@ export default function SettingsPage() {
         portfolio: portfolio
       };
 
-      if (profile?.user_type === 'pm') {
-        profileDetails.bio = pmBio;
+      if (profile?.user_type === 'pro') {
+        profileDetails.bio = proBio;
       }
 
       const updateData: any = {
@@ -212,7 +212,7 @@ export default function SettingsPage() {
         updated_at: new Date().toISOString()
       };
 
-      if (profile?.user_type === 'pm') {
+      if (profile?.user_type === 'pro') {
         updateData.rate_info = {
           min_rate: minRate,
           max_rate: maxRate
@@ -484,16 +484,16 @@ export default function SettingsPage() {
                     />
                   </div>
                   
-                  {profile?.user_type === 'pm' && (
+                  {profile?.user_type === 'pro' && (
                     <>
                       <div>
-                        <label htmlFor="pmBio" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="proBio" className="block text-sm font-medium text-gray-700 mb-1">
                           自己紹介
                         </label>
                         <textarea
-                          id="pmBio"
-                          value={pmBio}
-                          onChange={(e) => setPmBio(e.target.value)}
+                          id="proBio"
+                          value={proBio}
+                          onChange={(e) => setProBio(e.target.value)}
                           rows={4}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                         />
@@ -689,7 +689,7 @@ export default function SettingsPage() {
                           </label>
                         )}
                         
-                        {profile.user_type === 'pm' && (
+                        {profile.user_type === 'pro' && (
                           <label className="flex items-center">
                             <input
                               type="checkbox"

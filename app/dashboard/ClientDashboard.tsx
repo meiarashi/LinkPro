@@ -21,11 +21,11 @@ interface Project {
 interface Application {
   id: string;
   project_id: string;
-  pm_id: string;
+  pro_id: string;
   status: 'pending' | 'accepted' | 'rejected';
   message: string | null;
   created_at: string;
-  pm_profile?: {
+  pro_profile?: {
     full_name: string | null;
     profile_details: any;
   };
@@ -88,7 +88,7 @@ export default function ClientDashboard({
               .insert({
                 project_id: application.project_id,
                 client_id: user.id,
-                pm_id: application.pm_id,
+                pro_id: application.pro_id,
                 application_id: applicationId,
                 initiated_by: 'application',
                 status: 'active'
@@ -217,7 +217,7 @@ export default function ClientDashboard({
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="font-medium text-gray-800">
-                      {application.pm_profile?.full_name || 'PM'} さんからの応募
+                      {application.pro_profile?.full_name || 'プロフェッショナル'} さんからの応募
                     </p>
                     {application.project && (
                       <p className="text-xs text-gray-500">

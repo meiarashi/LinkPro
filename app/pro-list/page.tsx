@@ -8,7 +8,7 @@ import { createClient } from "../../utils/supabase/client";
 import LoggedInHeader from "../../components/LoggedInHeader";
 import { User, MessageSquare, Star, Filter, Search, Loader2, Clock, Globe, CheckCircle, Briefcase } from "lucide-react";
 
-interface PMProfile {
+interface ProProfile {
   id: string;
   full_name: string | null;
   profile_details: {
@@ -39,23 +39,23 @@ interface Project {
   status: string;
 }
 
-export default function PMListPage() {
+export default function ProListPage() {
   const router = useRouter();
   const supabase = createClient();
   
   const [loading, setLoading] = useState(true);
-  const [pmList, setPmList] = useState<PMProfile[]>([]);
-  const [filteredPmList, setFilteredPmList] = useState<PMProfile[]>([]);
+  const [proList, setProList] = useState<ProProfile[]>([]);
+  const [filteredProList, setFilteredProList] = useState<ProProfile[]>([]);
   const [userProjects, setUserProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [showScoutModal, setShowScoutModal] = useState(false);
-  const [selectedPm, setSelectedPm] = useState<PMProfile | null>(null);
+  const [selectedPro, setSelectedPro] = useState<ProProfile | null>(null);
   const [scoutMessage, setScoutMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [matchedProjectsByPm, setMatchedProjectsByPm] = useState<Record<string, string[]>>({});
+  const [matchedProjectsByPro, setMatchedProjectsByPro] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -64,19 +64,19 @@ export default function PMListPage() {
   useEffect(() => {
     // 検索フィルタリング
     if (searchTerm) {
-      const filtered = pmList.filter(pm => {
+      const filtered = proList.filter(pro => {
         const searchLower = searchTerm.toLowerCase();
-        const nameMatch = pm.full_name?.toLowerCase().includes(searchLower);
-        const skillsMatch = pm.profile_details?.skills?.some(skill => 
+        const nameMatch = pro.full_name?.toLowerCase().includes(searchLower);
+        const skillsMatch = pro.profile_details?.skills?.some(skill => 
           skill.toLowerCase().includes(searchLower)
         );
         return nameMatch || skillsMatch;
       });
-      setFilteredPmList(filtered);
+      setFilteredProList(filtered);
     } else {
-      setFilteredPmList(pmList);
+      setFilteredProList(proList);
     }
-  }, [searchTerm, pmList]);
+  }, [searchTerm, proList]);
 
   const checkAuthAndLoadData = async () => {
     try {
@@ -103,19 +103,19 @@ export default function PMListPage() {
 
       setUserProfile(profile);
 
-      // PM一覧を取得
-      const { data: pms, error: pmsError } = await supabase
+      // プロフェッショナル一覧を取得
+      const { data: pros, error: prosError } = await supabase
         .from("profiles")
         .select("*")
-        .eq("user_type", "pm")
+        .eq("user_type", "pro")
         .eq("visibility", true)
         .order("created_at", { ascending: false });
 
-      if (pmsError) {
-        console.error("Error fetching PMs:", pmsError);
-      } else if (pms) {
-        setPmList(pms);
-        setFilteredPmList(pms);
+      if (prosError) {
+        console.error("Error fetching professionals:", prosError);
+      } else if (pros) {
+        setProList(pros);
+        setFilteredProList(pros);
       }
 
       // クライアントのプロジェクトを取得
@@ -135,23 +135,23 @@ export default function PMListPage() {
         }
       }
 
-      // 全PMとの既存の会話（マッチング）を取得
-      if (pms && pms.length > 0) {
+      // 全プロフェッショナルとの既存の会話（マッチング）を取得
+      if (pros && pros.length > 0) {
         const { data: conversations } = await supabase
           .from("conversations")
-          .select("pm_id, project_id")
+          .select("pro_id, project_id")
           .eq("client_id", user.id)
-          .in("pm_id", pms.map(pm => pm.id));
+          .in("pro_id", pros.map(pro => pro.id));
 
         if (conversations) {
-          const matchedByPm: Record<string, string[]> = {};
+          const matchedByPro: Record<string, string[]> = {};
           conversations.forEach(conv => {
-            if (!matchedByPm[conv.pm_id]) {
-              matchedByPm[conv.pm_id] = [];
+            if (!matchedByPro[conv.pro_id]) {
+              matchedByPro[conv.pro_id] = [];
             }
-            matchedByPm[conv.pm_id].push(conv.project_id);
+            matchedByPro[conv.pro_id].push(conv.project_id);
           });
-          setMatchedProjectsByPm(matchedByPm);
+          setMatchedProjectsByPro(matchedByPro);
         }
       }
     } catch (error) {
@@ -161,8 +161,8 @@ export default function PMListPage() {
     }
   };
 
-  const handleScoutPm = (pm: PMProfile) => {
-    const matchedProjects = matchedProjectsByPm[pm.id] || [];
+  const handleScoutPro = (pro: ProProfile) => {
+    const matchedProjects = matchedProjectsByPro[pro.id] || [];
     const availableProjects = userProjects.filter(p => !matchedProjects.includes(p.id));
     
     if (userProjects.length === 0) {
@@ -177,12 +177,12 @@ export default function PMListPage() {
     
     // 最初の利用可能なプロジェクトを選択
     setSelectedProjectId(availableProjects[0].id);
-    setSelectedPm(pm);
+    setSelectedPro(pro);
     setShowScoutModal(true);
   };
 
   const sendScoutMessage = async () => {
-    if (!scoutMessage.trim() || !selectedPm || !selectedProjectId) return;
+    if (!scoutMessage.trim() || !selectedPro || !selectedProjectId) return;
 
     setSending(true);
 
@@ -192,7 +192,7 @@ export default function PMListPage() {
         .from("conversations")
         .select("id")
         .eq("client_id", currentUser.id)
-        .eq("pm_id", selectedPm.id)
+        .eq("pro_id", selectedPro.id)
         .eq("project_id", selectedProjectId)
         .single();
 
@@ -207,7 +207,7 @@ export default function PMListPage() {
           .insert({
             project_id: selectedProjectId,
             client_id: currentUser.id,
-            pm_id: selectedPm.id,
+            pro_id: selectedPro.id,
             initiated_by: 'scout',
             status: 'active'
           })
@@ -229,7 +229,7 @@ export default function PMListPage() {
         .insert({
           conversation_id: conversationId,
           sender_id: currentUser.id,
-          receiver_id: selectedPm.id,
+          receiver_id: selectedPro.id,
           content: scoutMessage.trim(),
           message_type: "normal",
           project_id: selectedProjectId
@@ -272,9 +272,9 @@ export default function PMListPage() {
       
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">プロジェクトマネージャーを探す</h1>
+          <h1 className="text-3xl font-bold mb-4">プロフェッショナルを探す</h1>
           <p className="text-gray-600">
-            あなたのプロジェクトに最適なPMを見つけて、直接スカウトできます。
+            あなたのプロジェクトに最適なプロフェッショナルを見つけて、直接スカウトできます。
           </p>
         </div>
 
@@ -296,71 +296,71 @@ export default function PMListPage() {
           </Button>
         </div>
 
-        {/* PM一覧 */}
-        {filteredPmList.length === 0 ? (
+        {/* プロフェッショナル一覧 */}
+        {filteredProList.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">該当するPMが見つかりません</p>
+            <p className="text-gray-500">該当するプロフェッショナルが見つかりません</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredPmList.map((pm) => {
-              const matchedProjects = matchedProjectsByPm[pm.id] || [];
+            {filteredProList.map((pro) => {
+              const matchedProjects = matchedProjectsByPro[pro.id] || [];
               const availableProjects = userProjects.filter(p => !matchedProjects.includes(p.id));
               const canScout = userProjects.length > 0 && availableProjects.length > 0;
 
               return (
-                <Card key={pm.id} className="p-6 hover:shadow-lg transition-shadow">
+                <Card key={pro.id} className="p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4">
                       <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
                         <User className="w-8 h-8 text-gray-500" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{pm.full_name || '名前未設定'}</h3>
+                        <h3 className="font-semibold text-lg">{pro.full_name || '名前未設定'}</h3>
                         
                         {/* 料金情報 */}
                         <div className="flex flex-wrap gap-3 mt-2 text-sm">
-                          {(pm.rate_info?.min_rate || pm.rate_info?.max_rate) && (
+                          {(pro.rate_info?.min_rate || pro.rate_info?.max_rate) && (
                             <span className="text-gray-600">
                               単価: <span className="font-medium">
-                                {pm.rate_info.min_rate && `¥${pm.rate_info.min_rate}`}
-                                {pm.rate_info.min_rate && pm.rate_info.max_rate && ' 〜 '}
-                                {pm.rate_info.max_rate && `¥${pm.rate_info.max_rate}`}
+                                {pro.rate_info.min_rate && `¥${pro.rate_info.min_rate}`}
+                                {pro.rate_info.min_rate && pro.rate_info.max_rate && ' 〜 '}
+                                {pro.rate_info.max_rate && `¥${pro.rate_info.max_rate}`}
                               </span>/時間
                             </span>
                           )}
-                          {pm.rate_info?.hourly_rate && 
-                           !pm.rate_info?.min_rate && !pm.rate_info?.max_rate && (
+                          {pro.rate_info?.hourly_rate && 
+                           !pro.rate_info?.min_rate && !pro.rate_info?.max_rate && (
                             <span className="text-gray-600">
-                              <span className="font-medium">¥{pm.rate_info.hourly_rate}</span>/時間
+                              <span className="font-medium">¥{pro.rate_info.hourly_rate}</span>/時間
                             </span>
                           )}
-                          {pm.rate_info?.project_rate && (
+                          {pro.rate_info?.project_rate && (
                             <span className="text-gray-600">
-                              プロジェクト: <span className="font-medium">¥{pm.rate_info.project_rate}〜</span>
+                              プロジェクト: <span className="font-medium">¥{pro.rate_info.project_rate}〜</span>
                             </span>
                           )}
                         </div>
 
                         {/* 稼働状況 */}
-                        {pm.availability && (
+                        {pro.availability && (
                           <div className="flex items-center gap-4 mt-2 text-sm">
-                            {pm.availability.status && (
+                            {pro.availability.status && (
                               <div className="flex items-center gap-1">
                                 <div className={`w-2 h-2 rounded-full ${
-                                  pm.availability.status === 'available' 
+                                  pro.availability.status === 'available' 
                                     ? 'bg-green-500' 
                                     : 'bg-yellow-500'
                                 }`} />
                                 <span className="text-gray-600">
-                                  {pm.availability.status === 'available' ? '稼働可能' : '要相談'}
+                                  {pro.availability.status === 'available' ? '稼働可能' : '要相談'}
                                 </span>
                               </div>
                             )}
-                            {pm.availability.hours_per_week && (
+                            {pro.availability.hours_per_week && (
                               <div className="flex items-center gap-1 text-gray-600">
                                 <Clock className="w-3 h-3" />
-                                週{pm.availability.hours_per_week}時間
+                                週{pro.availability.hours_per_week}時間
                               </div>
                             )}
                           </div>
@@ -370,10 +370,10 @@ export default function PMListPage() {
                   </div>
 
                   {/* スキル */}
-                  {pm.profile_details?.skills && pm.profile_details.skills.length > 0 && (
+                  {pro.profile_details?.skills && pro.profile_details.skills.length > 0 && (
                     <div className="mb-3">
                       <div className="flex flex-wrap gap-2">
-                        {pm.profile_details.skills.slice(0, 5).map((skill, index) => (
+                        {pro.profile_details.skills.slice(0, 5).map((skill, index) => (
                           <span
                             key={index}
                             className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
@@ -381,9 +381,9 @@ export default function PMListPage() {
                             {skill}
                           </span>
                         ))}
-                        {pm.profile_details.skills.length > 5 && (
+                        {pro.profile_details.skills.length > 5 && (
                           <span className="px-2 py-1 text-gray-500 text-xs">
-                            +{pm.profile_details.skills.length - 5}
+                            +{pro.profile_details.skills.length - 5}
                           </span>
                         )}
                       </div>
@@ -391,28 +391,28 @@ export default function PMListPage() {
                   )}
 
                   {/* 自己紹介 */}
-                  {pm.profile_details?.introduction && (
+                  {pro.profile_details?.introduction && (
                     <p className="text-sm text-gray-600 mb-3 line-clamp-3">
-                      {pm.profile_details.introduction}
+                      {pro.profile_details.introduction}
                     </p>
                   )}
 
                   {/* 経験 */}
-                  {pm.profile_details?.experience && (
+                  {pro.profile_details?.experience && (
                     <div className="mb-3">
                       <p className="text-xs text-gray-500 mb-1">経験・実績</p>
                       <p className="text-sm text-gray-700 line-clamp-2">
-                        {pm.profile_details.experience}
+                        {pro.profile_details.experience}
                       </p>
                     </div>
                   )}
 
                   {/* ポートフォリオ */}
-                  {pm.profile_details?.portfolio && (
+                  {pro.profile_details?.portfolio && (
                     <div className="flex items-center gap-1 mb-3 text-sm">
                       <Globe className="w-3 h-3 text-gray-500" />
                       <a 
-                        href={pm.profile_details.portfolio}
+                        href={pro.profile_details.portfolio}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline truncate"
@@ -443,7 +443,7 @@ export default function PMListPage() {
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => router.push(`/pm/${pm.id}`)}
+                      onClick={() => router.push(`/pro/${pro.id}`)}
                     >
                       詳細を見る
                     </Button>
@@ -451,7 +451,7 @@ export default function PMListPage() {
                       <Button
                         size="sm"
                         className="flex-1"
-                        onClick={() => handleScoutPm(pm)}
+                        onClick={() => handleScoutPro(pro)}
                       >
                         <MessageSquare className="w-4 h-4 mr-1" />
                         スカウト
@@ -484,11 +484,11 @@ export default function PMListPage() {
       </main>
 
       {/* スカウトモーダル */}
-      {showScoutModal && selectedPm && (
+      {showScoutModal && selectedPro && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h2 className="text-xl font-bold mb-4">
-              {selectedPm.full_name}さんをスカウト
+              {selectedPro.full_name}さんをスカウト
             </h2>
 
             <div className="mb-4">
@@ -501,7 +501,7 @@ export default function PMListPage() {
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {userProjects.map((project) => {
-                  const isMatched = selectedPm && matchedProjectsByPm[selectedPm.id]?.includes(project.id);
+                  const isMatched = selectedPro && matchedProjectsByPro[selectedPro.id]?.includes(project.id);
                   return (
                     <option 
                       key={project.id} 
@@ -522,7 +522,7 @@ export default function PMListPage() {
               <textarea
                 value={scoutMessage}
                 onChange={(e) => setScoutMessage(e.target.value)}
-                placeholder="プロジェクトの概要や、なぜこのPMに興味を持ったのかを書いてください..."
+                placeholder="プロジェクトの概要や、なぜこのプロフェッショナルに興味を持ったのかを書いてください..."
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 rows={5}
               />
@@ -543,7 +543,7 @@ export default function PMListPage() {
               <Button
                 className="flex-1"
                 onClick={sendScoutMessage}
-                disabled={sending || !scoutMessage.trim() || (selectedPm && matchedProjectsByPm[selectedPm.id]?.includes(selectedProjectId))}
+                disabled={sending || !scoutMessage.trim() || (selectedPro && matchedProjectsByPro[selectedPro.id]?.includes(selectedProjectId))}
               >
                 {sending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

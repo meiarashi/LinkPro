@@ -10,8 +10,8 @@ export default function Footer() {
           <div className="col-span-1 md:col-span-2">
             <h3 className="text-lg font-bold mb-4 text-primary">LinkPro</h3>
             <p className="text-gray-600 mb-6 max-w-md">
-              信頼できるPMとクライアントをつなぐ、新しいマッチングプラットフォーム。
-              高品質なプロジェクトマネジメントの実現をサポートします。
+              信頼できるプロフェッショナルとクライアントをつなぐ、新しいマッチングプラットフォーム。
+              双方の持続的成長をサポートします。
             </p>
           </div>
           
@@ -24,8 +24,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/for-pms" className="text-gray-600 hover:text-primary transition-colors text-sm">
-                  PM向け
+                <Link href="/for-pros" className="text-gray-600 hover:text-primary transition-colors text-sm">
+                  プロフェッショナル向け
                 </Link>
               </li>
               <li>

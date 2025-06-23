@@ -7,7 +7,7 @@ import { createClient } from "../../utils/supabase/client";
 import { User } from "@supabase/supabase-js";
 import Link from 'next/link';
 import ClientDashboard from './ClientDashboard';
-import PMDashboard from './PMDashboard';
+import ProDashboard from './ProDashboard';
 import LoggedInHeader from '../../components/LoggedInHeader';
 
 interface Profile {
@@ -36,11 +36,11 @@ interface Project {
 interface Application {
   id: string;
   project_id: string;
-  pm_id: string;
+  pro_id: string;
   status: 'pending' | 'accepted' | 'rejected';
   message: string | null;
   created_at: string;
-  pm_profile?: {
+  pro_profile?: {
     full_name: string | null;
     profile_details: any;
   };
@@ -61,7 +61,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [recentApplications, setRecentApplications] = useState<Application[]>([]);
-  const [pmApplications, setPmApplications] = useState<Application[]>([]);
+  const [proApplications, setProApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
@@ -106,16 +106,16 @@ export default function DashboardPage() {
         
         // プロフィール情報を別途取得
         if (applicationsData && applicationsData.length > 0) {
-          const pmIds = Array.from(new Set(applicationsData.map(app => app.pm_id)));
+          const proIds = Array.from(new Set(applicationsData.map(app => app.pro_id)));
           const { data: profilesData } = await supabase
             .from('profiles')
             .select('id, full_name, profile_details')
-            .in('id', pmIds);
+            .in('id', proIds);
           
           // プロフィール情報をマージ
           const applicationsWithProfiles = applicationsData.map(app => ({
             ...app,
-            pm_profile: profilesData?.find(p => p.id === app.pm_id),
+            pro_profile: profilesData?.find(p => p.id === app.pro_id),
             project: app.projects
           }));
           
@@ -131,10 +131,10 @@ export default function DashboardPage() {
     setProjectsLoading(false);
   };
 
-  const fetchPMData = async (userId: string) => {
+  const fetchProData = async (userId: string) => {
     setProjectsLoading(true);
     
-    // PMの応募情報を取得
+    // プロフェッショナルの応募情報を取得
     const { data: applicationsData, error: applicationsError } = await supabase
       .from('applications')
       .select(`
@@ -148,13 +148,13 @@ export default function DashboardPage() {
           client_id
         )
       `)
-      .eq('pm_id', userId)
+      .eq('pro_id', userId)
       .order('created_at', { ascending: false });
 
     if (applicationsError) {
-      console.error("Error fetching PM applications:", applicationsError);
+      console.error("Error fetching professional applications:", applicationsError);
     } else if (applicationsData) {
-      setPmApplications(applicationsData);
+      setProApplications(applicationsData);
     }
     
     setProjectsLoading(false);
@@ -198,8 +198,8 @@ export default function DashboardPage() {
         // ユーザータイプに応じてデータを取得
         if (profileData.user_type === 'client') {
           await fetchClientData(currentUser.id);
-        } else if (profileData.user_type === 'pm') {
-          await fetchPMData(currentUser.id);
+        } else if (profileData.user_type === 'pro') {
+          await fetchProData(currentUser.id);
         }
         
         // 未読メッセージ数を取得
@@ -264,11 +264,11 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* PM向けダッシュボード */}
-        {profile.user_type === 'pm' && (
-          <PMDashboard 
+        {/* プロフェッショナル向けダッシュボード */}
+        {profile.user_type === 'pro' && (
+          <ProDashboard 
             profile={profile}
-            pmApplications={pmApplications}
+            proApplications={proApplications}
             projectsLoading={projectsLoading}
             unreadMessageCount={unreadMessageCount}
           />

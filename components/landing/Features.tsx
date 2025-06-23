@@ -6,7 +6,7 @@ import { Shield, Puzzle, Coins } from "lucide-react"
 const features = [
   {
     title: "AIによる厳格な審査",
-    description: "すべてのPMとクライアントはAIによる審査を通過。信頼できるパートナーだけが参加できるプラットフォームです。",
+    description: "すべてプロフェッショナルとクライアントはAIによる審査を通過。信頼できるパートナーだけが参加できるプラットフォームです。",
     icon: Shield,
     color: "bg-blue-50",
     iconColor: "text-primary"

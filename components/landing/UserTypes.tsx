@@ -20,7 +20,7 @@ export default function UserTypes() {
             あなたに最適な<span className="text-primary">ユーザー体験</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            クライアントとPM、それぞれのニーズに合わせた機能を提供します
+            クライアントとプロフェッショナル、それぞれのニーズに合わせた機能を提供します
           </p>
         </motion.div>
 
@@ -37,9 +37,9 @@ export default function UserTypes() {
               <div className="bg-white p-4 rounded-full inline-block mb-4">
                 <Building className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">プロジェクトを成功に導くPMをお探しの方へ</h3>
+              <h3 className="text-2xl font-bold mb-2">プロジェクトを成功に導くプロフェッショナルをお探しの方へ</h3>
               <p className="text-gray-700">
-                厳選されたPMとつながり、プロジェクトを確実に前進させましょう。
+                厳選されたプロフェッショナルとつながり、プロジェクトを確実に前進させましょう。
               </p>
             </div>
             <div className="p-8">
@@ -68,7 +68,7 @@ export default function UserTypes() {
             </div>
           </motion.div>
 
-          {/* PM向け */}
+          {/* プロフェッショナル向け */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -80,7 +80,7 @@ export default function UserTypes() {
               <div className="bg-white p-4 rounded-full inline-block mb-4">
                 <Users className="w-8 h-8 text-accent" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">スキルを活かせるプロジェクトをお探しのPMへ</h3>
+              <h3 className="text-2xl font-bold mb-2">スキルを活かせるプロジェクトをお探しのプロフェッショナルへ</h3>
               <p className="text-gray-700">
                 あなたの経験とスキルにマッチする魅力的なプロジェクトと出会えます。
               </p>
@@ -90,23 +90,23 @@ export default function UserTypes() {
               <ul className="space-y-2 mb-6">
                 <li className="flex items-start">
                   <span className="text-accent mr-2">•</span>
-                  <span>ITプロジェクトマネージャー経験者</span>
+                  <span>ITプロジェクト管理経験者</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-accent mr-2">•</span>
-                  <span>フリーランスのPM</span>
+                  <span>フリーランスのプロフェッショナル</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-accent mr-2">•</span>
-                  <span>副業・複業としてPM業務を行いたい方</span>
+                  <span>副業・複業としてプロジェクト管理業務を行いたい方</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-accent mr-2">•</span>
-                  <span>キャリアアップを目指すPM</span>
+                  <span>キャリアアップを目指すプロフェッショナル</span>
                 </li>
               </ul>
               <Button asChild variant="accent" className="w-full text-lg px-10 py-3 font-semibold">
-                <Link href="/signup?type=pm">PMとして登録</Link>
+                <Link href="/signup?type=pro">プロフェッショナルとして登録</Link>
               </Button>
             </div>
           </motion.div>

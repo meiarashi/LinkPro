@@ -19,7 +19,7 @@ import {
   Loader2 
 } from "lucide-react";
 
-interface PMProfile {
+interface ProProfile {
   id: string;
   full_name: string | null;
   profile_details: {
@@ -47,16 +47,16 @@ interface PMProfile {
   } | null;
 }
 
-export default function PMDetailPage({ 
+export default function ProDetailPage({ 
   params 
 }: { 
-  params: { pmId: string } 
+  params: { proId: string } 
 }) {
   const router = useRouter();
   const supabase = createClient();
   
   const [loading, setLoading] = useState(true);
-  const [pmProfile, setPmProfile] = useState<PMProfile | null>(null);
+  const [proProfile, setProProfile] = useState<ProProfile | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const [userProjects, setUserProjects] = useState<any[]>([]);
@@ -67,10 +67,10 @@ export default function PMDetailPage({
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    loadPmProfile();
-  }, [params.pmId]);
+    loadProProfile();
+  }, [params.proId]);
 
-  const loadPmProfile = async () => {
+  const loadProProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -95,22 +95,22 @@ export default function PMDetailPage({
 
       setCurrentUserProfile(userProfile);
 
-      // PMプロフィールを取得
-      const { data: pm, error } = await supabase
+      // プロフェッショナルプロフィールを取得
+      const { data: pro, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", params.pmId)
-        .eq("user_type", "pm")
+        .eq("id", params.proId)
+        .eq("user_type", "pro")
         .eq("visibility", true)
         .single();
 
-      if (error || !pm) {
-        console.error("Error fetching PM:", error);
-        router.push("/pm-list");
+      if (error || !pro) {
+        console.error("Error fetching professional:", error);
+        router.push("/pro-list");
         return;
       }
 
-      setPmProfile(pm);
+      setProProfile(pro);
 
       // クライアントのプロジェクトを取得
       const { data: projects } = await supabase
@@ -131,7 +131,7 @@ export default function PMDetailPage({
         .from("conversations")
         .select("project_id")
         .eq("client_id", user.id)
-        .eq("pm_id", params.pmId);
+        .eq("pro_id", params.proId);
 
       if (existingConversations) {
         const matchedIds = existingConversations.map(conv => conv.project_id);
@@ -175,7 +175,7 @@ export default function PMDetailPage({
         .insert({
           project_id: selectedProjectId,
           client_id: currentUser.id,
-          pm_id: pmProfile!.id,
+          pro_id: proProfile!.id,
           initiated_by: 'scout',
           status: 'active'
         })
@@ -194,7 +194,7 @@ export default function PMDetailPage({
         .insert({
           conversation_id: newConv.id,
           sender_id: currentUser.id,
-          receiver_id: pmProfile!.id,
+          receiver_id: proProfile!.id,
           content: scoutMessage.trim(),
           message_type: "normal",
           project_id: selectedProjectId
@@ -225,7 +225,7 @@ export default function PMDetailPage({
     );
   }
 
-  if (!pmProfile) {
+  if (!proProfile) {
     return null;
   }
 
@@ -240,10 +240,10 @@ export default function PMDetailPage({
       
       <main className="container mx-auto px-4 py-8">
         {/* 戻るボタン */}
-        <Link href="/pm-list">
+        <Link href="/pro-list">
           <Button variant="ghost" className="mb-6 flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" />
-            PM一覧に戻る
+            プロフェッショナル一覧に戻る
           </Button>
         </Link>
 
@@ -258,28 +258,28 @@ export default function PMDetailPage({
                     <User className="w-10 h-10 text-gray-500" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold">{pmProfile.full_name || '名前未設定'}</h1>
-                    <p className="text-gray-600">プロジェクトマネージャー</p>
+                    <h1 className="text-2xl font-bold">{proProfile.full_name || '名前未設定'}</h1>
+                    <p className="text-gray-600">プロフェッショナル</p>
                   </div>
                 </div>
               </div>
 
               {/* 自己紹介 */}
-              {pmProfile.profile_details?.introduction && (
+              {proProfile.profile_details?.introduction && (
                 <div className="mb-6">
                   <h3 className="font-semibold mb-2">自己紹介</h3>
                   <p className="text-gray-700 whitespace-pre-wrap">
-                    {pmProfile.profile_details.introduction}
+                    {proProfile.profile_details.introduction}
                   </p>
                 </div>
               )}
 
               {/* スキル */}
-              {pmProfile.profile_details?.skills && pmProfile.profile_details.skills.length > 0 && (
+              {proProfile.profile_details?.skills && proProfile.profile_details.skills.length > 0 && (
                 <div className="mb-6">
                   <h3 className="font-semibold mb-3">スキル</h3>
                   <div className="flex flex-wrap gap-2">
-                    {pmProfile.profile_details.skills.map((skill, index) => (
+                    {proProfile.profile_details.skills.map((skill, index) => (
                       <span
                         key={index}
                         className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full"
@@ -292,27 +292,27 @@ export default function PMDetailPage({
               )}
 
               {/* 経験・実績 */}
-              {pmProfile.profile_details?.experience && (
+              {proProfile.profile_details?.experience && (
                 <div className="mb-6">
                   <h3 className="font-semibold mb-2">経験・実績</h3>
                   <p className="text-gray-700 whitespace-pre-wrap">
-                    {pmProfile.profile_details.experience}
+                    {proProfile.profile_details.experience}
                   </p>
                 </div>
               )}
 
               {/* ポートフォリオ */}
-              {pmProfile.profile_details?.portfolio && (
+              {proProfile.profile_details?.portfolio && (
                 <div>
                   <h3 className="font-semibold mb-2">ポートフォリオ</h3>
                   <a 
-                    href={pmProfile.profile_details.portfolio}
+                    href={proProfile.profile_details.portfolio}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline flex items-center gap-1"
                   >
                     <Globe className="w-4 h-4" />
-                    {pmProfile.profile_details.portfolio}
+                    {proProfile.profile_details.portfolio}
                   </a>
                 </div>
               )}
@@ -368,42 +368,42 @@ export default function PMDetailPage({
             </Card>
 
             {/* 料金情報 */}
-            {pmProfile.rate_info && Object.keys(pmProfile.rate_info).length > 0 && (
+            {proProfile.rate_info && Object.keys(proProfile.rate_info).length > 0 && (
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">料金</h3>
-                {(pmProfile.rate_info.min_rate || pmProfile.rate_info.max_rate) && (
+                {(proProfile.rate_info.min_rate || proProfile.rate_info.max_rate) && (
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-gray-600">時間単価</span>
                     <span className="font-semibold text-lg">
-                      {pmProfile.rate_info.min_rate && `¥${pmProfile.rate_info.min_rate}`}
-                      {pmProfile.rate_info.min_rate && pmProfile.rate_info.max_rate && ' 〜 '}
-                      {pmProfile.rate_info.max_rate && `¥${pmProfile.rate_info.max_rate}`}
+                      {proProfile.rate_info.min_rate && `¥${proProfile.rate_info.min_rate}`}
+                      {proProfile.rate_info.min_rate && proProfile.rate_info.max_rate && ' 〜 '}
+                      {proProfile.rate_info.max_rate && `¥${proProfile.rate_info.max_rate}`}
                       /時間
                     </span>
                   </div>
                 )}
-                {pmProfile.rate_info.hourly_rate && 
-                 !pmProfile.rate_info.min_rate && !pmProfile.rate_info.max_rate && (
+                {proProfile.rate_info.hourly_rate && 
+                 !proProfile.rate_info.min_rate && !proProfile.rate_info.max_rate && (
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-gray-600">時間単価</span>
                     <span className="font-semibold text-lg">
-                      ¥{pmProfile.rate_info.hourly_rate}/時間
+                      ¥{proProfile.rate_info.hourly_rate}/時間
                     </span>
                   </div>
                 )}
-                {pmProfile.rate_info.project_rate && (
+                {proProfile.rate_info.project_rate && (
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-gray-600">プロジェクト単価</span>
                     <span className="font-semibold text-lg">
-                      ¥{pmProfile.rate_info.project_rate}〜
+                      ¥{proProfile.rate_info.project_rate}〜
                     </span>
                   </div>
                 )}
-                {pmProfile.rate_info.consultation_rate && (
+                {proProfile.rate_info.consultation_rate && (
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">相談料</span>
                     <span className="font-semibold text-lg">
-                      ¥{pmProfile.rate_info.consultation_rate}/回
+                      ¥{proProfile.rate_info.consultation_rate}/回
                     </span>
                   </div>
                 )}
@@ -411,28 +411,28 @@ export default function PMDetailPage({
             )}
 
             {/* 稼働状況 */}
-            {pmProfile.availability && (
+            {proProfile.availability && (
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">稼働状況</h3>
-                {pmProfile.availability.status && (
+                {proProfile.availability.status && (
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-3 h-3 rounded-full ${
-                      pmProfile.availability.status === 'available' 
+                      proProfile.availability.status === 'available' 
                         ? 'bg-green-500' 
                         : 'bg-yellow-500'
                     }`} />
                     <span className="text-gray-700">
-                      {pmProfile.availability.status === 'available' 
+                      {proProfile.availability.status === 'available' 
                         ? '稼働可能' 
                         : '要相談'}
                     </span>
                   </div>
                 )}
-                {pmProfile.availability.hours_per_week && (
+                {proProfile.availability.hours_per_week && (
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-500" />
                     <span className="text-gray-700">
-                      週{pmProfile.availability.hours_per_week}時間まで
+                      週{proProfile.availability.hours_per_week}時間まで
                     </span>
                   </div>
                 )}
@@ -443,11 +443,11 @@ export default function PMDetailPage({
       </main>
 
       {/* スカウトモーダル */}
-      {showScoutModal && pmProfile && (
+      {showScoutModal && proProfile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h2 className="text-xl font-bold mb-4">
-              {pmProfile.full_name}さんをスカウト
+              {proProfile.full_name}さんをスカウト
             </h2>
 
             <div className="mb-4">
@@ -481,7 +481,7 @@ export default function PMDetailPage({
               <textarea
                 value={scoutMessage}
                 onChange={(e) => setScoutMessage(e.target.value)}
-                placeholder="プロジェクトの概要や、なぜこのPMに興味を持ったのかを書いてください..."
+                placeholder="プロジェクトの概要や、なぜこのプロフェッショナルに興味を持ったのかを書いてください..."
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 rows={5}
               />

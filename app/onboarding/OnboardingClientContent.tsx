@@ -28,11 +28,11 @@ export default function OnboardingClientContent() {
 
   useEffect(() => {
     const typeFromUrl = searchParams.get("type");
-    if (typeFromUrl && (typeFromUrl === "client" || typeFromUrl === "pm")) {
+    if (typeFromUrl && (typeFromUrl === "client" || typeFromUrl === "pro")) {
       setUserType(typeFromUrl);
     } else {
       const storedType = localStorage.getItem("userType");
-      if (storedType && (storedType === "client" || storedType === "pm")) {
+      if (storedType && (storedType === "client" || storedType === "pro")) {
         setUserType(storedType);
       }
     }
@@ -89,9 +89,9 @@ export default function OnboardingClientContent() {
       bio: formData.bio,
       company_name: userType === "client" ? formData.companyName : undefined,
       position: userType === "client" ? formData.position : undefined,
-      skills: userType === "pm" ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
-      experience_years: userType === "pm" ? (parseInt(formData.experience) || 0) : undefined,
-      hourly_rate: userType === "pm" ? (parseInt(formData.rate) || 0) : undefined,
+      skills: userType === "pro" ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+      experience_years: userType === "pro" ? (parseInt(formData.experience) || 0) : undefined,
+      hourly_rate: userType === "pro" ? (parseInt(formData.rate) || 0) : undefined,
     };
 
     // Prepare data for profiles table upsert
@@ -103,10 +103,10 @@ export default function OnboardingClientContent() {
         bio: formData.bio,
         company_name: userType === "client" ? formData.companyName : undefined,
         position: userType === "client" ? formData.position : undefined,
-        skills: userType === "pm" ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
-        experience_years: userType === "pm" ? (parseInt(formData.experience) || 0) : undefined,
+        skills: userType === "pro" ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+        experience_years: userType === "pro" ? (parseInt(formData.experience) || 0) : undefined,
       },
-      rate_info: userType === "pm" ? {
+      rate_info: userType === "pro" ? {
         hourly_rate: parseInt(formData.rate) || 0
       } : {},
       availability: {}, // 後で拡張可能
@@ -176,7 +176,7 @@ export default function OnboardingClientContent() {
         <div className="bg-white shadow-xl rounded-lg overflow-hidden">
           <div className="bg-primary px-6 py-8 text-white">
             <h1 className="text-3xl font-bold">
-              {userType === "client" ? "クライアント情報入力" : "PM情報入力"}
+              {userType === "client" ? "クライアント情報入力" : "プロフェッショナル情報入力"}
             </h1>
             <p className="mt-2 opacity-90">
               ようこそ、{formData.displayName || user.email}さん！<br />
@@ -246,7 +246,7 @@ export default function OnboardingClientContent() {
               </>
             )}
 
-            {userType === "pm" && (
+            {userType === "pro" && (
               <>
                 <div>
                   <label htmlFor="skills" className="block text-sm font-medium text-gray-700">
@@ -263,7 +263,7 @@ export default function OnboardingClientContent() {
                 </div>
                 <div>
                   <label htmlFor="experience" className="block text-sm font-medium text-gray-700">
-                    PM経験年数 (数字のみ)
+                    プロフェッショナル経験年数 (数字のみ)
                   </label>
                   <input
                     type="number"

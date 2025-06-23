@@ -12,7 +12,7 @@ interface Conversation {
   id: string;
   project_id: string;
   client_id: string;
-  pm_id: string;
+  pro_id: string;
   initiated_by: 'application' | 'scout';
   status: 'pending' | 'active' | 'closed';
   last_message_at: string | null;
@@ -25,7 +25,7 @@ interface Conversation {
   client_profile?: {
     full_name: string | null;
   };
-  pm_profile?: {
+  pro_profile?: {
     full_name: string | null;
   };
   last_message?: {
@@ -169,8 +169,8 @@ export default function MessagesPage() {
       // ユーザータイプに応じてフィルタリング
       if (profileData?.user_type === 'client') {
         query = query.eq("client_id", user.id);
-      } else if (profileData?.user_type === 'pm') {
-        query = query.eq("pm_id", user.id);
+      } else if (profileData?.user_type === 'pro') {
+        query = query.eq("pro_id", user.id);
       }
 
       const { data: conversationsData, error: convError } = await query;
@@ -183,11 +183,11 @@ export default function MessagesPage() {
       if (conversationsData && conversationsData.length > 0) {
         // プロフィール情報を取得
         const clientIds = Array.from(new Set(conversationsData.map(c => c.client_id)));
-        const pmIds = Array.from(new Set(conversationsData.map(c => c.pm_id)));
+        const proIds = Array.from(new Set(conversationsData.map(c => c.pro_id)));
         
-        const [clientProfiles, pmProfiles] = await Promise.all([
+        const [clientProfiles, proProfiles] = await Promise.all([
           supabase.from("profiles").select("id, full_name").in("id", clientIds),
-          supabase.from("profiles").select("id, full_name").in("id", pmIds)
+          supabase.from("profiles").select("id, full_name").in("id", proIds)
         ]);
 
         // 最新メッセージと未読数を取得
@@ -214,7 +214,7 @@ export default function MessagesPage() {
             return {
               ...conv,
               client_profile: clientProfiles.data?.find(p => p.id === conv.client_id),
-              pm_profile: pmProfiles.data?.find(p => p.id === conv.pm_id),
+              pro_profile: proProfiles.data?.find(p => p.id === conv.pro_id),
               last_message: lastMessage,
               unread_count: unreadCount || 0
             };
@@ -285,7 +285,7 @@ export default function MessagesPage() {
     
     try {
       const receiverId = selectedConversation.client_id === currentUser.id 
-        ? selectedConversation.pm_id 
+        ? selectedConversation.pro_id 
         : selectedConversation.client_id;
 
       const { data, error } = await supabase
@@ -471,7 +471,7 @@ export default function MessagesPage() {
                   <p className="text-gray-500">メッセージはまだありません</p>
                   <p className="text-sm text-gray-400 mt-2">
                     {userProfile?.user_type === 'client' 
-                      ? 'PMからの応募を承認すると、メッセージのやり取りができるようになります'
+                      ? 'プロフェッショナルからの応募を承認すると、メッセージのやり取りができるようになります'
                       : 'プロジェクトへの応募が承認されると、メッセージのやり取りができるようになります'}
                   </p>
                 </div>
@@ -479,7 +479,7 @@ export default function MessagesPage() {
                 <div className="divide-y">
                   {conversations.map((conversation) => {
                     const otherUser = userProfile?.user_type === 'client' 
-                      ? conversation.pm_profile 
+                      ? conversation.pro_profile 
                       : conversation.client_profile;
                     const isSelected = selectedConversation?.id === conversation.id;
 
@@ -556,7 +556,7 @@ export default function MessagesPage() {
                       <div>
                         <h3 className="font-semibold">
                           {userProfile?.user_type === 'client' 
-                            ? selectedConversation.pm_profile?.full_name 
+                            ? selectedConversation.pro_profile?.full_name 
                             : selectedConversation.client_profile?.full_name || 'ユーザー'}
                         </h3>
                         <p className="text-sm text-gray-500">{selectedConversation.project?.title}</p>

@@ -15,7 +15,7 @@ interface Profile {
 interface Application {
   id: string;
   project_id: string;
-  pm_id: string;
+  pro_id: string;
   status: 'pending' | 'accepted' | 'rejected';
   message: string | null;
   created_at: string;
@@ -29,19 +29,19 @@ interface Application {
   };
 }
 
-interface PMDashboardProps {
+interface ProDashboardProps {
   profile: Profile;
-  pmApplications: Application[];
+  proApplications: Application[];
   projectsLoading: boolean;
   unreadMessageCount?: number;
 }
 
-export default function PMDashboard({ 
+export default function ProDashboard({ 
   profile, 
-  pmApplications, 
+  proApplications, 
   projectsLoading,
   unreadMessageCount = 0 
-}: PMDashboardProps) {
+}: ProDashboardProps) {
   
   return (
     <div className="space-y-6">
@@ -49,7 +49,7 @@ export default function PMDashboard({
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">PMダッシュボード</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Proダッシュボード</h1>
             <p className="text-gray-600 mt-1">プロジェクトへの応募状況を管理</p>
           </div>
           <div className="flex gap-2">
@@ -80,7 +80,7 @@ export default function PMDashboard({
               <div>
                 <p className="text-sm text-gray-600">応募中</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {pmApplications.filter(a => a.status === 'pending').length}
+                  {proApplications.filter(a => a.status === 'pending').length}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-gray-400" />
@@ -91,7 +91,7 @@ export default function PMDashboard({
               <div>
                 <p className="text-sm text-gray-600">承認済み</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {pmApplications.filter(a => a.status === 'accepted').length}
+                  {proApplications.filter(a => a.status === 'accepted').length}
                 </p>
               </div>
               <CheckCircle className="w-8 h-8 text-gray-400" />
@@ -101,7 +101,7 @@ export default function PMDashboard({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">総応募数</p>
-                <p className="text-2xl font-bold text-gray-800">{pmApplications.length}</p>
+                <p className="text-2xl font-bold text-gray-800">{proApplications.length}</p>
               </div>
               <MessageSquare className="w-8 h-8 text-gray-400" />
             </div>
@@ -146,7 +146,7 @@ export default function PMDashboard({
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
           </div>
-        ) : pmApplications.length === 0 ? (
+        ) : proApplications.length === 0 ? (
           <div className="text-center py-8">
             <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">まだ応募がありません</p>
@@ -158,7 +158,7 @@ export default function PMDashboard({
           </div>
         ) : (
           <div className="space-y-4">
-            {pmApplications.map((application) => (
+            {proApplications.map((application) => (
               <div key={application.id} className="border rounded-lg p-4 hover:bg-gray-50">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
