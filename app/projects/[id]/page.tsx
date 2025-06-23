@@ -181,7 +181,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       alert('応募が完了しました！');
       
       // ページをリロードして最新状態を取得
-      loadProjectData();
+      fetchProjectData();
     } catch (error) {
       console.error('Error submitting application:', error);
       alert('応募に失敗しました。もう一度お試しください。');
