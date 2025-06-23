@@ -368,9 +368,44 @@ export default function NewProjectPage() {
               <Button
                 type="button"
                 disabled={saving || !formData.title || !formData.description}
-                onClick={(e) => {
-                  setFormData(prev => ({ ...prev, status: "public" }));
-                  handleSubmit(e, false);
+                onClick={async (e) => {
+                  // formDataを直接更新せず、公開ステータスで保存
+                  e.preventDefault();
+                  setSaving(true);
+                  setError(null);
+
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                      router.push("/login");
+                      return;
+                    }
+
+                    const { data, error: insertError } = await supabase
+                      .from("projects")
+                      .insert({
+                        client_id: user.id,
+                        title: formData.title,
+                        description: formData.description,
+                        budget: formData.budget,
+                        duration: formData.duration,
+                        required_skills: formData.required_skills,
+                        status: "public", // 直接publicを指定
+                      })
+                      .select()
+                      .single();
+
+                    if (insertError) {
+                      throw insertError;
+                    }
+
+                    router.push(`/projects/${data.id}`);
+                  } catch (err: any) {
+                    console.error("Error creating project:", err);
+                    setError(err.message || "プロジェクトの作成に失敗しました");
+                  } finally {
+                    setSaving(false);
+                  }
                 }}
                 className="flex items-center gap-2"
               >
