@@ -117,7 +117,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           .eq("project_id", params.id)
           .eq("pro_id", currentUser.id);
         
-        setHasApplied(existingApplications && existingApplications.length > 0);
+        setHasApplied(!!existingApplications && existingApplications.length > 0);
       }
 
       // プロジェクトオーナーの場合は応募情報も取得
