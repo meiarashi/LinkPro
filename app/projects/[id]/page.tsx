@@ -111,14 +111,13 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
       // プロフェッショナルの場合、既に応募しているかチェック
       if (profileData?.user_type === 'pro') {
-        const { data: existingApplication } = await supabase
+        const { data: existingApplications } = await supabase
           .from("applications")
           .select("id")
           .eq("project_id", params.id)
-          .eq("pro_id", currentUser.id)
-          .single();
+          .eq("pro_id", currentUser.id);
         
-        setHasApplied(!!existingApplication);
+        setHasApplied(existingApplications && existingApplications.length > 0);
       }
 
       // プロジェクトオーナーの場合は応募情報も取得
@@ -180,6 +179,9 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       setShowApplicationModal(false);
       setApplicationMessage('');
       alert('応募が完了しました！');
+      
+      // ページをリロードして最新状態を取得
+      loadProjectData();
     } catch (error) {
       console.error('Error submitting application:', error);
       alert('応募に失敗しました。もう一度お試しください。');
