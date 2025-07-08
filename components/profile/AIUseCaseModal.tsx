@@ -37,6 +37,7 @@ export default function AIUseCaseModal({
     metrics: useCase?.metrics || {},
     tags: useCase?.tags || [],
     is_public: useCase?.is_public !== false,
+    attachments: useCase?.attachments || [],
   });
 
   const [newTool, setNewTool] = useState("");
@@ -46,6 +47,7 @@ export default function AIUseCaseModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setLoading(true);
 
     try {
@@ -130,13 +132,24 @@ export default function AIUseCaseModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
             {useCase ? "AI活用事例を編集" : "AI活用事例を追加"}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
           >
@@ -257,6 +270,63 @@ export default function AIUseCaseModal({
                   />
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* 関連URL */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              関連URL（GitHub、デモサイトなど）
+            </label>
+            <div className="space-y-2">
+              {(formData.attachments || []).filter(a => a.type === 'link').map((link, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="url"
+                    value={link.url}
+                    onChange={(e) => {
+                      const newAttachments = [...formData.attachments];
+                      newAttachments[index] = { ...link, url: e.target.value };
+                      setFormData({ ...formData, attachments: newAttachments });
+                    }}
+                    placeholder="URL"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={link.name}
+                    onChange={(e) => {
+                      const newAttachments = [...formData.attachments];
+                      newAttachments[index] = { ...link, name: e.target.value };
+                      setFormData({ ...formData, attachments: newAttachments });
+                    }}
+                    placeholder="リンク名"
+                    className="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newAttachments = formData.attachments.filter((_, i) => i !== index);
+                      setFormData({ ...formData, attachments: newAttachments });
+                    }}
+                    className="p-2 text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    attachments: [...formData.attachments, { type: 'link', url: '', name: '' }],
+                  });
+                }}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                + URLを追加
+              </button>
             </div>
           </div>
 

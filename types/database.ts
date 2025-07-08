@@ -235,9 +235,9 @@ export interface Database {
       };
       // AI関連の新規テーブル
       ai_skills: {
-        Row: AISkill;
-        Insert: Omit<AISkill, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<AISkill, 'id' | 'created_at' | 'updated_at'>>;
+        Row: AISkillDetail;
+        Insert: Omit<AISkillDetail, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<AISkillDetail, 'id' | 'created_at' | 'updated_at'>>;
       };
       matching_scores: {
         Row: MatchingScore;

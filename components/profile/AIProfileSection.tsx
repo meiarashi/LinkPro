@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { AILevel, AITool, AI_LEVELS, SKILL_CATEGORIES } from "../../types/ai-talent";
+import { AISkillType, AITool, AI_SKILLS, SKILL_CATEGORIES } from "../../types/ai-talent";
 import { ChevronDown, Info } from "lucide-react";
 
 interface AIProfileSectionProps {
-  aiLevel: AILevel | undefined;
+  aiSkills: AISkillType[];
   aiTools: string[];
   aiExperience: {
     years: number;
     domains: string[];
     achievements: string[];
   };
-  onAILevelChange: (level: AILevel) => void;
+  onAISkillsChange: (skills: AISkillType[]) => void;
   onAIToolsChange: (tools: string[]) => void;
   onAIExperienceChange: (experience: any) => void;
 }
@@ -51,14 +51,22 @@ const BUSINESS_DOMAINS = [
 ];
 
 export default function AIProfileSection({
-  aiLevel,
+  aiSkills,
   aiTools,
   aiExperience,
-  onAILevelChange,
+  onAISkillsChange,
   onAIToolsChange,
   onAIExperienceChange,
 }: AIProfileSectionProps) {
-  const [showLevelInfo, setShowLevelInfo] = useState(false);
+  const [showSkillInfo, setShowSkillInfo] = useState(false);
+
+  const handleSkillToggle = (skill: AISkillType) => {
+    if (aiSkills.includes(skill)) {
+      onAISkillsChange(aiSkills.filter((s) => s !== skill));
+    } else {
+      onAISkillsChange([...aiSkills, skill]);
+    }
+  };
 
   const handleToolToggle = (tool: string) => {
     if (aiTools.includes(tool)) {
@@ -102,21 +110,21 @@ export default function AIProfileSection({
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">AI人材情報</h2>
+        <h2 className="text-lg font-semibold">詳細情報</h2>
         <button
           type="button"
-          onClick={() => setShowLevelInfo(!showLevelInfo)}
+          onClick={() => setShowSkillInfo(!showSkillInfo)}
           className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
         >
           <Info className="w-4 h-4" />
-          レベルについて
+          スキルについて
         </button>
       </div>
 
-      {showLevelInfo && (
+      {showSkillInfo && (
         <div className="mb-4 p-4 bg-blue-50 rounded-lg text-sm">
           <div className="space-y-2">
-            {Object.entries(AI_LEVELS).map(([key, level]) => (
+            {Object.entries(AI_SKILLS).map(([key, skill]) => (
               <div key={key} className="flex items-start gap-2">
                 <span className={`font-semibold ${
                   key === 'expert' ? 'text-purple-600' :
@@ -125,29 +133,32 @@ export default function AIProfileSection({
                   key === 'supporter' ? 'text-orange-600' :
                   'text-gray-600'
                 }`}>
-                  {level.label}:
+                  {skill.label}:
                 </span>
-                <span className="text-gray-700">{level.description}</span>
+                <span className="text-gray-700">{skill.description}</span>
               </div>
             ))}
           </div>
+          <p className="mt-3 text-xs text-gray-600">
+            ※ 開発実績やGitHubリンクなどは、下部の「AI活用事例」セクションに登録できます
+          </p>
         </div>
       )}
 
       <div className="space-y-6">
-        {/* AI人材レベル選択 */}
+        {/* AI人材スキル選択 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            AI人材レベル <span className="text-red-500">*</span>
+            AI人材スキル（複数選択可）
           </label>
           <div className="grid grid-cols-2 gap-3">
-            {Object.entries(AI_LEVELS).map(([key, level]) => (
+            {Object.entries(AI_SKILLS).map(([key, skill]) => (
               <button
                 key={key}
                 type="button"
-                onClick={() => onAILevelChange(key as AILevel)}
+                onClick={() => handleSkillToggle(key as AISkillType)}
                 className={`p-4 rounded-lg border-2 text-left transition-all ${
-                  aiLevel === key
+                  aiSkills.includes(key as AISkillType)
                     ? key === 'expert' ? 'border-purple-500 bg-purple-50' :
                       key === 'developer' ? 'border-blue-500 bg-blue-50' :
                       key === 'user' ? 'border-green-500 bg-green-50' :
@@ -156,11 +167,8 @@ export default function AIProfileSection({
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
-                <div className="font-semibold mb-1">{level.label}</div>
-                <div className="text-xs text-gray-600">{level.description}</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  目安: {level.minRate.toLocaleString()}円/時〜
-                </div>
+                <div className="font-semibold mb-1">{skill.label}</div>
+                <div className="text-xs text-gray-600">{skill.description}</div>
               </button>
             ))}
           </div>

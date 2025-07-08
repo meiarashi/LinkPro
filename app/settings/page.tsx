@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
 import { createClient } from "../../utils/supabase/client";
 import LoggedInHeader from "../../components/LoggedInHeader";
+import AIProfileSection from "../../components/profile/AIProfileSection";
+import AIUseCaseSection from "../../components/profile/AIUseCaseSection";
 import { 
   Loader2, 
   User, 
@@ -14,8 +16,10 @@ import {
   Trash2,
   AlertCircle,
   Check,
-  UserCircle
+  UserCircle,
+  BrainCircuit
 } from "lucide-react";
+import { AISkillType } from "../../types/ai-talent";
 
 interface Profile {
   id: string;
@@ -54,13 +58,21 @@ export default function SettingsPage() {
   
   // プロフィール編集用
   const [fullName, setFullName] = useState("");
-  const [skills, setSkills] = useState("");
-  const [experience, setExperience] = useState("");
   const [portfolio, setPortfolio] = useState("");
   const [proBio, setProBio] = useState("");
   const [minRate, setMinRate] = useState("");
   const [maxRate, setMaxRate] = useState("");
   const [availability, setAvailability] = useState("");
+  
+  // AI関連の状態
+  const [aiSkills, setAISkills] = useState<AISkillType[]>([]);
+  const [aiTools, setAITools] = useState<string[]>([]);
+  const [aiExperience, setAIExperience] = useState({
+    years: 0,
+    domains: [] as string[],
+    achievements: [] as string[],
+  });
+  const [showAISection, setShowAISection] = useState(false);
   
   // UI状態
   const [activeSection, setActiveSection] = useState("profile");
@@ -112,8 +124,6 @@ export default function SettingsPage() {
         setFullName(profileData.full_name || "");
         
         if (profileData.profile_details) {
-          setSkills(profileData.profile_details.skills?.join(", ") || "");
-          setExperience(profileData.profile_details.experience || "");
           setPortfolio(profileData.profile_details.portfolio || "");
           if (profileData.user_type === 'pro') {
             setProBio(profileData.profile_details.bio || "");
@@ -127,6 +137,22 @@ export default function SettingsPage() {
         
         if (profileData.availability) {
           setAvailability(profileData.availability.hours_per_week || "");
+        }
+        
+        // AI関連データを読み込み
+        if (profileData.profile_details) {
+          setAISkills(profileData.profile_details.ai_skills || []);
+          setAITools(profileData.profile_details.ai_tools || []);
+          setAIExperience(profileData.profile_details.ai_experience || {
+            years: 0,
+            domains: [],
+            achievements: [],
+          });
+          // AI情報が設定されている場合はAIセクションを表示
+          if ((profileData.profile_details.ai_skills && profileData.profile_details.ai_skills.length > 0) || 
+              (profileData.profile_details.ai_tools && profileData.profile_details.ai_tools.length > 0)) {
+            setShowAISection(true);
+          }
         }
       }
     } catch (error) {
@@ -197,13 +223,17 @@ export default function SettingsPage() {
 
     try {
       const profileDetails: any = {
-        skills: skills.split(',').map(s => s.trim()).filter(s => s),
-        experience: experience,
         portfolio: portfolio
       };
 
       if (profile?.user_type === 'pro') {
         profileDetails.bio = proBio;
+        // AI情報を追加
+        if (showAISection) {
+          profileDetails.ai_skills = aiSkills;
+          profileDetails.ai_tools = aiTools;
+          profileDetails.ai_experience = aiExperience;
+        }
       }
 
       const updateData: any = {
@@ -443,49 +473,40 @@ export default function SettingsPage() {
                     />
                   </div>
                   
-                  <div>
-                    <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-1">
-                      スキル（カンマ区切り）
-                    </label>
-                    <input
-                      id="skills"
-                      type="text"
-                      value={skills}
-                      onChange={(e) => setSkills(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="例: JavaScript, React, Node.js"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-1">
-                      経歴
-                    </label>
-                    <textarea
-                      id="experience"
-                      value={experience}
-                      onChange={(e) => setExperience(e.target.value)}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="portfolio" className="block text-sm font-medium text-gray-700 mb-1">
-                      ポートフォリオURL
-                    </label>
-                    <input
-                      id="portfolio"
-                      type="url"
-                      value={portfolio}
-                      onChange={(e) => setPortfolio(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="https://example.com"
-                    />
-                  </div>
-                  
                   {profile?.user_type === 'pro' && (
                     <>
+                      {/* AI人材として登録 */}
+                      <div className="border-t pt-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={showAISection}
+                            onChange={(e) => setShowAISection(e.target.checked)}
+                            className="w-4 h-4 text-blue-600 rounded"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            AI人材として登録する
+                          </span>
+                        </label>
+                        <p className="ml-6 mt-1 text-xs text-gray-500">
+                          AI関連のスキルや経験を登録し、AI案件とのマッチング率を向上させます
+                        </p>
+                      </div>
+
+                      {/* AI人材情報セクション */}
+                      {showAISection && (
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          <AIProfileSection
+                            aiSkills={aiSkills}
+                            aiTools={aiTools}
+                            aiExperience={aiExperience}
+                            onAISkillsChange={setAISkills}
+                            onAIToolsChange={setAITools}
+                            onAIExperienceChange={setAIExperience}
+                          />
+                        </div>
+                      )}
+
                       <div>
                         <label htmlFor="proBio" className="block text-sm font-medium text-gray-700 mb-1">
                           自己紹介
@@ -496,6 +517,20 @@ export default function SettingsPage() {
                           onChange={(e) => setProBio(e.target.value)}
                           rows={4}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="portfolio" className="block text-sm font-medium text-gray-700 mb-1">
+                          ポートフォリオURL
+                        </label>
+                        <input
+                          id="portfolio"
+                          type="url"
+                          value={portfolio}
+                          onChange={(e) => setPortfolio(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="https://example.com"
                         />
                       </div>
                       
@@ -555,6 +590,13 @@ export default function SettingsPage() {
                     )}
                   </Button>
                 </form>
+
+                {/* AI活用事例セクション */}
+                {profile?.user_type === 'pro' && showAISection && (
+                  <div className="mt-6">
+                    <AIUseCaseSection userId={profile.id} />
+                  </div>
+                )}
               </div>
             )}
 

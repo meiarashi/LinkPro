@@ -1,7 +1,7 @@
 // AI人材マッチング機能の型定義
 
-// AI人材レベル
-export type AILevel = 'expert' | 'developer' | 'user' | 'supporter';
+// AI人材スキル
+export type AISkillType = 'expert' | 'developer' | 'user' | 'supporter';
 
 // AIツール
 export type AITool = 
@@ -27,7 +27,7 @@ export interface AIExperience {
 
 // AI関連のプロフィール詳細
 export interface AIProfileDetails {
-  ai_level?: AILevel;
+  ai_skills?: AISkillType[];
   ai_tools?: AITool[];
   ai_experience?: AIExperience;
   ai_certifications?: string[];
@@ -36,7 +36,7 @@ export interface AIProfileDetails {
 
 // AI要件
 export interface AIRequirements {
-  required_ai_level?: AILevel;
+  required_ai_skills?: AISkillType[];
   required_ai_tools?: string[];
   expected_outcomes?: string[];
   budget_range?: {
@@ -52,11 +52,11 @@ export interface AIRequirements {
   };
 }
 
-// AIスキル
-export interface AISkill {
+// AIスキル詳細
+export interface AISkillDetail {
   id: string;
   user_id: string;
-  skill_level: AILevel;
+  skill_type: AISkillType;
   category: 'technical' | 'tool' | 'business' | 'industry';
   skill_name: string;
   proficiency: 1 | 2 | 3 | 4 | 5;
@@ -71,7 +71,7 @@ export interface MatchingScore {
   id: string;
   project_id: string;
   ai_talent_id: string;
-  level_match_score: number;
+  skill_match_score: number;
   tool_match_score: number;
   domain_match_score: number;
   total_score: number;
@@ -109,7 +109,7 @@ export interface AIUseCase {
 // プロジェクトテンプレート
 export interface ProjectTemplate {
   id: string;
-  skill_level: AILevel;
+  skill_types: AISkillType[];
   category: string;
   title: string;
   description_template: string;
@@ -132,7 +132,7 @@ export interface AITalentProfile {
   id: string;
   full_name: string;
   avatar_url: string;
-  ai_level: AILevel;
+  ai_skills: AISkillType[];
   ai_tools: string[];
   ai_experience: AIExperience;
   rate_info: any;
@@ -150,7 +150,7 @@ export interface ProjectMatchingCandidate {
   ai_talent_id: string;
   talent_name: string;
   total_score: number;
-  level_match_score: number;
+  skill_match_score: number;
   tool_match_score: number;
   domain_match_score: number;
   recommendation_reason: string;
@@ -177,31 +177,27 @@ export const SKILL_CATEGORIES = {
   }
 } as const;
 
-// AI人材レベルの定義
-export const AI_LEVELS = {
+// AI人材スキルの定義
+export const AI_SKILLS = {
   expert: {
     label: 'エキスパート',
     description: 'ML/DL開発、研究開発が可能な専門家',
-    color: 'purple',
-    minRate: 10000
+    color: 'purple'
   },
   developer: {
     label: '開発者',
     description: 'API活用アプリ開発、システム実装が可能',
-    color: 'blue',
-    minRate: 5000
+    color: 'blue'
   },
   user: {
     label: '活用者',
     description: 'ChatGPT/Claude活用、プロンプト設計が可能',
-    color: 'green',
-    minRate: 3000
+    color: 'green'
   },
   supporter: {
     label: '支援者',
     description: '導入コンサル、教育・研修を提供',
-    color: 'orange',
-    minRate: 5000
+    color: 'orange'
   }
 } as const;
 

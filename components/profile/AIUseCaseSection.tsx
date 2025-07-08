@@ -70,6 +70,7 @@ export default function AIUseCaseSection({ userId }: AIUseCaseSectionProps) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">AI活用事例</h2>
         <button
+          type="button"
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
         >
@@ -86,6 +87,7 @@ export default function AIUseCaseSection({ userId }: AIUseCaseSectionProps) {
             AI活用事例を追加して、あなたの実績をアピールしましょう
           </p>
           <button
+            type="button"
             onClick={() => setShowModal(true)}
             className="text-blue-600 hover:text-blue-800"
           >
@@ -158,17 +160,39 @@ export default function AIUseCaseSection({ userId }: AIUseCaseSectionProps) {
                       ))}
                     </div>
                   )}
+
+                  {/* 関連URL */}
+                  {useCase.attachments && useCase.attachments.filter(a => a.type === 'link').length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {useCase.attachments
+                        .filter(a => a.type === 'link' && a.url)
+                        .map((link, index) => (
+                          <a
+                            key={index}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            {link.name || 'リンク'}
+                          </a>
+                        ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* アクション */}
                 <div className="flex items-center gap-2 ml-4">
                   <button
+                    type="button"
                     onClick={() => handleEdit(useCase)}
                     className="p-2 text-gray-600 hover:text-blue-600"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDelete(useCase.id)}
                     className="p-2 text-gray-600 hover:text-red-600"
                   >

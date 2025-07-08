@@ -9,7 +9,7 @@ import LoggedInHeader from "../../../components/LoggedInHeader";
 import AIProfileSection from "../../../components/profile/AIProfileSection";
 import AIUseCaseSection from "../../../components/profile/AIUseCaseSection";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import { AILevel } from "../../../types/ai-talent";
+import { AISkillType } from "../../../types/ai-talent";
 
 interface Profile {
   id: string;
@@ -37,7 +37,7 @@ export default function ProfileEditPage() {
   const [availability, setAvailability] = useState("full-time");
   
   // AI関連の状態
-  const [aiLevel, setAILevel] = useState<AILevel | undefined>();
+  const [aiSkills, setAISkills] = useState<AISkillType[]>([]);
   const [aiTools, setAITools] = useState<string[]>([]);
   const [aiExperience, setAIExperience] = useState({
     years: 0,
@@ -75,7 +75,7 @@ export default function ProfileEditPage() {
           setAvailability(profileData.availability?.status || "full-time");
           
           // AI関連データをセット
-          setAILevel(profileData.profile_details?.ai_level);
+          setAISkills(profileData.profile_details?.ai_skills || []);
           setAITools(profileData.profile_details?.ai_tools || []);
           setAIExperience(profileData.profile_details?.ai_experience || {
             years: 0,
@@ -110,7 +110,7 @@ export default function ProfileEditPage() {
             experience,
             portfolio,
             // AI関連フィールド
-            ai_level: aiLevel,
+            ai_skills: aiSkills,
             ai_tools: aiTools,
             ai_experience: aiExperience,
           },
@@ -242,10 +242,10 @@ export default function ProfileEditPage() {
           {/* AI人材情報（プロフェッショナルのみ） */}
           {profile.user_type === "pro" && (
             <AIProfileSection
-              aiLevel={aiLevel}
+              aiSkills={aiSkills}
               aiTools={aiTools}
               aiExperience={aiExperience}
-              onAILevelChange={setAILevel}
+              onAISkillsChange={setAISkills}
               onAIToolsChange={setAITools}
               onAIExperienceChange={setAIExperience}
             />
