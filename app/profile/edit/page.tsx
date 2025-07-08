@@ -241,7 +241,9 @@ export default function ProfileEditPage() {
 
           {/* AI人材情報（プロフェッショナルのみ） */}
           {profile.user_type === "pro" && (
-            <AIProfileSection
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h2 className="text-lg font-semibold mb-4">詳細情報</h2>
+              <AIProfileSection
               aiSkills={aiSkills}
               aiTools={aiTools}
               aiExperience={aiExperience}
@@ -249,6 +251,7 @@ export default function ProfileEditPage() {
               onAIToolsChange={setAITools}
               onAIExperienceChange={setAIExperience}
             />
+            </div>
           )}
 
           {/* 単価・稼働情報（プロフェッショナルのみ） */}

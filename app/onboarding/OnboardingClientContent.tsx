@@ -139,7 +139,8 @@ export default function OnboardingClientContent() {
     } else {
       alert("プロフィールを保存しました！");
       localStorage.setItem("userType", userType || "");
-      router.push("/dashboard");
+      // プロフィール編集画面に遷移して詳細情報を入力
+      router.push("/profile/edit");
     }
   };
 

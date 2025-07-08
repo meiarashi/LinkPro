@@ -83,7 +83,12 @@ export default function SignUpPage() {
         // プロフィール作成に失敗してもオンボーディングで再作成できるので続行
       }
       
-      router.push('/onboarding?type=' + userType);
+      // Proユーザーは直接プロフィール編集へ、Clientはオンボーディングへ
+      if (userType === 'pro') {
+        router.push('/profile/edit');
+      } else {
+        router.push('/onboarding?type=' + userType);
+      }
     }
     setLoading(false);
   };

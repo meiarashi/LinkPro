@@ -56,8 +56,12 @@ export async function GET(request: Request) {
               console.error('Error creating profile:', insertError)
             }
             
-            // 新規ユーザーはオンボーディングへ
-            return NextResponse.redirect(`${origin}/onboarding?type=${userType}`)
+            // Proユーザーは直接プロフィール編集へ、Clientはオンボーディングへ
+            if (userType === 'pro') {
+              return NextResponse.redirect(`${origin}/profile/edit`)
+            } else {
+              return NextResponse.redirect(`${origin}/onboarding?type=${userType}`)
+            }
           }
         }
         

@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
 import { createClient } from "../../utils/supabase/client";
 import LoggedInHeader from "../../components/LoggedInHeader";
-import AIProfileSection from "../../components/profile/AIProfileSection";
-import AIUseCaseSection from "../../components/profile/AIUseCaseSection";
 import { 
   Loader2, 
   User, 
@@ -15,11 +13,8 @@ import {
   Bell, 
   Trash2,
   AlertCircle,
-  Check,
-  UserCircle,
-  BrainCircuit
+  Check
 } from "lucide-react";
-import { AISkillType } from "../../types/ai-talent";
 
 interface Profile {
   id: string;
@@ -56,26 +51,9 @@ export default function SettingsPage() {
   const [newApplicationNotif, setNewApplicationNotif] = useState(true);
   const [applicationStatusNotif, setApplicationStatusNotif] = useState(true);
   
-  // プロフィール編集用
-  const [fullName, setFullName] = useState("");
-  const [portfolio, setPortfolio] = useState("");
-  const [proBio, setProBio] = useState("");
-  const [minRate, setMinRate] = useState("");
-  const [maxRate, setMaxRate] = useState("");
-  const [availability, setAvailability] = useState("");
-  
-  // AI関連の状態
-  const [aiSkills, setAISkills] = useState<AISkillType[]>([]);
-  const [aiTools, setAITools] = useState<string[]>([]);
-  const [aiExperience, setAIExperience] = useState({
-    years: 0,
-    domains: [] as string[],
-    achievements: [] as string[],
-  });
-  const [showAISection, setShowAISection] = useState(false);
   
   // UI状態
-  const [activeSection, setActiveSection] = useState("profile");
+  const [activeSection, setActiveSection] = useState("account");
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -120,40 +98,6 @@ export default function SettingsPage() {
           setApplicationStatusNotif(notif.application_status ?? true);
         }
         
-        // プロフィール情報を読み込み
-        setFullName(profileData.full_name || "");
-        
-        if (profileData.profile_details) {
-          setPortfolio(profileData.profile_details.portfolio || "");
-          if (profileData.user_type === 'pro') {
-            setProBio(profileData.profile_details.bio || "");
-          }
-        }
-        
-        if (profileData.rate_info) {
-          setMinRate(profileData.rate_info.min_rate || "");
-          setMaxRate(profileData.rate_info.max_rate || "");
-        }
-        
-        if (profileData.availability) {
-          setAvailability(profileData.availability.hours_per_week || "");
-        }
-        
-        // AI関連データを読み込み
-        if (profileData.profile_details) {
-          setAISkills(profileData.profile_details.ai_skills || []);
-          setAITools(profileData.profile_details.ai_tools || []);
-          setAIExperience(profileData.profile_details.ai_experience || {
-            years: 0,
-            domains: [],
-            achievements: [],
-          });
-          // AI情報が設定されている場合はAIセクションを表示
-          if ((profileData.profile_details.ai_skills && profileData.profile_details.ai_skills.length > 0) || 
-              (profileData.profile_details.ai_tools && profileData.profile_details.ai_tools.length > 0)) {
-            setShowAISection(true);
-          }
-        }
       }
     } catch (error) {
       console.error("Error:", error);
@@ -216,58 +160,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setMessage(null);
-
-    try {
-      const profileDetails: any = {
-        portfolio: portfolio
-      };
-
-      if (profile?.user_type === 'pro') {
-        profileDetails.bio = proBio;
-        // AI情報を追加
-        if (showAISection) {
-          profileDetails.ai_skills = aiSkills;
-          profileDetails.ai_tools = aiTools;
-          profileDetails.ai_experience = aiExperience;
-        }
-      }
-
-      const updateData: any = {
-        full_name: fullName,
-        profile_details: profileDetails,
-        updated_at: new Date().toISOString()
-      };
-
-      if (profile?.user_type === 'pro') {
-        updateData.rate_info = {
-          min_rate: minRate,
-          max_rate: maxRate
-        };
-        updateData.availability = {
-          hours_per_week: availability
-        };
-      }
-
-      const { error } = await supabase
-        .from("profiles")
-        .update(updateData)
-        .eq("id", user.id);
-
-      if (error) {
-        setMessage({ type: 'error', text: 'プロフィールの更新に失敗しました' });
-      } else {
-        setMessage({ type: 'success', text: 'プロフィールを更新しました' });
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'エラーが発生しました' });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleNotificationUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -377,17 +269,6 @@ export default function SettingsPage() {
           <div className="md:w-64">
             <nav className="space-y-1">
               <button
-                onClick={() => setActiveSection("profile")}
-                className={`w-full text-left px-4 py-2 rounded-md flex items-center gap-2 ${
-                  activeSection === "profile"
-                    ? "bg-primary text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <UserCircle className="w-4 h-4" />
-                プロフィール
-              </button>
-              <button
                 onClick={() => setActiveSection("account")}
                 className={`w-full text-left px-4 py-2 rounded-md flex items-center gap-2 ${
                   activeSection === "account"
@@ -452,153 +333,6 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* プロフィール */}
-            {activeSection === "profile" && (
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <UserCircle className="w-5 h-5" />
-                  プロフィール編集
-                </h2>
-                <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div>
-                    <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                      氏名
-                    </label>
-                    <input
-                      id="fullName"
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                  
-                  {profile?.user_type === 'pro' && (
-                    <>
-                      {/* AI人材として登録 */}
-                      <div className="border-t pt-4">
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={showAISection}
-                            onChange={(e) => setShowAISection(e.target.checked)}
-                            className="w-4 h-4 text-blue-600 rounded"
-                          />
-                          <span className="text-sm font-medium text-gray-700">
-                            AI人材として登録する
-                          </span>
-                        </label>
-                        <p className="ml-6 mt-1 text-xs text-gray-500">
-                          AI関連のスキルや経験を登録し、AI案件とのマッチング率を向上させます
-                        </p>
-                      </div>
-
-                      {/* AI人材情報セクション */}
-                      {showAISection && (
-                        <div className="border rounded-lg p-4 bg-gray-50">
-                          <AIProfileSection
-                            aiSkills={aiSkills}
-                            aiTools={aiTools}
-                            aiExperience={aiExperience}
-                            onAISkillsChange={setAISkills}
-                            onAIToolsChange={setAITools}
-                            onAIExperienceChange={setAIExperience}
-                          />
-                        </div>
-                      )}
-
-                      <div>
-                        <label htmlFor="proBio" className="block text-sm font-medium text-gray-700 mb-1">
-                          自己紹介
-                        </label>
-                        <textarea
-                          id="proBio"
-                          value={proBio}
-                          onChange={(e) => setProBio(e.target.value)}
-                          rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="portfolio" className="block text-sm font-medium text-gray-700 mb-1">
-                          ポートフォリオURL
-                        </label>
-                        <input
-                          id="portfolio"
-                          type="url"
-                          value={portfolio}
-                          onChange={(e) => setPortfolio(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="https://example.com"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label htmlFor="minRate" className="block text-sm font-medium text-gray-700 mb-1">
-                            最低単価（月額）
-                          </label>
-                          <input
-                            id="minRate"
-                            type="text"
-                            value={minRate}
-                            onChange={(e) => setMinRate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                            placeholder="例: 30万円"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="maxRate" className="block text-sm font-medium text-gray-700 mb-1">
-                            最高単価（月額）
-                          </label>
-                          <input
-                            id="maxRate"
-                            type="text"
-                            value={maxRate}
-                            onChange={(e) => setMaxRate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                            placeholder="例: 80万円"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="availability" className="block text-sm font-medium text-gray-700 mb-1">
-                          稼働可能時間（週）
-                        </label>
-                        <input
-                          id="availability"
-                          type="text"
-                          value={availability}
-                          onChange={(e) => setAvailability(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="例: 40時間"
-                        />
-                      </div>
-                    </>
-                  )}
-                  
-                  <Button type="submit" disabled={saving}>
-                    {saving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        更新中...
-                      </>
-                    ) : (
-                      'プロフィールを更新'
-                    )}
-                  </Button>
-                </form>
-
-                {/* AI活用事例セクション */}
-                {profile?.user_type === 'pro' && showAISection && (
-                  <div className="mt-6">
-                    <AIUseCaseSection userId={profile.id} />
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* アカウント情報 */}
             {activeSection === "account" && (
