@@ -6,7 +6,10 @@ import { Button } from "../../../components/ui/button";
 import { createClient } from "../../../utils/supabase/client";
 import Link from "next/link";
 import LoggedInHeader from "../../../components/LoggedInHeader";
+import AIProfileSection from "../../../components/profile/AIProfileSection";
+import AIUseCaseSection from "../../../components/profile/AIUseCaseSection";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { AILevel } from "../../../types/ai-talent";
 
 interface Profile {
   id: string;
@@ -32,6 +35,15 @@ export default function ProfileEditPage() {
   const [portfolio, setPortfolio] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [availability, setAvailability] = useState("full-time");
+  
+  // AI関連の状態
+  const [aiLevel, setAILevel] = useState<AILevel | undefined>();
+  const [aiTools, setAITools] = useState<string[]>([]);
+  const [aiExperience, setAIExperience] = useState({
+    years: 0,
+    domains: [] as string[],
+    achievements: [] as string[],
+  });
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -61,6 +73,15 @@ export default function ProfileEditPage() {
           setPortfolio(profileData.profile_details?.portfolio || "");
           setHourlyRate(profileData.rate_info?.hourly_rate || "");
           setAvailability(profileData.availability?.status || "full-time");
+          
+          // AI関連データをセット
+          setAILevel(profileData.profile_details?.ai_level);
+          setAITools(profileData.profile_details?.ai_tools || []);
+          setAIExperience(profileData.profile_details?.ai_experience || {
+            years: 0,
+            domains: [],
+            achievements: [],
+          });
         }
       } catch (error) {
         console.error("Error:", error);
@@ -88,6 +109,10 @@ export default function ProfileEditPage() {
             skills,
             experience,
             portfolio,
+            // AI関連フィールド
+            ai_level: aiLevel,
+            ai_tools: aiTools,
+            ai_experience: aiExperience,
           },
           rate_info: {
             hourly_rate: hourlyRate,
@@ -214,6 +239,18 @@ export default function ProfileEditPage() {
             </div>
           </div>
 
+          {/* AI人材情報（プロフェッショナルのみ） */}
+          {profile.user_type === "pro" && (
+            <AIProfileSection
+              aiLevel={aiLevel}
+              aiTools={aiTools}
+              aiExperience={aiExperience}
+              onAILevelChange={setAILevel}
+              onAIToolsChange={setAITools}
+              onAIExperienceChange={setAIExperience}
+            />
+          )}
+
           {/* 単価・稼働情報（プロフェッショナルのみ） */}
           {profile.user_type === "pro" && (
             <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -252,6 +289,11 @@ export default function ProfileEditPage() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* AI活用事例（プロフェッショナルのみ） */}
+          {profile.user_type === "pro" && (
+            <AIUseCaseSection userId={profile.id} />
           )}
 
           {/* 送信ボタン */}

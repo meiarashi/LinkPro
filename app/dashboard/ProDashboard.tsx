@@ -53,6 +53,11 @@ export default function ProDashboard({
             <p className="text-gray-600 mt-1">プロジェクトへの応募状況を管理</p>
           </div>
           <div className="flex gap-2">
+            <Link href="/profile/edit">
+              <Button variant="outline">
+                プロフィールを編集
+              </Button>
+            </Link>
             <Link href="/messages">
               <Button variant="outline" className="flex items-center gap-2 relative">
                 <MessageSquare className="w-4 h-4" />
