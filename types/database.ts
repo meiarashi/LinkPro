@@ -1,7 +1,7 @@
 // データベーススキーマの型定義
 // AI人材マッチング機能を含む統合型定義
 
-import { AIProfileDetails, AIRequirements, AISkill, MatchingScore, AIUseCase, ProjectTemplate } from './ai-talent';
+import { AIProfileDetails, AIRequirements, AISkillDetail, MatchingScore, AIUseCase, ProjectTemplate } from './ai-talent';
 
 // プロフィール
 export interface Profile {
