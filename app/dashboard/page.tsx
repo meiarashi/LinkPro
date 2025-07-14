@@ -168,24 +168,59 @@ export default function DashboardPage() {
       .single();
     
     if (profileData?.profile_details?.ai_skills?.length > 0) {
-      // 最新の公開プロジェクトを取得
-      const { data: publicProjects } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('status', 'public')
-        .order('created_at', { ascending: false })
-        .limit(5);
+      // マッチングスコアが高いプロジェクトを取得
+      const { data: matchingData } = await supabase
+        .from('matching_scores')
+        .select(`
+          *,
+          project:projects!matching_scores_project_id_fkey(
+            id,
+            title,
+            budget,
+            duration,
+            status,
+            client_id,
+            description,
+            pro_requirements
+          )
+        `)
+        .eq('ai_talent_id', userId)
+        .eq('project.status', 'public')
+        .order('total_score', { ascending: false })
+        .limit(10);
       
-      if (publicProjects) {
+      if (matchingData && matchingData.length > 0) {
         // すでに応募したプロジェクトIDを取得
         const appliedProjectIds = applicationsData?.map(app => app.project_id) || [];
         
-        // 未応募のプロジェクトをフィルタリング
-        const notAppliedProjects = publicProjects.filter(
-          project => !appliedProjectIds.includes(project.id)
-        );
+        // 未応募かつスコアが高いプロジェクトをフィルタリング
+        const recommendedWithScores = matchingData
+          .filter(item => !appliedProjectIds.includes(item.project_id))
+          .slice(0, 5)
+          .map(item => ({
+            ...item.project,
+            matchingScore: item.total_score,
+            matchPercentage: item.match_percentage,
+            recommendationReason: item.recommendation_reason
+          }));
         
-        setRecommendedProjects(notAppliedProjects);
+        setRecommendedProjects(recommendedWithScores);
+      } else {
+        // マッチングスコアがない場合は最新のプロジェクトを表示
+        const { data: publicProjects } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('status', 'public')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        
+        if (publicProjects) {
+          const appliedProjectIds = applicationsData?.map(app => app.project_id) || [];
+          const notAppliedProjects = publicProjects.filter(
+            project => !appliedProjectIds.includes(project.id)
+          );
+          setRecommendedProjects(notAppliedProjects);
+        }
       }
     }
     

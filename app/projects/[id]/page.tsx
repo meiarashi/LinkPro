@@ -14,7 +14,9 @@ import {
   Users, 
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Sparkles,
+  Target
 } from "lucide-react";
 
 interface Profile {
@@ -52,12 +54,36 @@ interface Application {
   };
 }
 
+interface MatchingScore {
+  id: string;
+  project_id: string;
+  ai_talent_id: string;
+  pro_id: string;
+  level_match_score: number;
+  tool_match_score: number;
+  domain_match_score: number;
+  experience_score: number;
+  availability_score: number;
+  total_score: number;
+  match_percentage: number;
+  recommendation_reason: string;
+  match_details: any;
+  pro_profile?: {
+    id: string;
+    full_name: string | null;
+    profile_details: any;
+    rate_info: any;
+    availability: string;
+  };
+}
+
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const supabase = createClient();
   
   const [project, setProject] = useState<Project | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [matchingScores, setMatchingScores] = useState<MatchingScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [applicationStatusUpdating, setApplicationStatusUpdating] = useState<string | null>(null);
@@ -147,6 +173,35 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
         if (applicationsError) {
           console.error("Error fetching applications:", applicationsError);
+        }
+
+        // マッチングスコアも取得（プロジェクトオーナーの場合）
+        const { data: matchingData } = await supabase
+          .from("matching_scores")
+          .select(`
+            *,
+            pro_profile:profiles!matching_scores_ai_talent_id_fkey(
+              id,
+              full_name,
+              profile_details,
+              rate_info,
+              availability
+            )
+          `)
+          .eq("project_id", params.id)
+          .order("total_score", { ascending: false })
+          .limit(10);
+        
+        if (matchingData) {
+          // すでに応募している人材のIDリスト
+          const appliedProIds = applicationsData?.map(app => app.pro_id) || [];
+          
+          // 応募していない人材のマッチングスコアのみ表示
+          const filteredMatchingData = matchingData.filter(
+            match => !appliedProIds.includes(match.ai_talent_id)
+          );
+          
+          setMatchingScores(filteredMatchingData);
         }
       }
     } catch (error) {
@@ -438,6 +493,92 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* マッチングした人材（オーナーのみ） */}
+        {isOwner && matchingScores.length > 0 && (
+          <div className="mt-8 bg-white p-6 rounded-lg shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Target className="w-5 h-5 text-purple-500" />
+              おすすめのAI人材
+            </h3>
+            
+            <div className="space-y-4">
+              {matchingScores.map((match) => (
+                <div key={match.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="font-medium text-gray-800">
+                          {match.pro_profile?.full_name || 'プロフィール未設定'}
+                        </h4>
+                        <span className="px-3 py-1 text-sm font-bold rounded-full bg-purple-100 text-purple-700">
+                          {match.match_percentage}% マッチ
+                        </span>
+                      </div>
+                      
+                      {/* マッチング理由 */}
+                      {match.recommendation_reason && (
+                        <p className="text-sm text-purple-600 mb-2 flex items-start gap-1">
+                          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          {match.recommendation_reason}
+                        </p>
+                      )}
+                      
+                      {/* AIスキル情報 */}
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {match.pro_profile?.profile_details?.ai_skills?.map((skill: string, index: number) => (
+                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                            {skill === 'expert' && 'エキスパート'}
+                            {skill === 'developer' && '開発者'}
+                            {skill === 'user' && '活用者'}
+                            {skill === 'supporter' && '支援者'}
+                          </span>
+                        ))}
+                        {match.pro_profile?.profile_details?.ai_tools?.slice(0, 3).map((tool: string, index: number) => (
+                          <span key={`tool-${index}`} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                            {tool}
+                          </span>
+                        ))}
+                      </div>
+                      
+                      {/* スコア詳細 */}
+                      <div className="grid grid-cols-5 gap-2 text-xs text-gray-600">
+                        <div>
+                          <span className="block font-medium">レベル</span>
+                          <span className="text-blue-600">{Math.round(match.level_match_score)}/30</span>
+                        </div>
+                        <div>
+                          <span className="block font-medium">ツール</span>
+                          <span className="text-blue-600">{Math.round(match.tool_match_score)}/25</span>
+                        </div>
+                        <div>
+                          <span className="block font-medium">領域</span>
+                          <span className="text-blue-600">{Math.round(match.domain_match_score)}/20</span>
+                        </div>
+                        <div>
+                          <span className="block font-medium">経験</span>
+                          <span className="text-blue-600">{Math.round(match.experience_score)}/15</span>
+                        </div>
+                        <div>
+                          <span className="block font-medium">稼働</span>
+                          <span className="text-blue-600">{Math.round(match.availability_score)}/10</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="ml-4">
+                      <Link href={`/pro/${match.ai_talent_id}`}>
+                        <Button variant="outline" size="sm">
+                          プロフィール確認
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </main>

@@ -245,12 +245,19 @@ export default function ProDashboard({
                   <div key={project.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <Link 
-                          href={`/projects/${project.id}`}
-                          className="text-sm font-medium text-gray-800 hover:text-blue-600 line-clamp-1"
-                        >
-                          {project.title}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link 
+                            href={`/projects/${project.id}`}
+                            className="text-sm font-medium text-gray-800 hover:text-blue-600 line-clamp-1"
+                          >
+                            {project.title}
+                          </Link>
+                          {project.matchPercentage && (
+                            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-blue-100 text-blue-700">
+                              {project.matchPercentage}%
+                            </span>
+                          )}
+                        </div>
                         <div className="mt-1 text-xs text-gray-600">
                           {project.budget && (
                             <span className="mr-3">{project.budget}</span>
@@ -259,6 +266,11 @@ export default function ProDashboard({
                             <span>{project.duration}</span>
                           )}
                         </div>
+                        {project.recommendationReason && (
+                          <p className="mt-1 text-xs text-blue-600">
+                            {project.recommendationReason}
+                          </p>
+                        )}
                       </div>
                       <Link href={`/projects/${project.id}`}>
                         <Button size="sm" variant="outline" className="text-xs h-7">
