@@ -318,6 +318,9 @@ export default function ClientDashboard({
                           </p>
                         )}
                         <p className="text-xs text-gray-600 mt-1 line-clamp-2">{application.message}</p>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {new Date(application.created_at).toLocaleDateString('ja-JP')}
+                        </div>
                       </div>
                       <div className="ml-2 flex-shrink-0">
                         {application.status === 'pending' && (
@@ -355,9 +358,6 @@ export default function ClientDashboard({
                           <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">却下</span>
                         )}
                       </div>
-                    </div>
-                    <div className="mt-1 text-xs text-gray-500">
-                      {new Date(application.created_at).toLocaleDateString('ja-JP')}
                     </div>
                   </div>
                 ))}
