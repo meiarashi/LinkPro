@@ -53,28 +53,46 @@ export default function AIUseCaseModal({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
+      
+      console.log("Current user:", user.id);
+      console.log("Form data:", formData);
 
       if (useCase?.id) {
         // 更新
-        const { error } = await supabase
+        console.log("Updating use case:", useCase.id);
+        const { data, error } = await supabase
           .from("ai_use_cases")
           .update({
             ...formData,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", useCase.id);
+          .eq("id", useCase.id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Update error:", error);
+          throw error;
+        }
+        console.log("Update result:", data);
       } else {
         // 新規作成
-        const { error } = await supabase
+        console.log("Creating new use case");
+        const insertData = {
+          ...formData,
+          user_id: user.id,
+        };
+        console.log("Insert data:", insertData);
+        
+        const { data, error } = await supabase
           .from("ai_use_cases")
-          .insert({
-            ...formData,
-            user_id: user.id,
-          });
+          .insert(insertData)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Insert error:", error);
+          throw error;
+        }
+        console.log("Insert result:", data);
       }
 
       onSave();

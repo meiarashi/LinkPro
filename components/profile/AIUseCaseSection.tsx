@@ -23,13 +23,19 @@ export default function AIUseCaseSection({ userId }: AIUseCaseSectionProps) {
 
   const loadUseCases = async () => {
     try {
+      console.log("Loading use cases for user:", userId);
       const { data, error } = await supabase
         .from("ai_use_cases")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+      
+      console.log("Loaded use cases:", data);
       setUseCases(data || []);
     } catch (error) {
       console.error("Error loading use cases:", error);
