@@ -66,8 +66,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
-  const [aiProjectCount, setAIProjectCount] = useState(0);
-  const [matchingProjectsCount, setMatchingProjectsCount] = useState(0);
   const [recommendedProjects, setRecommendedProjects] = useState<Project[]>([]);
   
   const fetchClientData = async (userId: string) => {
@@ -162,18 +160,7 @@ export default function DashboardPage() {
       setProApplications(applicationsData);
     }
     
-    // AI関連プロジェクトの数を取得
-    const { count: aiCount } = await supabase
-      .from('projects')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'public')
-      .or('pro_requirements.ilike.%AI%,pro_requirements.ilike.%人工知能%,pro_requirements.ilike.%機械学習%,pro_requirements.ilike.%ChatGPT%,pro_requirements.ilike.%自動化%');
-    
-    if (aiCount !== null) {
-      setAIProjectCount(aiCount);
-    }
-    
-    // プロフィールを取得してマッチングプロジェクト数を計算
+    // プロフィールを取得して推奨プロジェクトを設定
     const { data: profileData } = await supabase
       .from('profiles')
       .select('profile_details')
@@ -181,17 +168,13 @@ export default function DashboardPage() {
       .single();
     
     if (profileData?.profile_details?.ai_skills?.length > 0) {
-      // AI人材の場合、すべての公開プロジェクトが潜在的にマッチング対象
-      const { data: publicProjects, count: matchCount } = await supabase
+      // 最新の公開プロジェクトを取得
+      const { data: publicProjects } = await supabase
         .from('projects')
-        .select('*', { count: 'exact' })
+        .select('*')
         .eq('status', 'public')
         .order('created_at', { ascending: false })
         .limit(5);
-      
-      if (matchCount !== null) {
-        setMatchingProjectsCount(matchCount);
-      }
       
       if (publicProjects) {
         // すでに応募したプロジェクトIDを取得
@@ -320,8 +303,6 @@ export default function DashboardPage() {
             proApplications={proApplications}
             projectsLoading={projectsLoading}
             unreadMessageCount={unreadMessageCount}
-            aiProjectCount={aiProjectCount}
-            matchingProjectsCount={matchingProjectsCount}
             recommendedProjects={recommendedProjects}
           />
         )}

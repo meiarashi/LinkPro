@@ -47,8 +47,6 @@ interface ProDashboardProps {
   proApplications: Application[];
   projectsLoading: boolean;
   unreadMessageCount?: number;
-  aiProjectCount?: number;
-  matchingProjectsCount?: number;
   recommendedProjects?: any[];
 }
 
@@ -57,8 +55,6 @@ export default function ProDashboard({
   proApplications, 
   projectsLoading,
   unreadMessageCount = 0,
-  aiProjectCount = 0,
-  matchingProjectsCount = 0,
   recommendedProjects = []
 }: ProDashboardProps) {
   
@@ -118,7 +114,7 @@ export default function ProDashboard({
         </div>
 
         {/* サマリーカード */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
@@ -141,22 +137,13 @@ export default function ProDashboard({
               <CheckCircle className="w-8 h-8 text-gray-400" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+          <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-700">AI案件数</p>
-                <p className="text-2xl font-bold text-blue-800">{aiProjectCount}</p>
+                <p className="text-sm text-gray-600">総応募数</p>
+                <p className="text-2xl font-bold text-gray-800">{proApplications.length}</p>
               </div>
-              <Sparkles className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-700">マッチング可能</p>
-                <p className="text-2xl font-bold text-purple-800">{matchingProjectsCount}</p>
-              </div>
-              <Target className="w-8 h-8 text-purple-500" />
+              <MessageSquare className="w-8 h-8 text-gray-400" />
             </div>
           </div>
         </div>
