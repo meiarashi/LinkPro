@@ -74,8 +74,8 @@ export default function ProDashboard({
     };
     
     if (profile.full_name) score += weights.basic;
-    if (profile.profile_details?.ai_skills?.length > 0) score += weights.aiSkills;
-    if (profile.profile_details?.ai_tools?.length > 0) score += weights.aiTools;
+    if (profile.profile_details?.ai_skills && profile.profile_details.ai_skills.length > 0) score += weights.aiSkills;
+    if (profile.profile_details?.ai_tools && profile.profile_details.ai_tools.length > 0) score += weights.aiTools;
     if (profile.profile_details?.ai_experience?.years !== undefined) score += weights.aiExperience;
     if (profile.profile_details?.ai_achievements) score += weights.aiAchievements;
     
