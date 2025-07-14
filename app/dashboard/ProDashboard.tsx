@@ -288,38 +288,37 @@ export default function ProDashboard({
             ) : (
               <div className="space-y-2">
                 {proApplications.slice(0, 3).map((application) => (
-                  <div key={application.id} className="border rounded-lg p-3 hover:bg-gray-50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <Link 
-                          href={`/projects/${application.project?.id}`}
-                          className="text-sm font-medium text-gray-800 hover:text-blue-600 line-clamp-1"
-                        >
-                          {application.project?.title || 'プロジェクト'}
-                        </Link>
-                        <div className="mt-1 text-xs text-gray-600">
-                          {new Date(application.created_at).toLocaleDateString('ja-JP')}
+                  <Link key={application.id} href={`/projects/${application.project?.id}`} className="block">
+                    <div className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-800 hover:text-blue-600 line-clamp-1">
+                            {application.project?.title || 'プロジェクト'}
+                          </p>
+                          <div className="mt-1 text-xs text-gray-600">
+                            {new Date(application.created_at).toLocaleDateString('ja-JP')}
+                          </div>
+                        </div>
+                        <div className="ml-2">
+                          {application.status === 'pending' && (
+                            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
+                              審査中
+                            </span>
+                          )}
+                          {application.status === 'accepted' && (
+                            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                              承認
+                            </span>
+                          )}
+                          {application.status === 'rejected' && (
+                            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">
+                              却下
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="ml-2">
-                        {application.status === 'pending' && (
-                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
-                            審査中
-                          </span>
-                        )}
-                        {application.status === 'accepted' && (
-                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                            承認
-                          </span>
-                        )}
-                        {application.status === 'rejected' && (
-                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">
-                            却下
-                          </span>
-                        )}
-                      </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
                 {proApplications.length > 3 && (
                   <div className="text-center pt-2">

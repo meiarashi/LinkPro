@@ -394,27 +394,36 @@ export default function ClientDashboard({
             ) : (
               <div className="space-y-2">
                 {projects.slice(0, 5).map((project) => (
-                  <div key={project.id} className="border rounded-lg p-3 hover:bg-gray-50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <Link href={`/projects/${project.id}`} className="text-sm font-medium text-gray-800 hover:text-blue-600 line-clamp-1">
-                          {project.title}
-                        </Link>
-                        <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
-                          <span>{getStatusBadge(project.status)}</span>
-                          {project.budget && <span>{project.budget}</span>}
-                          {project.applications_count && project.applications_count > 0 && (
-                            <span>応募: {project.applications_count}</span>
-                          )}
+                  <Link key={project.id} href={`/projects/${project.id}`} className="block">
+                    <div className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-800 hover:text-blue-600 line-clamp-1">
+                            {project.title}
+                          </p>
+                          <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
+                            <span>{getStatusBadge(project.status)}</span>
+                            {project.budget && <span>{project.budget}</span>}
+                            {project.applications_count && project.applications_count > 0 && (
+                              <span>応募: {project.applications_count}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <Link href={`/projects/${project.id}/edit`}>
-                        <Button variant="outline" size="sm" className="text-xs h-7">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs h-7"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            router.push(`/projects/${project.id}/edit`);
+                          }}
+                        >
                           編集
                         </Button>
-                      </Link>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
                 {projects.length > 5 && (
                   <div className="text-center pt-2">
