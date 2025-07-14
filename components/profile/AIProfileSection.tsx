@@ -63,6 +63,7 @@ export default function AIProfileSection({
   onPortfolioUrlChange,
 }: AIProfileSectionProps) {
   const [showSkillInfo, setShowSkillInfo] = useState(false);
+  const [otherToolInput, setOtherToolInput] = useState("");
 
   const handleSkillToggle = (skill: AISkillType) => {
     if (aiSkills.includes(skill)) {
@@ -109,6 +110,14 @@ export default function AIProfileSection({
       ...aiExperience,
       achievements: [...(aiExperience.achievements || []), ""],
     });
+  };
+
+  const handleAddOtherTool = () => {
+    const trimmedTool = otherToolInput.trim();
+    if (trimmedTool && !aiTools.includes(trimmedTool) && !POPULAR_AI_TOOLS.includes(trimmedTool as AITool)) {
+      onAIToolsChange([...aiTools, trimmedTool]);
+      setOtherToolInput("");
+    }
   };
 
   return (
@@ -198,21 +207,53 @@ export default function AIProfileSection({
               </button>
             ))}
           </div>
-          <input
-            type="text"
-            placeholder="その他のツール（カンマ区切り）"
-            className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-            onBlur={(e) => {
-              const otherTools = e.target.value
-                .split(",")
-                .map((t) => t.trim())
-                .filter((t) => t && !POPULAR_AI_TOOLS.includes(t as AITool));
-              if (otherTools.length > 0) {
-                onAIToolsChange([...aiTools, ...otherTools]);
-                e.target.value = "";
-              }
-            }}
-          />
+          <div className="mt-3">
+            <p className="text-xs text-gray-600 mb-2">その他のツール</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="ツール名を入力"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                value={otherToolInput}
+                onChange={(e) => setOtherToolInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddOtherTool();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleAddOtherTool}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
+              >
+                追加
+              </button>
+            </div>
+            {/* 追加されたその他のツール表示 */}
+            {aiTools.filter(tool => !POPULAR_AI_TOOLS.includes(tool as AITool)).length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {aiTools
+                  .filter(tool => !POPULAR_AI_TOOLS.includes(tool as AITool))
+                  .map((tool, index) => (
+                    <span
+                      key={`other-${index}`}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-200 text-gray-700 rounded-full text-sm"
+                    >
+                      {tool}
+                      <button
+                        type="button"
+                        onClick={() => onAIToolsChange(aiTools.filter(t => t !== tool))}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* AI活用経験 */}
