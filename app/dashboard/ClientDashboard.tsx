@@ -309,18 +309,20 @@ export default function ClientDashboard({
                   }}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
-                          {application.pro_profile?.full_name || 'プロフェッショナル'} さんからの応募
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+                            {application.pro_profile?.full_name || 'プロフェッショナル'} さんからの応募
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(application.created_at).toLocaleDateString('ja-JP')}
+                          </p>
+                        </div>
                         {application.project && (
                           <p className="text-xs text-gray-500 mt-1">
                             プロジェクト: {application.project.title}
                           </p>
                         )}
                         <p className="text-xs text-gray-600 mt-1 line-clamp-2">{application.message}</p>
-                        <div className="mt-1 text-xs text-gray-500">
-                          {new Date(application.created_at).toLocaleDateString('ja-JP')}
-                        </div>
                       </div>
                       <div className="ml-2 flex-shrink-0">
                         {application.status === 'pending' && (
