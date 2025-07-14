@@ -70,8 +70,8 @@ export default function ProListPage() {
   const [selectedSkillTypes, setSelectedSkillTypes] = useState<AISkillType[]>([]);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
-  const [selectedExperience, setSelectedExperience] = useState<number | null>(null);
-  const [selectedRateRange, setSelectedRateRange] = useState<{min?: number, max?: number} | null>(null);
+  const [selectedExperiences, setSelectedExperiences] = useState<number[]>([]);
+  const [selectedRateRanges, setSelectedRateRanges] = useState<{min?: number, max?: number}[]>([]);
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -118,19 +118,21 @@ export default function ProListPage() {
       );
     }
     
-    // 経験年数フィルター
-    if (selectedExperience !== null) {
+    // 経験年数フィルター（複数選択対応）
+    if (selectedExperiences.length > 0) {
       filtered = filtered.filter(pro => {
         const years = pro.profile_details?.ai_experience?.years;
-        if (selectedExperience === 0) return years === 0;
-        if (selectedExperience === 1) return years === 1 || years === 2;
-        if (selectedExperience === 3) return years !== undefined && years >= 3;
-        return false;
+        return selectedExperiences.some(exp => {
+          if (exp === 0) return years === 0;
+          if (exp === 1) return years === 1 || years === 2;
+          if (exp === 3) return years !== undefined && years >= 3;
+          return false;
+        });
       });
     }
     
-    // 料金帯フィルター
-    if (selectedRateRange) {
+    // 料金帯フィルター（複数選択対応）
+    if (selectedRateRanges.length > 0) {
       filtered = filtered.filter(pro => {
         const hourlyRate = parseInt(pro.rate_info?.hourly_rate || '0');
         const minRate = parseInt(pro.rate_info?.min_rate || '0');
@@ -139,14 +141,16 @@ export default function ProListPage() {
         // 複数の料金形式に対応
         const rate = hourlyRate || minRate || maxRate;
         
-        if (selectedRateRange.min && selectedRateRange.max) {
-          return rate >= selectedRateRange.min && rate <= selectedRateRange.max;
-        } else if (selectedRateRange.min) {
-          return rate >= selectedRateRange.min;
-        } else if (selectedRateRange.max) {
-          return rate <= selectedRateRange.max;
-        }
-        return true;
+        return selectedRateRanges.some(range => {
+          if (range.min && range.max) {
+            return rate >= range.min && rate <= range.max;
+          } else if (range.min) {
+            return rate >= range.min;
+          } else if (range.max) {
+            return rate <= range.max;
+          }
+          return true;
+        });
       });
     }
     
@@ -160,7 +164,7 @@ export default function ProListPage() {
     }
     
     setFilteredProList(filtered);
-  }, [searchTerm, proList, selectedSkillTypes, selectedTools, showAvailableOnly, selectedExperience, selectedRateRange]);
+  }, [searchTerm, proList, selectedSkillTypes, selectedTools, showAvailableOnly, selectedExperiences, selectedRateRanges]);
 
   const checkAuthAndLoadData = async () => {
     try {
@@ -382,12 +386,12 @@ export default function ProListPage() {
             <Filter className="w-4 h-4" />
             フィルター
             {(selectedSkillTypes.length > 0 || selectedTools.length > 0 || showAvailableOnly || 
-              selectedExperience !== null || selectedRateRange !== null) && (
+              selectedExperiences.length > 0 || selectedRateRanges.length > 0) && (
               <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-500 text-white rounded-full">
                 {selectedSkillTypes.length + selectedTools.length + 
                  (showAvailableOnly ? 1 : 0) + 
-                 (selectedExperience !== null ? 1 : 0) + 
-                 (selectedRateRange !== null ? 1 : 0)}
+                 selectedExperiences.length + 
+                 selectedRateRanges.length}
               </span>
             )}
           </Button>
@@ -461,14 +465,14 @@ export default function ProListPage() {
                     <button
                       key={exp.value}
                       onClick={() => {
-                        if (selectedExperience === exp.value) {
-                          setSelectedExperience(null);
+                        if (selectedExperiences.includes(exp.value)) {
+                          setSelectedExperiences(selectedExperiences.filter(e => e !== exp.value));
                         } else {
-                          setSelectedExperience(exp.value);
+                          setSelectedExperiences([...selectedExperiences, exp.value]);
                         }
                       }}
                       className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                        selectedExperience === exp.value
+                        selectedExperiences.includes(exp.value)
                           ? 'bg-blue-500 text-white'
                           : 'bg-gray-100 hover:bg-gray-200'
                       }`}
@@ -491,14 +495,19 @@ export default function ProListPage() {
                     <button
                       key={index}
                       onClick={() => {
-                        if (selectedRateRange?.min === rate.min && selectedRateRange?.max === rate.max) {
-                          setSelectedRateRange(null);
+                        const isSelected = selectedRateRanges.some(r => 
+                          r.min === rate.min && r.max === rate.max
+                        );
+                        if (isSelected) {
+                          setSelectedRateRanges(selectedRateRanges.filter(r => 
+                            !(r.min === rate.min && r.max === rate.max)
+                          ));
                         } else {
-                          setSelectedRateRange(rate);
+                          setSelectedRateRanges([...selectedRateRanges, rate]);
                         }
                       }}
                       className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                        selectedRateRange?.min === rate.min && selectedRateRange?.max === rate.max
+                        selectedRateRanges.some(r => r.min === rate.min && r.max === rate.max)
                           ? 'bg-blue-500 text-white'
                           : 'bg-gray-100 hover:bg-gray-200'
                       }`}
@@ -525,14 +534,14 @@ export default function ProListPage() {
 
               {/* フィルタークリア */}
               {(selectedSkillTypes.length > 0 || selectedTools.length > 0 || showAvailableOnly || 
-                selectedExperience !== null || selectedRateRange !== null) && (
+                selectedExperiences.length > 0 || selectedRateRanges.length > 0) && (
                 <button
                   onClick={() => {
                     setSelectedSkillTypes([]);
                     setSelectedTools([]);
                     setShowAvailableOnly(false);
-                    setSelectedExperience(null);
-                    setSelectedRateRange(null);
+                    setSelectedExperiences([]);
+                    setSelectedRateRanges([]);
                   }}
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
