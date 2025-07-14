@@ -64,15 +64,26 @@ export default function ProListPage() {
   const [scoutMessage, setScoutMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [matchedProjectsByPro, setMatchedProjectsByPro] = useState<Record<string, string[]>>({});
+  
+  // フィルター関連の状態
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedSkillTypes, setSelectedSkillTypes] = useState<AISkillType[]>([]);
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [selectedExperience, setSelectedExperience] = useState<number | null>(null);
+  const [selectedRateRange, setSelectedRateRange] = useState<{min?: number, max?: number} | null>(null);
 
   useEffect(() => {
     checkAuthAndLoadData();
   }, []);
 
   useEffect(() => {
-    // 検索フィルタリング
+    // 検索とフィルタリング
+    let filtered = proList;
+    
+    // テキスト検索
     if (searchTerm) {
-      const filtered = proList.filter(pro => {
+      filtered = filtered.filter(pro => {
         const searchLower = searchTerm.toLowerCase();
         const nameMatch = pro.full_name?.toLowerCase().includes(searchLower);
         const skillsMatch = pro.profile_details?.skills?.some(skill => 
@@ -87,11 +98,69 @@ export default function ProListPage() {
         });
         return nameMatch || skillsMatch || aiToolsMatch || aiSkillsMatch;
       });
-      setFilteredProList(filtered);
-    } else {
-      setFilteredProList(proList);
     }
-  }, [searchTerm, proList]);
+    
+    // AIスキルタイプフィルター
+    if (selectedSkillTypes.length > 0) {
+      filtered = filtered.filter(pro => 
+        pro.profile_details?.ai_skills?.some(skill => 
+          selectedSkillTypes.includes(skill)
+        )
+      );
+    }
+    
+    // AIツールフィルター
+    if (selectedTools.length > 0) {
+      filtered = filtered.filter(pro =>
+        pro.profile_details?.ai_tools?.some(tool =>
+          selectedTools.includes(tool)
+        )
+      );
+    }
+    
+    // 経験年数フィルター
+    if (selectedExperience !== null) {
+      filtered = filtered.filter(pro => {
+        const years = pro.profile_details?.ai_experience?.years;
+        if (selectedExperience === 0) return years === 0;
+        if (selectedExperience === 1) return years === 1 || years === 2;
+        if (selectedExperience === 3) return years !== undefined && years >= 3;
+        return false;
+      });
+    }
+    
+    // 料金帯フィルター
+    if (selectedRateRange) {
+      filtered = filtered.filter(pro => {
+        const hourlyRate = parseInt(pro.rate_info?.hourly_rate || '0');
+        const minRate = parseInt(pro.rate_info?.min_rate || '0');
+        const maxRate = parseInt(pro.rate_info?.max_rate || '0');
+        
+        // 複数の料金形式に対応
+        const rate = hourlyRate || minRate || maxRate;
+        
+        if (selectedRateRange.min && selectedRateRange.max) {
+          return rate >= selectedRateRange.min && rate <= selectedRateRange.max;
+        } else if (selectedRateRange.min) {
+          return rate >= selectedRateRange.min;
+        } else if (selectedRateRange.max) {
+          return rate <= selectedRateRange.max;
+        }
+        return true;
+      });
+    }
+    
+    // 稼働可能フィルター
+    if (showAvailableOnly) {
+      filtered = filtered.filter(pro =>
+        pro.availability?.status === 'available' ||
+        pro.availability?.status === 'full-time' ||
+        pro.availability?.status === 'part-time'
+      );
+    }
+    
+    setFilteredProList(filtered);
+  }, [searchTerm, proList, selectedSkillTypes, selectedTools, showAvailableOnly, selectedExperience, selectedRateRange]);
 
   const checkAuthAndLoadData = async () => {
     try {
@@ -305,11 +374,174 @@ export default function ProListPage() {
               className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
+            onClick={() => setShowFilters(!showFilters)}
+          >
             <Filter className="w-4 h-4" />
             フィルター
+            {(selectedSkillTypes.length > 0 || selectedTools.length > 0 || showAvailableOnly || 
+              selectedExperience !== null || selectedRateRange !== null) && (
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-500 text-white rounded-full">
+                {selectedSkillTypes.length + selectedTools.length + 
+                 (showAvailableOnly ? 1 : 0) + 
+                 (selectedExperience !== null ? 1 : 0) + 
+                 (selectedRateRange !== null ? 1 : 0)}
+              </span>
+            )}
           </Button>
         </div>
+
+        {/* フィルターパネル */}
+        {showFilters && (
+          <Card className="mb-6 p-4">
+            <div className="space-y-4">
+              {/* AIスキルタイプフィルター */}
+              <div>
+                <h3 className="font-medium mb-2">AIスキルタイプ</h3>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(AI_SKILLS).map(([key, skill]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        if (selectedSkillTypes.includes(key as AISkillType)) {
+                          setSelectedSkillTypes(selectedSkillTypes.filter(s => s !== key));
+                        } else {
+                          setSelectedSkillTypes([...selectedSkillTypes, key as AISkillType]);
+                        }
+                      }}
+                      className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                        selectedSkillTypes.includes(key as AISkillType)
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}
+                    >
+                      {skill.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* AIツールフィルター */}
+              <div>
+                <h3 className="font-medium mb-2">AIツール</h3>
+                <div className="flex flex-wrap gap-2">
+                  {['ChatGPT', 'Claude', 'GitHub Copilot', 'Midjourney', 'Stable Diffusion'].map((tool) => (
+                    <button
+                      key={tool}
+                      onClick={() => {
+                        if (selectedTools.includes(tool)) {
+                          setSelectedTools(selectedTools.filter(t => t !== tool));
+                        } else {
+                          setSelectedTools([...selectedTools, tool]);
+                        }
+                      }}
+                      className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                        selectedTools.includes(tool)
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tool}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 経験年数フィルター */}
+              <div>
+                <h3 className="font-medium mb-2">AI活用経験</h3>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: '1年未満', value: 0 },
+                    { label: '1-2年', value: 1 },
+                    { label: '3年以上', value: 3 }
+                  ].map((exp) => (
+                    <button
+                      key={exp.value}
+                      onClick={() => {
+                        if (selectedExperience === exp.value) {
+                          setSelectedExperience(null);
+                        } else {
+                          setSelectedExperience(exp.value);
+                        }
+                      }}
+                      className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                        selectedExperience === exp.value
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}
+                    >
+                      {exp.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 料金帯フィルター */}
+              <div>
+                <h3 className="font-medium mb-2">時間単価</h3>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: '〜¥3,000', max: 3000 },
+                    { label: '¥3,000〜¥5,000', min: 3000, max: 5000 },
+                    { label: '¥5,000〜', min: 5000 }
+                  ].map((rate, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (selectedRateRange?.min === rate.min && selectedRateRange?.max === rate.max) {
+                          setSelectedRateRange(null);
+                        } else {
+                          setSelectedRateRange(rate);
+                        }
+                      }}
+                      className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                        selectedRateRange?.min === rate.min && selectedRateRange?.max === rate.max
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}
+                    >
+                      {rate.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* その他のフィルター */}
+              <div>
+                <h3 className="font-medium mb-2">その他</h3>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={showAvailableOnly}
+                    onChange={(e) => setShowAvailableOnly(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm">稼働可能な人材のみ表示</span>
+                </label>
+              </div>
+
+              {/* フィルタークリア */}
+              {(selectedSkillTypes.length > 0 || selectedTools.length > 0 || showAvailableOnly || 
+                selectedExperience !== null || selectedRateRange !== null) && (
+                <button
+                  onClick={() => {
+                    setSelectedSkillTypes([]);
+                    setSelectedTools([]);
+                    setShowAvailableOnly(false);
+                    setSelectedExperience(null);
+                    setSelectedRateRange(null);
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  すべてのフィルターをクリア
+                </button>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* プロフェッショナル一覧 */}
         {filteredProList.length === 0 ? (
