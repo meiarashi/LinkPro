@@ -326,7 +326,10 @@ export default function ClientDashboard({
                               size="sm"
                               variant="outline"
                               className="text-green-600 hover:bg-green-50 h-7 text-xs px-2"
-                              onClick={() => handleApplicationAction(application.id, 'accept')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApplicationAction(application.id, 'accept');
+                              }}
                               disabled={processingApplicationId === application.id}
                             >
                               <Check className="w-3 h-3" />
@@ -335,7 +338,10 @@ export default function ClientDashboard({
                               size="sm"
                               variant="outline"
                               className="text-red-600 hover:bg-red-50 h-7 text-xs px-2"
-                              onClick={() => handleApplicationAction(application.id, 'reject')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApplicationAction(application.id, 'reject');
+                              }}
                               disabled={processingApplicationId === application.id}
                             >
                               <X className="w-3 h-3" />
