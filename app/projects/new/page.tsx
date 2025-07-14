@@ -6,7 +6,8 @@ import { Button } from "../../../components/ui/button";
 import { createClient } from "../../../utils/supabase/client";
 import LoggedInHeader from "../../../components/LoggedInHeader";
 import Link from "next/link";
-import { ArrowLeft, Save, Eye, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Eye, Loader2, Sparkles, Target, Brain, Users } from "lucide-react";
+import { AI_SKILLS } from "../../../types/ai-talent";
 
 interface Profile {
   id: string;
@@ -31,6 +32,11 @@ export default function NewProjectPage() {
     duration: "",
     required_skills: [] as string[],
     status: "draft" as "draft" | "public" | "private",
+    // AI要件
+    required_ai_level: "",
+    required_ai_tools: [] as string[],
+    project_difficulty: "",
+    business_domain: "",
   });
   
   const [skillInput, setSkillInput] = useState("");
@@ -126,6 +132,12 @@ export default function NewProjectPage() {
           duration: formData.duration,
           required_skills: formData.required_skills,
           status: isDraft ? "draft" : formData.status,
+          pro_requirements: {
+            required_ai_level: formData.required_ai_level,
+            required_ai_tools: formData.required_ai_tools,
+            project_difficulty: formData.project_difficulty,
+            business_domain: formData.business_domain,
+          },
         })
         .select()
         .single();
@@ -256,9 +268,109 @@ export default function NewProjectPage() {
             </div>
           </div>
 
+          {/* AI要件 */}
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-blue-500" />
+              AI人材要件
+            </h2>
+            
+            <div className="space-y-4">
+              {/* 必要なAIレベル */}
+              <div>
+                <label htmlFor="required_ai_level" className="block text-sm font-medium text-gray-700 mb-1">
+                  必要なAIスキルレベル <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="required_ai_level"
+                  name="required_ai_level"
+                  required
+                  value={formData.required_ai_level}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">選択してください</option>
+                  <option value="expert">エキスパート - ML/DL開発、研究開発が可能</option>
+                  <option value="developer">開発者 - API活用したシステム開発が可能</option>
+                  <option value="user">活用者 - ChatGPT等を業務で活用</option>
+                  <option value="supporter">支援者 - AI導入のコンサル・教育</option>
+                </select>
+              </div>
+
+              {/* プロジェクト難易度 */}
+              <div>
+                <label htmlFor="project_difficulty" className="block text-sm font-medium text-gray-700 mb-1">
+                  プロジェクト難易度 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="project_difficulty"
+                  name="project_difficulty"
+                  required
+                  value={formData.project_difficulty}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">選択してください</option>
+                  <option value="beginner">初級 - 基本的なAI活用</option>
+                  <option value="intermediate">中級 - 実践的なAI導入</option>
+                  <option value="advanced">上級 - 高度な開発・カスタマイズ</option>
+                </select>
+              </div>
+
+              {/* 必要なAIツール */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  必要なAIツール <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {['ChatGPT', 'Claude', 'GitHub Copilot', 'Midjourney', 'Stable Diffusion', 'Python'].map(tool => (
+                    <label key={tool} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        value={tool}
+                        checked={formData.required_ai_tools.includes(tool)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData(prev => ({
+                              ...prev,
+                              required_ai_tools: [...prev.required_ai_tools, tool]
+                            }));
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              required_ai_tools: prev.required_ai_tools.filter(t => t !== tool)
+                            }));
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="text-sm">{tool}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* 業務領域 */}
+              <div>
+                <label htmlFor="business_domain" className="block text-sm font-medium text-gray-700 mb-1">
+                  業務領域
+                </label>
+                <input
+                  type="text"
+                  id="business_domain"
+                  name="business_domain"
+                  value={formData.business_domain}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="例: 営業支援、マーケティング、業務効率化"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* 求めるスキル */}
           <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">求めるスキル</h2>
+            <h2 className="text-lg font-semibold mb-4">その他のスキル要件</h2>
             
             <div className="space-y-4">
               <div>
@@ -391,6 +503,12 @@ export default function NewProjectPage() {
                         duration: formData.duration,
                         required_skills: formData.required_skills,
                         status: "public", // 直接publicを指定
+                        pro_requirements: {
+                          required_ai_level: formData.required_ai_level,
+                          required_ai_tools: formData.required_ai_tools,
+                          project_difficulty: formData.project_difficulty,
+                          business_domain: formData.business_domain,
+                        },
                       })
                       .select()
                       .single();
