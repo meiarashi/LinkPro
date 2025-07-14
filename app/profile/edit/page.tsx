@@ -204,13 +204,7 @@ export default function ProfileEditPage() {
 
           {/* AI活用事例（プロフェッショナルのみ） */}
           {profile.user_type === "pro" && (
-            <>
-              <AIUseCaseSection userId={profile.id} />
-              <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
-                <p className="font-medium mb-1">💡 AI活用事例について</p>
-                <p>AI活用事例は個別に保存されます。事例の追加・編集・削除は、各事例の操作ボタンから行ってください。</p>
-              </div>
-            </>
+            <AIUseCaseSection userId={profile.id} />
           )}
 
           {/* 単価・稼働情報（プロフェッショナルのみ） */}

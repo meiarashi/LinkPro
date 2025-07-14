@@ -171,11 +171,7 @@ export default function AIProfileSection({
                 onClick={() => handleSkillToggle(key as AISkillType)}
                 className={`p-4 rounded-lg border-2 text-left transition-all ${
                   aiSkills.includes(key as AISkillType)
-                    ? key === 'expert' ? 'border-purple-500 bg-purple-50' :
-                      key === 'developer' ? 'border-blue-500 bg-blue-50' :
-                      key === 'user' ? 'border-green-500 bg-green-50' :
-                      key === 'supporter' ? 'border-orange-500 bg-orange-50' :
-                      'border-gray-500 bg-gray-50'
+                    ? 'border-blue-500 bg-blue-50'
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
@@ -295,7 +291,7 @@ export default function AIProfileSection({
                   onClick={() => handleDomainToggle(domain)}
                   className={`px-3 py-1.5 rounded-full text-sm transition-all ${
                     aiExperience.domains?.includes(domain)
-                      ? "bg-green-500 text-white"
+                      ? "bg-blue-500 text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
