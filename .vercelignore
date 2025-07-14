@@ -1,0 +1,11 @@
+# Supabase Edge Functions (Deno code)
+supabase/functions/
+
+# Supabase configuration
+supabase/.temp/
+supabase/config.toml
+
+# Development files
+*.md
+.gitignore
+.env.example
