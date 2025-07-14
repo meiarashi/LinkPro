@@ -203,8 +203,6 @@ export default function ProDashboard({
                   {profile.profile_details?.ai_achievements ? '✓' : '×'}
                 </span>
               </div>
-        </div>
-        
             </div>
             
             {calculateAIProfileCompleteness() < 100 && (
