@@ -1,6 +1,6 @@
 "use client";
 
-import { AI_SKILLS } from "../../types/ai-talent";
+import { AI_SKILLS, AISkillType } from "../../types/ai-talent";
 
 interface AIProfileDisplayProps {
   profileDetails: any;
@@ -25,7 +25,7 @@ export default function AIProfileDisplay({ profileDetails }: AIProfileDisplayPro
         <div>
           <h3 className="font-semibold mb-3">AI人材スキル</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {aiSkills.map((skillKey) => {
+            {aiSkills.map((skillKey: AISkillType) => {
               const skill = AI_SKILLS[skillKey];
               if (!skill) return null;
               
