@@ -8,7 +8,6 @@ import { Card } from "../../../components/ui/card";
 import { createClient } from "../../../utils/supabase/client";
 import LoggedInHeader from "../../../components/LoggedInHeader";
 import AIProfileDisplay from "../../../components/profile/AIProfileDisplay";
-import AIUseCaseDisplay from "../../../components/profile/AIUseCaseDisplay";
 import { 
   User, 
   ArrowLeft, 
@@ -323,11 +322,6 @@ export default function ProDetailPage({
             {/* AI人材情報 */}
             <Card className="p-6">
               <AIProfileDisplay profileDetails={proProfile.profile_details} />
-            </Card>
-
-            {/* AI活用事例 */}
-            <Card className="p-6">
-              <AIUseCaseDisplay userId={proProfile.id} />
             </Card>
           </div>
 

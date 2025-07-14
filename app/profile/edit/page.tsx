@@ -7,7 +7,6 @@ import { createClient } from "../../../utils/supabase/client";
 import Link from "next/link";
 import LoggedInHeader from "../../../components/LoggedInHeader";
 import AIProfileSection from "../../../components/profile/AIProfileSection";
-import AIUseCaseSection from "../../../components/profile/AIUseCaseSection";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { AISkillType } from "../../../types/ai-talent";
 
@@ -42,6 +41,7 @@ export default function ProfileEditPage() {
     domains: [] as string[],
     achievements: [] as string[],
   });
+  const [aiAchievements, setAIAchievements] = useState("");
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -78,6 +78,7 @@ export default function ProfileEditPage() {
             domains: [],
             achievements: [],
           });
+          setAIAchievements(profileData.profile_details?.ai_achievements || "");
         }
       } catch (error) {
         console.error("Error:", error);
@@ -106,6 +107,7 @@ export default function ProfileEditPage() {
             ai_skills: aiSkills,
             ai_tools: aiTools,
             ai_experience: aiExperience,
+            ai_achievements: aiAchievements,
             portfolio_url: portfolio,
           },
           rate_info: {
@@ -193,19 +195,17 @@ export default function ProfileEditPage() {
               aiSkills={aiSkills}
               aiTools={aiTools}
               aiExperience={aiExperience}
+              aiAchievements={aiAchievements}
               portfolioUrl={portfolio}
               onAISkillsChange={setAISkills}
               onAIToolsChange={setAITools}
               onAIExperienceChange={setAIExperience}
+              onAIAchievementsChange={setAIAchievements}
               onPortfolioUrlChange={setPortfolio}
             />
             </div>
           )}
 
-          {/* AI活用事例（プロフェッショナルのみ） */}
-          {profile.user_type === "pro" && (
-            <AIUseCaseSection userId={profile.id} />
-          )}
 
           {/* 単価・稼働情報（プロフェッショナルのみ） */}
           {profile.user_type === "pro" && (

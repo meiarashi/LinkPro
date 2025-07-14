@@ -12,10 +12,12 @@ interface AIProfileSectionProps {
     domains: string[];
     achievements: string[];
   };
+  aiAchievements: string;
   portfolioUrl: string;
   onAISkillsChange: (skills: AISkillType[]) => void;
   onAIToolsChange: (tools: string[]) => void;
   onAIExperienceChange: (experience: any) => void;
+  onAIAchievementsChange: (achievements: string) => void;
   onPortfolioUrlChange: (url: string) => void;
 }
 
@@ -56,10 +58,12 @@ export default function AIProfileSection({
   aiSkills,
   aiTools,
   aiExperience,
+  aiAchievements,
   portfolioUrl,
   onAISkillsChange,
   onAIToolsChange,
   onAIExperienceChange,
+  onAIAchievementsChange,
   onPortfolioUrlChange,
 }: AIProfileSectionProps) {
   const [showSkillInfo, setShowSkillInfo] = useState(false);
@@ -316,6 +320,24 @@ export default function AIProfileSection({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="https://example.com"
           />
+        </div>
+
+        {/* AI活用実績 */}
+        <div>
+          <label htmlFor="achievements" className="block text-sm font-medium text-gray-700 mb-1">
+            AI活用実績
+          </label>
+          <textarea
+            id="achievements"
+            value={aiAchievements}
+            onChange={(e) => onAIAchievementsChange(e.target.value)}
+            rows={6}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="AIを活用した具体的な実績や成果を記載してください。&#10;例：&#10;・ChatGPTを活用した営業メール作成により、返信率を30%向上&#10;・社内の問い合わせ対応をAIチャットボットで自動化し、対応時間を80%削減&#10;・画像生成AIを使用したマーケティング素材作成で、制作コストを50%削減"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            具体的な数値や成果を含めると、より説得力のあるプロフィールになります
+          </p>
         </div>
       </div>
     </div>

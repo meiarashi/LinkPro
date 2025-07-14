@@ -110,6 +110,14 @@ export default function AIProfileDisplay({ profileDetails }: AIProfileDisplayPro
           </a>
         </div>
       )}
+
+      {/* AI活用実績 */}
+      {profileDetails?.ai_achievements && (
+        <div>
+          <h3 className="font-semibold mb-2">AI活用実績</h3>
+          <p className="text-gray-700 whitespace-pre-wrap">{profileDetails.ai_achievements}</p>
+        </div>
+      )}
     </div>
   );
 }
