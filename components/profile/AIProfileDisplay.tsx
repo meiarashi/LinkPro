@@ -7,8 +7,8 @@ interface AIProfileDisplayProps {
 }
 
 export default function AIProfileDisplay({ profileDetails }: AIProfileDisplayProps) {
-  const aiSkills = profileDetails?.ai_skills || [];
-  const aiTools = profileDetails?.ai_tools || [];
+  const aiSkills: AISkillType[] = profileDetails?.ai_skills || [];
+  const aiTools: string[] = profileDetails?.ai_tools || [];
   const aiExperience = profileDetails?.ai_experience || {};
 
   // AI関連の情報がない場合は表示しない
@@ -48,7 +48,7 @@ export default function AIProfileDisplay({ profileDetails }: AIProfileDisplayPro
         <div>
           <h3 className="font-semibold mb-3">使用経験のあるAIツール</h3>
           <div className="flex flex-wrap gap-2">
-            {aiTools.map((tool, index) => (
+            {aiTools.map((tool: string, index: number) => (
               <span
                 key={index}
                 className="px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm"
@@ -82,7 +82,7 @@ export default function AIProfileDisplay({ profileDetails }: AIProfileDisplayPro
             <div>
               <p className="text-sm text-gray-600 mb-2">活用領域：</p>
               <div className="flex flex-wrap gap-2">
-                {aiExperience.domains.map((domain, index) => (
+                {aiExperience.domains.map((domain: string, index: number) => (
                   <span
                     key={index}
                     className="px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm"
