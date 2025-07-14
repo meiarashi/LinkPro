@@ -300,10 +300,16 @@ export default function ClientDashboard({
               </h2>
               <div className="space-y-2">
                 {localApplications.slice(0, 3).map((application) => (
-                  <div key={application.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                  <div key={application.id} className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer group" onClick={(e) => {
+                    // ボタンクリック時は親要素のクリックを無視
+                    if ((e.target as HTMLElement).closest('button')) return;
+                    if (application.project?.id) {
+                      router.push(`/projects/${application.project.id}`);
+                    }
+                  }}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800">
+                        <p className="text-sm font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
                           {application.pro_profile?.full_name || 'プロフェッショナル'} さんからの応募
                         </p>
                         {application.project && (
@@ -313,7 +319,7 @@ export default function ClientDashboard({
                         )}
                         <p className="text-xs text-gray-600 mt-1 line-clamp-2">{application.message}</p>
                       </div>
-                      <div className="ml-2">
+                      <div className="ml-2 flex-shrink-0">
                         {application.status === 'pending' && (
                           <div className="flex gap-1">
                             <Button
