@@ -58,6 +58,25 @@ export default function ProDashboard({
   recommendedProjects = []
 }: ProDashboardProps) {
   
+  // AIプロフィール充実度を計算
+  const calculateAIProfileCompleteness = () => {
+    let score = 0;
+    const weights = {
+      basic: 20,      // 基本情報
+      aiSkills: 20,   // AIスキルタイプ
+      aiTools: 20,    // AIツール
+      aiExperience: 20, // AI経験
+      aiAchievements: 20 // AI実績
+    };
+    
+    if (profile.full_name) score += weights.basic;
+    if (profile.profile_details?.ai_skills && profile.profile_details.ai_skills.length > 0) score += weights.aiSkills;
+    if (profile.profile_details?.ai_tools && profile.profile_details.ai_tools.length > 0) score += weights.aiTools;
+    if (profile.profile_details?.ai_experience?.years !== undefined) score += weights.aiExperience;
+    if (profile.profile_details?.ai_achievements) score += weights.aiAchievements;
+    
+    return score;
+  };
   
   return (
     <div className="space-y-4">

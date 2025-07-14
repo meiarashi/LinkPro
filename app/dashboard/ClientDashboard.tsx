@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import { Button } from "../../components/ui/button";
-import { Plus, FolderOpen, Users, MessageSquare, AlertCircle, Check, X } from 'lucide-react';
+import { Plus, FolderOpen, Users, MessageSquare, AlertCircle, Check, X, Sparkles } from 'lucide-react';
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -54,6 +54,24 @@ export default function ClientDashboard({
   const supabase = createClient();
   const [processingApplicationId, setProcessingApplicationId] = useState<string | null>(null);
   const [localApplications, setLocalApplications] = useState<Application[]>(recentApplications);
+  
+  // プロジェクト充実度を計算
+  const calculateProjectCompleteness = () => {
+    let score = 0;
+    const weights = {
+      hasProjects: 30,       // プロジェクト作成
+      hasActiveProjects: 30, // 公開中プロジェクト
+      hasApplications: 20,   // 応募受付
+      hasMessages: 20        // メッセージやり取り
+    };
+    
+    if (projects.length > 0) score += weights.hasProjects;
+    if (projects.filter(p => p.status === 'public').length > 0) score += weights.hasActiveProjects;
+    if (recentApplications.length > 0) score += weights.hasApplications;
+    if (unreadMessageCount > 0 || recentApplications.some(a => a.status === 'accepted')) score += weights.hasMessages;
+    
+    return score;
+  };
   
   useEffect(() => {
     setLocalApplications(recentApplications);
@@ -139,12 +157,12 @@ export default function ClientDashboard({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* ヘッダーセクション */}
-      <div className="bg-white p-6 rounded-lg shadow-sm">
+      <div className="bg-white p-4 rounded-lg shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">ダッシュボード</h1>
+            <h1 className="text-2xl font-bold text-gray-800">クライアントダッシュボード</h1>
             <p className="text-gray-600 mt-1">プロジェクトと応募状況を管理</p>
           </div>
           <div className="flex gap-2">
@@ -169,162 +187,234 @@ export default function ClientDashboard({
         </div>
 
         {/* サマリーカード */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+          <div className="bg-gray-50 p-3 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">総プロジェクト数</p>
-                <p className="text-2xl font-bold text-gray-800">{projects.length}</p>
+                <p className="text-xs text-gray-600">総プロジェクト数</p>
+                <p className="text-xl font-bold text-gray-800">{projects.length}</p>
               </div>
-              <FolderOpen className="w-8 h-8 text-gray-400" />
+              <FolderOpen className="w-6 h-6 text-gray-400" />
             </div>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-3 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">公開中</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-xs text-gray-600">公開中</p>
+                <p className="text-xl font-bold text-green-600">
                   {projects.filter(p => p.status === 'public').length}
                 </p>
               </div>
-              <Users className="w-8 h-8 text-gray-400" />
+              <Users className="w-6 h-6 text-gray-400" />
             </div>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-3 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">新着応募</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-xs text-gray-600">新着応募</p>
+                <p className="text-xl font-bold text-blue-600">
                   {recentApplications.filter(a => a.status === 'pending').length}
                 </p>
               </div>
-              <MessageSquare className="w-8 h-8 text-gray-400" />
+              <MessageSquare className="w-6 h-6 text-gray-400" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* 最新の応募 */}
-      {recentApplications.length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-blue-500" />
-            応募一覧（最新10件）
-          </h2>
-          <div className="space-y-3">
-            {localApplications.map((application) => (
-              <div key={application.id} className="border-l-4 border-blue-500 pl-4 py-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-800">
-                      {application.pro_profile?.full_name || 'プロフェッショナル'} さんからの応募
-                    </p>
-                    {application.project && (
-                      <p className="text-xs text-gray-500">
-                        プロジェクト: {application.project.title}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mt-1">{application.message}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-gray-500">
-                    {new Date(application.created_at).toLocaleDateString('ja-JP')}
-                  </p>
-                  {application.status === 'pending' && (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-green-600 hover:bg-green-50"
-                        onClick={() => handleApplicationAction(application.id, 'accept')}
-                        disabled={processingApplicationId === application.id}
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        承認
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 hover:bg-red-50"
-                        onClick={() => handleApplicationAction(application.id, 'reject')}
-                        disabled={processingApplicationId === application.id}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        却下
-                      </Button>
-                    </div>
-                  )}
-                  {application.status === 'accepted' && (
-                    <span className="text-xs text-green-600 font-medium">承認済み</span>
-                  )}
-                  {application.status === 'rejected' && (
-                    <span className="text-xs text-red-600 font-medium">却下済み</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* メインコンテンツ - 2カラムレイアウト */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* 左カラム - プロジェクト情報 */}
+        <div className="lg:col-span-1 space-y-4">
+          {/* プロジェクト管理充実度 */}
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-500" />
+                プロジェクト管理
+              </h2>
+              <span className="text-lg font-bold text-blue-600">
+                {calculateProjectCompleteness()}%
+              </span>
+            </div>
+        
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+              <div 
+                className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${calculateProjectCompleteness()}%` }}
+              />
+            </div>
 
-      {/* プロジェクト一覧 */}
-      <div className="bg-white p-6 rounded-lg shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">プロジェクト一覧</h2>
-        {projectsLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
-          </div>
-        ) : projects.length === 0 ? (
-          <div className="text-center py-8">
-            <FolderOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">まだプロジェクトがありません</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">プロジェクト作成</span>
+                <span className={`text-xs ${projects.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                  {projects.length > 0 ? '✓' : '×'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">公開中プロジェクト</span>
+                <span className={`text-xs ${projects.filter(p => p.status === 'public').length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                  {projects.filter(p => p.status === 'public').length > 0 ? '✓' : '×'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">応募受付</span>
+                <span className={`text-xs ${recentApplications.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                  {recentApplications.length > 0 ? `✓ ${recentApplications.length}` : '×'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">メッセージ</span>
+                <span className={`text-xs ${unreadMessageCount > 0 || recentApplications.some(a => a.status === 'accepted') ? 'text-green-600' : 'text-gray-400'}`}>
+                  {unreadMessageCount > 0 || recentApplications.some(a => a.status === 'accepted') ? '✓' : '×'}
+                </span>
+              </div>
+            </div>
+            
+            {calculateProjectCompleteness() < 100 && (
+              <div className="mt-3 p-2 bg-blue-50 rounded">
+                <p className="text-xs text-blue-700 flex items-start gap-1">
+                  <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                  プロジェクトを公開してAI人材を探そう！
+                </p>
+              </div>
+            )}
+            
             <Link href="/projects/new">
-              <Button variant="link" className="mt-2">
-                最初のプロジェクトを作成
+              <Button variant="outline" size="sm" className="mt-3 w-full text-xs">
+                新規プロジェクト作成
               </Button>
             </Link>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">タイトル</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">ステータス</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">予算</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">期間</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">応募数</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">作成日</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((project) => (
-                  <tr key={project.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <Link href={`/projects/${project.id}`} className="text-blue-600 hover:underline">
-                        {project.title}
-                      </Link>
-                    </td>
-                    <td className="py-3 px-4">{getStatusBadge(project.status)}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{project.budget || '-'}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{project.duration || '-'}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{project.applications_count}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
-                      {new Date(project.created_at).toLocaleDateString('ja-JP')}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Link href={`/projects/${project.id}/edit`}>
-                        <Button variant="ghost" size="sm">編集</Button>
-                      </Link>
-                    </td>
-                  </tr>
+        </div>
+
+        {/* 右カラム - 応募とプロジェクト一覧 */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* 最新の応募 */}
+          {recentApplications.length > 0 && (
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <h2 className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-blue-500" />
+                最新の応募
+              </h2>
+              <div className="space-y-2">
+                {localApplications.slice(0, 3).map((application) => (
+                  <div key={application.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">
+                          {application.pro_profile?.full_name || 'プロフェッショナル'} さんからの応募
+                        </p>
+                        {application.project && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            プロジェクト: {application.project.title}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">{application.message}</p>
+                      </div>
+                      <div className="ml-2">
+                        {application.status === 'pending' && (
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-green-600 hover:bg-green-50 h-7 text-xs px-2"
+                              onClick={() => handleApplicationAction(application.id, 'accept')}
+                              disabled={processingApplicationId === application.id}
+                            >
+                              <Check className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:bg-red-50 h-7 text-xs px-2"
+                              onClick={() => handleApplicationAction(application.id, 'reject')}
+                              disabled={processingApplicationId === application.id}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                        {application.status === 'accepted' && (
+                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">承認</span>
+                        )}
+                        {application.status === 'rejected' && (
+                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">却下</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      {new Date(application.created_at).toLocaleDateString('ja-JP')}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+                {localApplications.length > 3 && (
+                  <div className="text-center pt-2">
+                    <p className="text-xs text-gray-500">
+                      他{localApplications.length - 3}件の応募
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* プロジェクト一覧 */}
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <h2 className="text-base font-semibold text-gray-800 mb-3">プロジェクト一覧</h2>
+            {projectsLoading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary mx-auto"></div>
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="text-center py-4">
+                <FolderOpen className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">まだプロジェクトがありません</p>
+                <Link href="/projects/new">
+                  <Button variant="link" className="mt-2 text-sm">
+                    最初のプロジェクトを作成
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {projects.slice(0, 5).map((project) => (
+                  <div key={project.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <Link href={`/projects/${project.id}`} className="text-sm font-medium text-gray-800 hover:text-blue-600 line-clamp-1">
+                          {project.title}
+                        </Link>
+                        <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
+                          <span>{getStatusBadge(project.status)}</span>
+                          {project.budget && <span>{project.budget}</span>}
+                          {project.applications_count > 0 && (
+                            <span>応募: {project.applications_count}</span>
+                          )}
+                        </div>
+                      </div>
+                      <Link href={`/projects/${project.id}/edit`}>
+                        <Button variant="outline" size="sm" className="text-xs h-7">
+                          編集
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+                {projects.length > 5 && (
+                  <div className="text-center pt-2">
+                    <Link href="/projects">
+                      <Button variant="link" className="text-xs">
+                        すべてのプロジェクトを見る ({projects.length}件)
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
