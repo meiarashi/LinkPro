@@ -1,35 +1,32 @@
 # LinkPro AI人材マッチングプラットフォーム 開発TODO リスト
-更新日: 2025年1月
+更新日: 2025年1月14日
 
 ## 🔴 最優先事項（AI人材マッチング特化の実装）
 
 ### AI人材特化機能の実装（フェーズ1: 2週間）
-- [ ] 既存テーブルの拡張（0.5日）
-  - [ ] profiles.profile_detailsにAI関連フィールド追加
-    - ai_level（expert/developer/user/supporter）
+- [x] 既存テーブルの拡張（0.5日）✅ 2025年1月14日完了
+  - [x] profiles.profile_detailsにAI関連フィールド追加
+    - ai_skills（AIスキルタイプ配列）
     - ai_tools（使用可能なAIツール配列）
     - ai_experience（AI活用経験）
-  - [ ] projects.pm_requirementsをai_requirementsとして活用
-    - required_ai_level
-    - required_ai_tools
-    - expected_outcomes
-- [ ] 新規テーブルの作成（0.5日）
-  - [ ] ai_skillsテーブル（詳細なスキル管理）
-  - [ ] matching_scoresテーブル（マッチングスコア）
-  - [ ] ai_use_casesテーブル（活用事例）
-  - [ ] project_templatesテーブル（案件テンプレート）
-- [ ] AI人材向けプロフィール画面の実装（3日）
-  - [ ] 既存のprofile編集画面を拡張
-  - [ ] AI人材レベル選択UI追加
-  - [ ] AIツール経験チェックリスト追加
-  - [ ] 業務活用経験入力セクション追加
-  - [ ] AI活用事例登録機能（ai_use_casesテーブル連携）
-- [ ] AI案件作成機能の拡張（2日）
-  - [ ] 既存のprojects作成画面を拡張
-  - [ ] AIレベル選択追加（pm_requirementsに保存）
-  - [ ] 必要なAIツール選択UI
-  - [ ] project_templatesテーブルからテンプレート読み込み
-  - [ ] レベル別予算目安の表示
+    - ai_achievements（AI活用実績テキスト）
+  - [x] ~~projects.pro_requirementsをai_requirementsとして活用~~ → 不要と判断
+    - pm_requirementsは存在せず、pro_requirementsカラムがある
+    - クライアントがAI要件を詳しく書けないため、この機能は不要
+- [x] 新規テーブルの作成（0.5日）✅ 部分的に完了
+  - [ ] matching_scoresテーブル（マッチングスコア）：テーブル作らずリアルタイム計算でも良いかも
+  - [x] ai_use_casesテーブル（活用事例）→ 作成後、シンプルな実績テキストに変更し削除
+  - [ ] project_templatesテーブル（案件テンプレート）：あると便利だが後でもいい
+- [x] AI人材向けプロフィール画面の実装（3日）✅ 2025年1月14日完了
+  - [x] 既存のprofile編集画面を拡張
+  - [x] AI人材スキル選択UI追加（4タイプ：エキスパート/開発者/活用者/支援者）
+  - [x] AIツール経験チェックリスト追加（15種類のツール＋その他追加可能）
+  - [x] 業務活用経験入力セクション追加（経験年数、活用領域）
+  - [x] AI活用実績登録機能（シンプルなテキストエリア形式で実装）
+- [x] ~~AI案件作成機能の拡張（2日）~~ → 不要と判断（クライアントはAIの詳細要件を書けない）
+  - クライアント側は「〇〇を自動化したい」「AIで効率化したい」程度の要望
+  - AI人材側が提案する形の方が現実的
+  - 既存のプロジェクト作成機能で十分
 - [ ] 基本的なマッチング機能（3日）
   - [ ] profilesとprojectsのAI関連フィールドを比較
   - [ ] レベル適合度の計算
@@ -99,7 +96,8 @@
   - [ ] スキルアップ機会の通知
 
 ### AI人材向けポートフォリオ管理
-- [ ] AI活用事例のアップロード
+- [x] AI活用実績の管理 ✅ 2025年1月14日完了（シンプルなテキスト形式で実装）
+- [ ] 詳細な事例アップロード機能（将来の拡張として）
   - [ ] 成果物のスクリーンショット
   - [ ] プロンプト例の保存
   - [ ] 効果測定データの添付
@@ -315,8 +313,8 @@
 ## 🎯 AI人材マッチングプラットフォーム実装計画
 
 ### 現在のデータベース構造（7テーブル）
-1. **profiles** - profile_details (JSONB)にAI情報追加
-2. **projects** - pm_requirements (JSONB)にAI要件追加  
+1. **profiles** - profile_details (JSONB)にAI情報追加 ✅
+2. **projects** - 既存の機能をそのまま活用（AI要件追加は不要）
 3. **applications** - 既存の応募機能をそのまま活用
 4. **conversations/messages** - 既存のメッセージング活用
 5. **notifications** - AI案件通知を追加
@@ -324,13 +322,13 @@
 
 ### 新規追加テーブル（最小限）
 - **matching_scores** - マッチングスコア保存
-- **ai_use_cases** - AI活用事例
+- ~~**ai_use_cases** - AI活用事例~~ → 削除済み（シンプルなテキストフィールドに変更）
 - **ai_skills** - 詳細スキル（フェーズ2）
 - **project_templates** - 案件テンプレート（フェーズ2）
 
 ### MVP実装方針（2週間）
 1. **既存画面の拡張を優先**
-   - プロフィール編集にAIセクション追加
+   - プロフィール編集にAIセクション追加 ✅ 完了
    - プロジェクト作成にAI要件追加
    - プロジェクト一覧にAIフィルター追加
 2. **JSONBフィールドを最大活用**

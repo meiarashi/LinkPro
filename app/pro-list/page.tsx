@@ -6,7 +6,8 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { createClient } from "../../utils/supabase/client";
 import LoggedInHeader from "../../components/LoggedInHeader";
-import { User, MessageSquare, Star, Filter, Search, Loader2, Clock, Globe, CheckCircle, Briefcase } from "lucide-react";
+import { User, MessageSquare, Star, Filter, Search, Loader2, Clock, Globe, CheckCircle, Briefcase, Sparkles, Bot } from "lucide-react";
+import { AI_SKILLS, AISkillType } from "../../types/ai-talent";
 
 interface ProProfile {
   id: string;
@@ -17,6 +18,13 @@ interface ProProfile {
     portfolio?: string;
     introduction?: string;
     achievements?: string;
+    ai_skills?: AISkillType[];
+    ai_tools?: string[];
+    ai_experience?: {
+      years: number;
+      domains: string[];
+    };
+    ai_achievements?: string;
   } | null;
   rate_info: {
     hourly_rate?: string;
@@ -70,7 +78,14 @@ export default function ProListPage() {
         const skillsMatch = pro.profile_details?.skills?.some(skill => 
           skill.toLowerCase().includes(searchLower)
         );
-        return nameMatch || skillsMatch;
+        const aiToolsMatch = pro.profile_details?.ai_tools?.some(tool =>
+          tool.toLowerCase().includes(searchLower)
+        );
+        const aiSkillsMatch = pro.profile_details?.ai_skills?.some(skillType => {
+          const skill = AI_SKILLS[skillType];
+          return skill?.label.toLowerCase().includes(searchLower);
+        });
+        return nameMatch || skillsMatch || aiToolsMatch || aiSkillsMatch;
       });
       setFilteredProList(filtered);
     } else {
@@ -316,7 +331,25 @@ export default function ProListPage() {
                         <User className="w-8 h-8 text-gray-500" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{pro.full_name || '名前未設定'}</h3>
+                        <h3 className="font-semibold text-lg mb-1">{pro.full_name || '名前未設定'}</h3>
+
+                        {/* AIスキルタイプ */}
+                        {pro.profile_details?.ai_skills && pro.profile_details.ai_skills.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {pro.profile_details.ai_skills.map((skillType) => {
+                              const skill = AI_SKILLS[skillType];
+                              if (!skill) return null;
+                              return (
+                                <span
+                                  key={skillType}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                >
+                                  {skill.label}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                         
                         {/* 料金情報 */}
                         <div className="flex flex-wrap gap-3 mt-2 text-sm">
@@ -384,6 +417,31 @@ export default function ProListPage() {
                         {pro.profile_details.skills.length > 5 && (
                           <span className="px-2 py-1 text-gray-500 text-xs">
                             +{pro.profile_details.skills.length - 5}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AIツール */}
+                  {pro.profile_details?.ai_tools && pro.profile_details.ai_tools.length > 0 && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Bot className="w-3 h-3 text-gray-500" />
+                        <span className="text-xs text-gray-500">使用可能なAIツール</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {pro.profile_details.ai_tools.slice(0, 6).map((tool, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full"
+                          >
+                            {tool}
+                          </span>
+                        ))}
+                        {pro.profile_details.ai_tools.length > 6 && (
+                          <span className="px-2 py-0.5 text-gray-500 text-xs">
+                            +{pro.profile_details.ai_tools.length - 6}
                           </span>
                         )}
                       </div>
