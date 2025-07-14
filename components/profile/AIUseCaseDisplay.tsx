@@ -137,20 +137,22 @@ export default function AIUseCaseDisplay({ userId }: AIUseCaseDisplayProps) {
             )}
 
             {/* リンク */}
-            {useCase.attachments && useCase.attachments.links && useCase.attachments.links.length > 0 && (
+            {useCase.attachments && useCase.attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
-                {useCase.attachments.links.map((link: any, index: number) => (
-                  <a
-                    key={index}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    {link.name || "リンク"}
-                  </a>
-                ))}
+                {useCase.attachments
+                  .filter((attachment) => attachment.type === 'link')
+                  .map((link, index) => (
+                    <a
+                      key={index}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      {link.name || "リンク"}
+                    </a>
+                  ))}
               </div>
             )}
 
