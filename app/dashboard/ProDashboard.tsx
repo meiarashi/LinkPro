@@ -190,14 +190,14 @@ export default function ProDashboard({
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600">AIスキルタイプ</span>
-            <span className={`text-sm ${profile.profile_details?.ai_skills?.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-              {profile.profile_details?.ai_skills?.length > 0 ? '✓ 完了' : '未設定'}
+            <span className={`text-sm ${profile.profile_details?.ai_skills && profile.profile_details.ai_skills.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+              {profile.profile_details?.ai_skills && profile.profile_details.ai_skills.length > 0 ? '✓ 完了' : '未設定'}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600">AIツール経験</span>
-            <span className={`text-sm ${profile.profile_details?.ai_tools?.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-              {profile.profile_details?.ai_tools?.length > 0 ? `✓ ${profile.profile_details.ai_tools.length}個登録` : '未設定'}
+            <span className={`text-sm ${profile.profile_details?.ai_tools && profile.profile_details.ai_tools.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+              {profile.profile_details?.ai_tools && profile.profile_details.ai_tools.length > 0 ? `✓ ${profile.profile_details.ai_tools.length}個登録` : '未設定'}
             </span>
           </div>
           <div className="flex items-center justify-between">
@@ -231,7 +231,7 @@ export default function ProDashboard({
       </div>
 
       {/* AIスキル情報 */}
-      {profile.profile_details?.ai_skills?.length > 0 && (
+      {profile.profile_details?.ai_skills && profile.profile_details.ai_skills.length > 0 && (
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">あなたのAIスキル</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -247,7 +247,7 @@ export default function ProDashboard({
             })}
           </div>
           
-          {profile.profile_details?.ai_tools?.length > 0 && (
+          {profile.profile_details?.ai_tools && profile.profile_details.ai_tools.length > 0 && (
             <div className="mt-4">
               <h3 className="text-sm font-medium text-gray-700 mb-2">使用可能なAIツール</h3>
               <div className="flex flex-wrap gap-2">
@@ -264,7 +264,7 @@ export default function ProDashboard({
 
 
       {/* おすすめプロジェクト */}
-      {recommendedProjects.length > 0 && profile.profile_details?.ai_skills?.length > 0 && (
+      {recommendedProjects.length > 0 && profile.profile_details?.ai_skills && profile.profile_details.ai_skills.length > 0 && (
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
