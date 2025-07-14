@@ -12,9 +12,11 @@ interface AIProfileSectionProps {
     domains: string[];
     achievements: string[];
   };
+  portfolioUrl: string;
   onAISkillsChange: (skills: AISkillType[]) => void;
   onAIToolsChange: (tools: string[]) => void;
   onAIExperienceChange: (experience: any) => void;
+  onPortfolioUrlChange: (url: string) => void;
 }
 
 // 人気のAIツールリスト
@@ -54,9 +56,11 @@ export default function AIProfileSection({
   aiSkills,
   aiTools,
   aiExperience,
+  portfolioUrl,
   onAISkillsChange,
   onAIToolsChange,
   onAIExperienceChange,
+  onPortfolioUrlChange,
 }: AIProfileSectionProps) {
   const [showSkillInfo, setShowSkillInfo] = useState(false);
 
@@ -108,9 +112,8 @@ export default function AIProfileSection({
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm">
+    <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">詳細情報</h2>
         <button
           type="button"
           onClick={() => setShowSkillInfo(!showSkillInfo)}
@@ -261,29 +264,21 @@ export default function AIProfileSection({
             </div>
           </div>
 
-          {/* 実績・成果 */}
-          <div>
-            <label className="block text-xs text-gray-600 mb-1">
-              実績・成果（具体的な数値があれば記載）
-            </label>
-            {(aiExperience.achievements || []).map((achievement, index) => (
-              <input
-                key={index}
-                type="text"
-                value={achievement}
-                onChange={(e) => handleAchievementChange(index, e.target.value)}
-                placeholder="例: 業務効率を30%改善"
-                className="mb-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              />
-            ))}
-            <button
-              type="button"
-              onClick={addAchievement}
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              + 実績を追加
-            </button>
-          </div>
+        </div>
+
+        {/* ポートフォリオURL */}
+        <div>
+          <label htmlFor="portfolio" className="block text-sm font-medium text-gray-700 mb-1">
+            ポートフォリオURL
+          </label>
+          <input
+            id="portfolio"
+            type="url"
+            value={portfolioUrl}
+            onChange={(e) => onPortfolioUrlChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="https://example.com"
+          />
         </div>
       </div>
     </div>

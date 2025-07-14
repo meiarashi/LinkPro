@@ -30,8 +30,6 @@ export default function ProfileEditPage() {
   
   // フォームの状態
   const [fullName, setFullName] = useState("");
-  const [skills, setSkills] = useState("");
-  const [experience, setExperience] = useState("");
   const [portfolio, setPortfolio] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [availability, setAvailability] = useState("full-time");
@@ -68,9 +66,7 @@ export default function ProfileEditPage() {
           
           // フォームにデータをセット
           setFullName(profileData.full_name || "");
-          setSkills(profileData.profile_details?.skills || "");
-          setExperience(profileData.profile_details?.experience || "");
-          setPortfolio(profileData.profile_details?.portfolio || "");
+          setPortfolio(profileData.profile_details?.portfolio_url || "");
           setHourlyRate(profileData.rate_info?.hourly_rate || "");
           setAvailability(profileData.availability?.status || "full-time");
           
@@ -106,13 +102,11 @@ export default function ProfileEditPage() {
         .update({
           full_name: fullName,
           profile_details: {
-            skills,
-            experience,
-            portfolio,
             // AI関連フィールド
             ai_skills: aiSkills,
             ai_tools: aiTools,
             ai_experience: aiExperience,
+            portfolio_url: portfolio,
           },
           rate_info: {
             hourly_rate: hourlyRate,
@@ -190,54 +184,6 @@ export default function ProfileEditPage() {
             </div>
           </div>
 
-          {/* プロフィール詳細 */}
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">プロフィール詳細</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-1">
-                  スキル・専門分野
-                </label>
-                <textarea
-                  id="skills"
-                  value={skills}
-                  onChange={(e) => setSkills(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="例: プロジェクト管理、アジャイル開発、スクラムマスター"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-1">
-                  経歴・実績
-                </label>
-                <textarea
-                  id="experience"
-                  value={experience}
-                  onChange={(e) => setExperience(e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="これまでの経験や実績を記入してください"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="portfolio" className="block text-sm font-medium text-gray-700 mb-1">
-                  ポートフォリオURL
-                </label>
-                <input
-                  id="portfolio"
-                  type="url"
-                  value={portfolio}
-                  onChange={(e) => setPortfolio(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="https://example.com"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* AI人材情報（プロフェッショナルのみ） */}
           {profile.user_type === "pro" && (
@@ -247,11 +193,18 @@ export default function ProfileEditPage() {
               aiSkills={aiSkills}
               aiTools={aiTools}
               aiExperience={aiExperience}
+              portfolioUrl={portfolio}
               onAISkillsChange={setAISkills}
               onAIToolsChange={setAITools}
               onAIExperienceChange={setAIExperience}
+              onPortfolioUrlChange={setPortfolio}
             />
             </div>
+          )}
+
+          {/* AI活用事例（プロフェッショナルのみ） */}
+          {profile.user_type === "pro" && (
+            <AIUseCaseSection userId={profile.id} />
           )}
 
           {/* 単価・稼働情報（プロフェッショナルのみ） */}
@@ -292,11 +245,6 @@ export default function ProfileEditPage() {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* AI活用事例（プロフェッショナルのみ） */}
-          {profile.user_type === "pro" && (
-            <AIUseCaseSection userId={profile.id} />
           )}
 
           {/* 送信ボタン */}
