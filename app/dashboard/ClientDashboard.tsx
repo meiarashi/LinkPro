@@ -188,37 +188,43 @@ export default function ClientDashboard({
 
         {/* サマリーカード */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-600">総プロジェクト数</p>
-                <p className="text-xl font-bold text-gray-800">{projects.length}</p>
+          <Link href="/projects/my" className="block">
+            <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-600">総プロジェクト数</p>
+                  <p className="text-xl font-bold text-gray-800">{projects.length}</p>
+                </div>
+                <FolderOpen className="w-6 h-6 text-gray-400" />
               </div>
-              <FolderOpen className="w-6 h-6 text-gray-400" />
             </div>
-          </div>
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-600">公開中</p>
-                <p className="text-xl font-bold text-green-600">
-                  {projects.filter(p => p.status === 'public').length}
-                </p>
+          </Link>
+          <Link href="/projects/my?status=public" className="block">
+            <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-600">公開中</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {projects.filter(p => p.status === 'public').length}
+                  </p>
+                </div>
+                <Users className="w-6 h-6 text-gray-400" />
               </div>
-              <Users className="w-6 h-6 text-gray-400" />
             </div>
-          </div>
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-600">新着応募</p>
-                <p className="text-xl font-bold text-blue-600">
-                  {recentApplications.filter(a => a.status === 'pending').length}
-                </p>
+          </Link>
+          <Link href="/projects/my?tab=applications" className="block">
+            <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-600">新着応募</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    {recentApplications.filter(a => a.status === 'pending').length}
+                  </p>
+                </div>
+                <MessageSquare className="w-6 h-6 text-gray-400" />
               </div>
-              <MessageSquare className="w-6 h-6 text-gray-400" />
             </div>
-          </div>
+          </Link>
         </div>
       </div>
 
@@ -427,7 +433,7 @@ export default function ClientDashboard({
                 ))}
                 {projects.length > 5 && (
                   <div className="text-center pt-2">
-                    <Link href="/projects">
+                    <Link href="/projects/my">
                       <Button variant="link" className="text-xs">
                         すべてのプロジェクトを見る ({projects.length}件)
                       </Button>
