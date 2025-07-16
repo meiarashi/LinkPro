@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Send, Bot, User, Loader2 } from "lucide-react";
+import { createClient } from "../../utils/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
@@ -21,10 +22,12 @@ interface ProjectAnalysis {
 }
 
 interface AIProjectWizardProps {
-  onComplete: (analysis: ProjectAnalysis, conversation: Message[]) => void;
+  onComplete: (analysis: ProjectAnalysis, conversation: Message[], conversationId?: string) => void;
 }
 
 export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
+  const supabase = createClient();
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -52,6 +55,45 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 会話履歴の作成または更新
+  const saveConversation = async (newMessages: Message[], newAnalysis?: ProjectAnalysis) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (!conversationId) {
+        // 新規作成
+        const { data, error } = await supabase
+          .from('ai_conversations')
+          .insert({
+            user_id: user.id,
+            conversation_type: 'project_creation',
+            messages: newMessages,
+            analysis: newAnalysis || analysis,
+            status: 'in_progress'
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          setConversationId(data.id);
+        }
+      } else {
+        // 更新
+        await supabase
+          .from('ai_conversations')
+          .update({
+            messages: newMessages,
+            analysis: newAnalysis || analysis,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', conversationId);
+      }
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -93,7 +135,11 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
       const chatData = await chatResponse.json();
       
       if (chatData.success) {
-        setMessages([...newMessages, { role: "assistant", content: chatData.message }]);
+        const updatedMessages = [...newMessages, { role: "assistant", content: chatData.message }];
+        setMessages(updatedMessages);
+        
+        // 会話履歴を保存
+        await saveConversation(updatedMessages, analyzeData.analysis);
         
         // 要件が十分に集まったかチェック
         if (chatData.isComplete && newMessages.length > 6) {
@@ -116,9 +162,19 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
     return ""; // 実際の応答はchat-with-aiエンドポイントで生成
   };
 
-  const completeWizard = () => {
-    if (analysis) {
-      onComplete(analysis, messages);
+  const completeWizard = async () => {
+    if (analysis && conversationId) {
+      // 会話を完了状態に更新
+      await supabase
+        .from('ai_conversations')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', conversationId);
+      
+      // 親コンポーネントにconversationIdも渡す
+      onComplete(analysis, messages, conversationId);
     }
   };
 

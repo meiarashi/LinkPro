@@ -26,6 +26,7 @@ export default function NewProjectPage() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [user, setUser] = useState<any>(null);
   const [useAIWizard, setUseAIWizard] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -148,6 +149,16 @@ export default function NewProjectPage() {
         throw insertError;
       }
 
+      // 会話IDがある場合は、プロジェクトと紐付ける
+      if (conversationId && data.id) {
+        await supabase
+          .from('ai_conversations')
+          .update({
+            project_id: data.id
+          })
+          .eq('id', conversationId);
+      }
+
       router.push(`/projects/${data.id}`);
     } catch (err: any) {
       console.error("Error creating project:", err);
@@ -214,13 +225,13 @@ export default function NewProjectPage() {
               </p>
             </div>
             <AIProjectWizard
-              onComplete={(analysis, conversation) => {
+              onComplete={(analysis, conversation, conversationId) => {
                 // AIの分析結果をフォームデータに反映（既存の値は上書き）
                 setFormData({
                   title: analysis.key_requirements && analysis.key_requirements.length > 0 
                     ? `${analysis.business_domain}での${analysis.project_type === 'training' ? 'AI活用支援' : 'AI開発'}プロジェクト`
                     : formData.title,
-                  description: analysis.key_requirements?.join('\n') || formData.description,
+                  description: analysis.project_story || analysis.key_requirements?.join('\n') || formData.description,
                   budget: analysis.estimated_budget_range 
                     ? `${(analysis.estimated_budget_range.min / 10000).toFixed(0)}万円〜${(analysis.estimated_budget_range.max / 10000).toFixed(0)}万円`
                     : formData.budget,
@@ -233,6 +244,10 @@ export default function NewProjectPage() {
                   project_difficulty: analysis.project_difficulty || '',
                   business_domain: analysis.business_domain || '',
                 });
+                // 会話IDを保存
+                if (conversationId) {
+                  setConversationId(conversationId);
+                }
                 // 通常のフォームに戻る
                 setUseAIWizard(false);
               }}
@@ -572,6 +587,16 @@ export default function NewProjectPage() {
 
                     if (insertError) {
                       throw insertError;
+                    }
+
+                    // 会話IDがある場合は、プロジェクトと紐付ける
+                    if (conversationId && data.id) {
+                      await supabase
+                        .from('ai_conversations')
+                        .update({
+                          project_id: data.id
+                        })
+                        .eq('id', conversationId);
                     }
 
                     router.push(`/projects/${data.id}`);
