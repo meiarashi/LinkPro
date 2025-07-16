@@ -410,7 +410,7 @@ export default function ClientDashboard({
                           <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
                             <span>{getStatusBadge(project.status)}</span>
                             {project.budget && <span>{project.budget}</span>}
-                            {project.applications_count && project.applications_count > 0 && (
+                            {project.applications_count !== undefined && (
                               <span>応募: {project.applications_count}</span>
                             )}
                           </div>

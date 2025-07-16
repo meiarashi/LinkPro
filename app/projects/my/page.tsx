@@ -71,6 +71,8 @@ function MyProjectsContent() {
   const loadData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current user:', user);
+      
       if (!user) {
         router.push('/login');
         return;
@@ -91,7 +93,7 @@ function MyProjectsContent() {
       setProfile(profileData);
 
       // プロジェクト一覧取得
-      const { data: projectsData } = await supabase
+      const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
           *,
@@ -107,12 +109,17 @@ function MyProjectsContent() {
         .eq('client_id', user.id)
         .order('created_at', { ascending: false });
 
+      console.log('Projects query result:', projectsData);
+      console.log('Projects query error:', projectsError);
+      
       if (projectsData) {
         setProjects(projectsData);
         
         // すべての応募を集計
         const allApplications = projectsData.flatMap(p => p.applications || []);
         setApplications(allApplications);
+      } else {
+        console.log('No projects data returned');
       }
     } catch (error) {
       console.error('Error loading data:', error);
