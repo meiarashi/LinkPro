@@ -136,7 +136,7 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
       const chatData = await chatResponse.json();
       
       if (chatData.success) {
-        const updatedMessages = [...newMessages, { role: "assistant", content: chatData.message }];
+        const updatedMessages: Message[] = [...newMessages, { role: "assistant" as const, content: chatData.message }];
         setMessages(updatedMessages);
         
         // 会話履歴を保存
