@@ -173,7 +173,7 @@ ${JSON.stringify(currentAnalysis, null, 2)}
     const aiMessage = response.text();
     
     // 要件が十分に集まったかチェック
-    const completenessCheck = await checkRequirementCompleteness(messages, currentAnalysis);
+    const completenessCheck = checkRequirementCompleteness(messages, currentAnalysis);
     
     return NextResponse.json({
       success: true,
@@ -196,7 +196,7 @@ ${JSON.stringify(currentAnalysis, null, 2)}
   }
 }
 
-async function checkRequirementCompleteness(messages: any[], analysis: any) {
+function checkRequirementCompleteness(messages: any[], analysis: any) {
   const missingInfo = [];
   
   // 必須項目のチェック
@@ -223,6 +223,7 @@ async function checkRequirementCompleteness(messages: any[], analysis: any) {
   // プロジェクトストーリーの要素が含まれているか
   const hasStoryElements = 
     analysis.project_story && 
+    typeof analysis.project_story === 'string' &&
     analysis.project_story.includes('背景') &&
     analysis.project_story.includes('課題') &&
     analysis.project_story.includes('成果');
