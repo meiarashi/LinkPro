@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
-import { Bell, MessageSquare, CheckCircle, XCircle, Users, Loader2 } from 'lucide-react';
+import { Bell, MessageSquare, CheckCircle, XCircle, Users, Loader2, Sparkles, AlertCircle, UserPlus } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 
@@ -17,12 +17,32 @@ interface Notification {
   created_at: string;
 }
 
-export default function NotificationCenter() {
+interface NotificationCenterProps {
+  unreadCount?: number;
+  onCountUpdate?: (count: number) => void;
+}
+
+export default function NotificationCenter({ unreadCount = 0, onCountUpdate }: NotificationCenterProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [localUnreadCount, setLocalUnreadCount] = useState(unreadCount);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 外側クリックでドロップダウンを閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDropdown]);
 
   useEffect(() => {
     const setupNotifications = async () => {
@@ -68,7 +88,11 @@ export default function NotificationCenter() {
       if (error) throw error;
 
       setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+      const unreadNotifications = data?.filter(n => !n.is_read) || [];
+      setLocalUnreadCount(unreadNotifications.length);
+      if (onCountUpdate) {
+        onCountUpdate(unreadNotifications.length);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -88,7 +112,11 @@ export default function NotificationCenter() {
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      const newUnreadCount = Math.max(0, localUnreadCount - 1);
+      setLocalUnreadCount(newUnreadCount);
+      if (onCountUpdate) {
+        onCountUpdate(newUnreadCount);
+      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -108,7 +136,10 @@ export default function NotificationCenter() {
       if (error) throw error;
       
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setUnreadCount(0);
+      setLocalUnreadCount(0);
+      if (onCountUpdate) {
+        onCountUpdate(0);
+      }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
     }
@@ -117,15 +148,19 @@ export default function NotificationCenter() {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'new_application':
-        return <Users className="w-4 h-4 text-blue-500" />;
+      case 'application_received':
+        return <UserPlus className="w-4 h-4 text-blue-500" />;
       case 'application_accepted':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'application_rejected':
         return <XCircle className="w-4 h-4 text-red-500" />;
       case 'new_message':
+      case 'message_received':
         return <MessageSquare className="w-4 h-4 text-purple-500" />;
+      case 'project_matched':
+        return <Sparkles className="w-4 h-4 text-purple-500" />;
       default:
-        return <Bell className="w-4 h-4 text-gray-500" />;
+        return <AlertCircle className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -182,7 +217,7 @@ export default function NotificationCenter() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <Button
         variant="ghost"
         size="sm"
@@ -190,9 +225,9 @@ export default function NotificationCenter() {
         onClick={() => setShowDropdown(!showDropdown)}
       >
         <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
+        {localUnreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {localUnreadCount > 9 ? '9+' : localUnreadCount}
           </span>
         )}
       </Button>
@@ -202,7 +237,7 @@ export default function NotificationCenter() {
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">通知</h3>
-              {unreadCount > 0 && (
+              {localUnreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
                   className="text-sm text-blue-600 hover:text-blue-800"
