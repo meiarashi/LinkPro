@@ -129,18 +129,15 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       {/* ヘッダー */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-3 border-b border-gray-200">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Bot className="w-5 h-5 text-blue-600" />
-          AI案件作成アシスタント
+          AIアシスタント
         </h3>
-        <p className="text-sm text-gray-600 mt-1">
-          対話しながら、最適なAI人材とマッチングするための要件を整理します
-        </p>
       </div>
 
       {/* メッセージエリア */}
-      <div className="h-96 overflow-y-auto p-4 space-y-4">
+      <div className="h-[500px] overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
           <div
             key={index}
@@ -186,23 +183,6 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 提案される質問 */}
-      {suggestedQuestions.length > 0 && (
-        <div className="px-4 py-2 border-t border-gray-100">
-          <p className="text-xs text-gray-500 mb-2">質問の提案：</p>
-          <div className="flex flex-wrap gap-2">
-            {suggestedQuestions.map((question, index) => (
-              <button
-                key={index}
-                onClick={() => useSuggestedQuestion(question)}
-                className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors"
-              >
-                {question}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       
 
       {/* 入力エリア */}
@@ -231,22 +211,24 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
             <Send className="w-4 h-4" />
           </Button>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          Enterで改行、Ctrl+Enter（Mac: Cmd+Enter）で送信
-        </p>
       </div>
 
       {/* 完了ボタン */}
-      {messages.length > 6 && analysis && (
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
+      {messages.length > 6 && analysis && analysis.key_requirements && analysis.key_requirements.length > 0 && (
+        <div className="p-4 border-t border-gray-200 bg-green-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">要件の整理が完了しました</p>
-              <p className="text-xs text-gray-600 mt-1">
-                {analysis.business_domain}での{analysis.project_type === 'training' ? '支援' : '開発'}案件として登録します
+              <p className="text-sm font-medium text-green-800">
+                プロジェクト案の準備ができました
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                このままプロジェクトを作成するか、さらに詳細を話し合うか選択してください
               </p>
             </div>
-            <Button onClick={completeWizard} className="bg-green-600 hover:bg-green-700">
+            <Button 
+              onClick={completeWizard} 
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
               プロジェクトを作成
             </Button>
           </div>
