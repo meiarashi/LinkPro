@@ -6,8 +6,9 @@ import { Button } from "../../../components/ui/button";
 import { createClient } from "../../../utils/supabase/client";
 import LoggedInHeader from "../../../components/LoggedInHeader";
 import Link from "next/link";
-import { ArrowLeft, Save, Eye, Loader2, Sparkles, Target, Brain, Users } from "lucide-react";
+import { ArrowLeft, Save, Eye, Loader2, Sparkles, Target, Brain, Users, Bot } from "lucide-react";
 import { AI_SKILLS } from "../../../types/ai-talent";
+import AIProjectWizard from "../../../components/projects/AIProjectWizard";
 
 interface Profile {
   id: string;
@@ -24,6 +25,7 @@ export default function NewProjectPage() {
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [useAIWizard, setUseAIWizard] = useState(false);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -188,8 +190,40 @@ export default function NewProjectPage() {
           </Link>
         </div>
         
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">新規プロジェクト作成</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">新規プロジェクト作成</h1>
+          {!useAIWizard && (
+            <Button
+              type="button"
+              onClick={() => setUseAIWizard(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Bot className="w-4 h-4" />
+              AIアシスタントを使う
+            </Button>
+          )}
+        </div>
         
+        {useAIWizard ? (
+          <AIProjectWizard
+            onComplete={(analysis, conversation) => {
+              // AIの分析結果をフォームデータに反映
+              setFormData(prev => ({
+                ...prev,
+                required_ai_level: analysis.required_ai_level || prev.required_ai_level,
+                required_ai_tools: analysis.required_ai_tools || prev.required_ai_tools,
+                project_difficulty: analysis.project_difficulty || prev.project_difficulty,
+                business_domain: analysis.business_domain || prev.business_domain,
+                // タイトルと説明を会話から生成することも可能
+                title: prev.title || `${analysis.business_domain}の${analysis.project_type === 'training' ? '支援' : '開発'}プロジェクト`,
+                description: prev.description || analysis.key_requirements?.join('\n') || '',
+              }));
+              // 通常のフォームに戻る
+              setUseAIWizard(false);
+            }}
+          />
+        ) : (
         <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-6">
           {error && (
             <div className="bg-red-50 text-red-600 p-4 rounded-lg">
@@ -533,6 +567,7 @@ export default function NewProjectPage() {
             </div>
           </div>
         </form>
+        )}
       </main>
     </div>
   );
