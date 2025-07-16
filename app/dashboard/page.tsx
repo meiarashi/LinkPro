@@ -193,6 +193,9 @@ export default function DashboardPage() {
         // すでに応募したプロジェクトIDを取得
         const appliedProjectIds = applicationsData?.map(app => app.project_id) || [];
         
+        console.log('Matching projects found:', matchingData.length);
+        console.log('Applied projects:', appliedProjectIds);
+        
         // 未応募かつスコアが高いプロジェクトをフィルタリング
         const recommendedWithScores = matchingData
           .filter(item => !appliedProjectIds.includes(item.project_id))
@@ -204,6 +207,7 @@ export default function DashboardPage() {
             recommendationReason: item.recommendation_reason
           }));
         
+        console.log('Recommended projects after filter:', recommendedWithScores.length);
         setRecommendedProjects(recommendedWithScores);
       } else {
         // マッチングスコアがない場合は最新のプロジェクトを表示
