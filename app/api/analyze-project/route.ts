@@ -104,15 +104,15 @@ function generateFollowUpQuestions(analysis: any): string[] {
   
   // 必要な情報が不足している場合の質問を生成
   if (!analysis.estimated_budget_range) {
-    questions.push('ご予算の規模感を教えていただけますか？');
+    questions.push('ご予算の規模感を教えていただけますか？\n（例：50-100万円、200万円以上など）');
   }
   
   if (!analysis.key_requirements || analysis.key_requirements.length < 3) {
-    questions.push('具体的に実現したいことを3つほど教えていただけますか？');
+    questions.push('具体的に実現したいことを教えていただけますか？\n（例：メール作成の効率化、データ分析の自動化など）');
   }
   
   if (analysis.project_type === 'training' && !analysis.team_size) {
-    questions.push('研修の対象者は何名程度を想定されていますか？');
+    questions.push('研修の対象者は何名程度を想定されていますか？\n（例：営業部門20名、全社員100名など）');
   }
   
   return questions;

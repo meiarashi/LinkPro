@@ -158,12 +158,16 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
               }`}>
                 {message.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
               </div>
-              <div className={`rounded-lg px-4 py-2 ${
+              <div className={`rounded-lg px-4 py-3 ${
                 message.role === "user"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-100 text-gray-800"
               }`}>
-                {message.content}
+                <div className={`whitespace-pre-wrap ${
+                  message.role === "assistant" ? "space-y-2" : ""
+                }`}>
+                  {message.content}
+                </div>
               </div>
             </div>
           </div>
@@ -200,49 +204,36 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
         </div>
       )}
       
-      {/* 初回のみ表示する例文 */}
-      {messages.length === 1 && (
-        <div className="px-4 py-2 border-t border-gray-100">
-          <p className="text-xs text-gray-500 mb-2">クリックして入力：</p>
-          <div className="grid grid-cols-1 gap-2">
-            {[
-              "社内でChatGPTを導入したが、使い方がバラバラで効果が出ていない",
-              "顧客からの問い合わせ対応を自動化したい",
-              "毎月の売上レポート作成に時間がかかりすぎている",
-              "AIを使って新しいビジネスを始めたいが、何から始めればいいか分からない"
-            ].map((example, index) => (
-              <button
-                key={index}
-                onClick={() => setInput(example)}
-                className="text-left text-sm px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors"
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* 入力エリア */}
       <div className="p-4 border-t border-gray-200">
-        <div className="flex gap-2">
-          <input
-            type="text"
+        <div className="flex gap-2 items-end">
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="メッセージを入力..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onKeyDown={(e) => {
+              // Ctrl+Enter または Cmd+Enter で送信
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            placeholder="メッセージを入力... (Ctrl+Enterで送信)"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            rows={3}
             disabled={isLoading}
           />
           <Button
             onClick={sendMessage}
             disabled={!input.trim() || isLoading}
-            className="px-4"
+            className="px-4 py-2"
           >
             <Send className="w-4 h-4" />
           </Button>
         </div>
+        <p className="text-xs text-gray-500 mt-1">
+          Enterで改行、Ctrl+Enter（Mac: Cmd+Enter）で送信
+        </p>
       </div>
 
       {/* 完了ボタン */}
