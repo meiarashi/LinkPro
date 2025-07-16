@@ -132,12 +132,15 @@ export interface EditHistory {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'new_message' | 'new_application' | 'application_accepted' | 'application_rejected' | 'ai_match';
+  type: 'message_received' | 'application_received' | 'application_accepted' | 'application_rejected' | 'project_matched';
   title: string;
   message: string;
   related_id: string | null;
-  read_at: string | null;
+  related_type: 'project' | 'application' | 'message' | 'conversation' | 'user' | null;
+  is_read: boolean;
+  metadata?: any;
   created_at: string;
+  updated_at: string;
 }
 
 // 保存された検索
