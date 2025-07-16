@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '../../../utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -46,7 +46,7 @@ interface Profile {
   full_name: string | null;
 }
 
-export default function MyProjectsPage() {
+function MyProjectsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -451,5 +451,23 @@ export default function MyProjectsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Loading component
+function Loading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  );
+}
+
+// Main export with Suspense
+export default function MyProjectsPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <MyProjectsContent />
+    </Suspense>
   );
 }
