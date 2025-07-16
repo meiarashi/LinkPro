@@ -116,6 +116,12 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
         })
       });
 
+      if (!analyzeResponse.ok) {
+        const errorData = await analyzeResponse.json();
+        console.error('Analyze API error:', errorData);
+        throw new Error(errorData.error || 'Failed to analyze project');
+      }
+
       const analyzeData = await analyzeResponse.json();
       
       if (analyzeData.success) {
@@ -132,6 +138,12 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
           currentAnalysis: analyzeData.analysis || analysis || {}
         })
       });
+
+      if (!chatResponse.ok) {
+        const errorData = await chatResponse.json();
+        console.error('Chat API error:', errorData);
+        throw new Error(errorData.error || 'Failed to generate chat response');
+      }
 
       const chatData = await chatResponse.json();
       

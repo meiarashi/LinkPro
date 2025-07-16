@@ -184,8 +184,13 @@ ${JSON.stringify(currentAnalysis, null, 2)}
     
   } catch (error) {
     console.error('Chat error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to generate response' },
+      { 
+        error: 'Failed to generate response',
+        details: errorMessage,
+        success: false
+      },
       { status: 500 }
     );
   }
