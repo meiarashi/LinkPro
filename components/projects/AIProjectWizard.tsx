@@ -222,7 +222,7 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
                 プロジェクト案の準備ができました
               </p>
               <p className="text-xs text-green-600 mt-1">
-                このままプロジェクトを作成するか、さらに詳細を話し合うか選択してください
+                このままチャットを続けて要件を詰めることも可能です
               </p>
             </div>
             <Button 
