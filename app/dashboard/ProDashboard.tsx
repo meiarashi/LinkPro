@@ -1,9 +1,11 @@
 "use client";
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from "../../components/ui/button";
 import { FolderOpen, MessageSquare, Clock, CheckCircle, Target, Sparkles, AlertCircle } from 'lucide-react';
 import { AISkillType } from "../../types/ai-talent";
+import { createClient } from "../../utils/supabase/client";
 
 interface Profile {
   id: string;
@@ -57,6 +59,8 @@ export default function ProDashboard({
   unreadMessageCount = 0,
   recommendedProjects = []
 }: ProDashboardProps) {
+  const router = useRouter();
+  const supabase = createClient();
   
   // AIプロフィール充実度を計算
   const calculateAIProfileCompleteness = () => {
@@ -225,58 +229,115 @@ export default function ProDashboard({
 
         {/* 右カラム - プロジェクト情報 */}
         <div className="lg:col-span-2 space-y-4">
-          {/* おすすめプロジェクト */}
+          {/* マッチングプロジェクト - メインセクション */}
           {recommendedProjects.length > 0 && profile.profile_details?.ai_skills && profile.profile_details.ai_skills.length > 0 && (
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                  <Target className="w-4 h-4 text-purple-500" />
-                  おすすめプロジェクト
+            <div className="bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-lg shadow-sm border border-purple-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  あなたにマッチしたプロジェクト
                 </h2>
                 <Link href="/projects">
-                  <Button variant="outline" size="sm" className="text-xs">
-                    すべて見る
+                  <Button variant="outline" size="sm" className="text-sm">
+                    もっと見る
                   </Button>
                 </Link>
               </div>
           
-              <div className="space-y-2">
-                {recommendedProjects.slice(0, 2).map((project) => (
-                  <div key={project.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between">
+              <div className="space-y-3">
+                {recommendedProjects.slice(0, 5).map((project) => (
+                  <div key={project.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Link 
-                            href={`/projects/${project.id}`}
-                            className="text-sm font-medium text-gray-800 hover:text-blue-600 line-clamp-1"
-                          >
-                            {project.title}
-                          </Link>
-                          {project.matchPercentage && (
-                            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-blue-100 text-blue-700">
-                              {project.matchPercentage}%
+                        <Link 
+                          href={`/projects/${project.id}`}
+                          className="text-base font-semibold text-gray-800 hover:text-blue-600 line-clamp-2"
+                        >
+                          {project.title}
+                        </Link>
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                          {project.budget && (
+                            <span className="flex items-center gap-1">
+                              <span className="text-xs">💰</span>
+                              {project.budget}
+                            </span>
+                          )}
+                          {project.duration && (
+                            <span className="flex items-center gap-1">
+                              <span className="text-xs">📅</span>
+                              {project.duration}
+                            </span>
+                          )}
+                          {project.pro_requirements?.required_ai_level && (
+                            <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-700">
+                              {project.pro_requirements.required_ai_level === 'expert' ? 'エキスパート' :
+                               project.pro_requirements.required_ai_level === 'developer' ? '開発者' :
+                               project.pro_requirements.required_ai_level === 'user' ? '活用者' : '支援者'}
                             </span>
                           )}
                         </div>
-                        <div className="mt-1 text-xs text-gray-600">
-                          {project.budget && (
-                            <span className="mr-3">{project.budget}</span>
-                          )}
-                          {project.duration && (
-                            <span>{project.duration}</span>
-                          )}
-                        </div>
-                        {project.recommendationReason && (
-                          <p className="mt-1 text-xs text-blue-600">
-                            {project.recommendationReason}
+                        {project.description && (
+                          <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                            {project.description}
                           </p>
                         )}
                       </div>
-                      <Link href={`/projects/${project.id}`}>
-                        <Button size="sm" variant="outline" className="text-xs h-7">
-                          詳細
+                      <div className="flex flex-col gap-2">
+                        <Button 
+                          size="sm" 
+                          className="whitespace-nowrap"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            const button = e.currentTarget;
+                            button.disabled = true;
+                            button.textContent = '応募中...';
+                            
+                            try {
+                              const { data: { user } } = await supabase.auth.getUser();
+                              if (!user) {
+                                router.push('/login');
+                                return;
+                              }
+                              
+                              const { error } = await supabase
+                                .from('applications')
+                                .insert({
+                                  project_id: project.id,
+                                  pro_id: user.id,
+                                  status: 'pending',
+                                  message: 'マッチングプロジェクトから応募しました。よろしくお願いいたします。'
+                                });
+                              
+                              if (error) {
+                                console.error('Application error:', error);
+                                button.textContent = 'エラー';
+                                setTimeout(() => {
+                                  button.disabled = false;
+                                  button.textContent = '応募する';
+                                }, 2000);
+                              } else {
+                                button.textContent = '応募済み';
+                                button.classList.add('bg-gray-500', 'hover:bg-gray-500');
+                                // ページをリロードして状態を更新
+                                setTimeout(() => {
+                                  window.location.reload();
+                                }, 1000);
+                              }
+                            } catch (err) {
+                              console.error('Error:', err);
+                              button.disabled = false;
+                              button.textContent = '応募する';
+                            }
+                          }}
+                        >
+                          応募する
                         </Button>
-                      </Link>
+                        <Link href={`/projects/${project.id}`}>
+                          <Button size="sm" variant="outline" className="w-full text-xs">
+                            詳細を見る
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 ))}
