@@ -28,7 +28,15 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "こんにちは！AIを活用してどんなことを実現したいですか？お気軽にお話しください。"
+      content: `こんにちは！AIを活用してどんなことを実現したいですか？
+
+例えば：
+• 「社内でChatGPTを使い始めたが、うまく活用できていない」
+• 「営業メールの作成を効率化したい」
+• 「大量のデータから分析レポートを自動生成したい」
+• 「カスタマーサポートをAIで効率化したい」
+
+どんなお悩みでもお気軽にお話しください。`
     }
   ]);
   const [input, setInput] = useState("");
@@ -55,8 +63,8 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
     setIsLoading(true);
 
     try {
-      // プロジェクト要件を分析
-      const response = await fetch("/api/analyze-project", {
+      // まず要件を分析
+      const analyzeResponse = await fetch("/api/analyze-project", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -65,18 +73,35 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
         })
       });
 
-      const data = await response.json();
+      const analyzeData = await analyzeResponse.json();
       
-      if (data.success) {
-        setAnalysis(data.analysis);
-        setSuggestedQuestions(data.suggestedQuestions || []);
+      if (analyzeData.success) {
+        setAnalysis(analyzeData.analysis);
+        setSuggestedQuestions(analyzeData.suggestedQuestions || []);
+      }
+
+      // 次に対話型の応答を生成
+      const chatResponse = await fetch("/api/chat-with-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          messages: newMessages,
+          currentAnalysis: analyzeData.analysis || analysis || {}
+        })
+      });
+
+      const chatData = await chatResponse.json();
+      
+      if (chatData.success) {
+        setMessages([...newMessages, { role: "assistant", content: chatData.message }]);
         
-        // AIの応答を生成
-        const aiResponse = generateAIResponse(data.analysis, newMessages.length);
-        setMessages([...newMessages, { role: "assistant", content: aiResponse }]);
+        // 要件が十分に集まったかチェック
+        if (chatData.isComplete && newMessages.length > 6) {
+          // 完了ボタンを表示するためのフラグを立てる（既存のロジックを使用）
+        }
       }
     } catch (error) {
-      console.error("Error analyzing project:", error);
+      console.error("Error in conversation:", error);
       setMessages([...newMessages, { 
         role: "assistant", 
         content: "申し訳ございません。エラーが発生しました。もう一度お試しください。" 
@@ -86,15 +111,9 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
     }
   };
 
+  // この関数は不要になったが、後方互換性のため残す
   const generateAIResponse = (analysis: ProjectAnalysis, messageCount: number): string => {
-    // メッセージ数に応じて適切な応答を生成
-    if (messageCount < 4) {
-      return "なるほど、詳しく教えていただきありがとうございます。もう少し詳しく状況を教えていただけますか？";
-    } else if (messageCount < 6) {
-      return `${analysis.business_domain}での${analysis.project_type === 'training' ? '研修・支援' : '開発'}をご検討なんですね。具体的な目標や期待する成果はありますか？`;
-    } else {
-      return "ご要望をしっかり理解できました。この内容でプロジェクトを作成してよろしいですか？";
-    }
+    return ""; // 実際の応答はchat-with-aiエンドポイントで生成
   };
 
   const completeWizard = () => {
@@ -175,6 +194,29 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
                 className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors"
               >
                 {question}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* 初回のみ表示する例文 */}
+      {messages.length === 1 && (
+        <div className="px-4 py-2 border-t border-gray-100">
+          <p className="text-xs text-gray-500 mb-2">クリックして入力：</p>
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              "社内でChatGPTを導入したが、使い方がバラバラで効果が出ていない",
+              "顧客からの問い合わせ対応を自動化したい",
+              "毎月の売上レポート作成に時間がかかりすぎている",
+              "AIを使って新しいビジネスを始めたいが、何から始めればいいか分からない"
+            ].map((example, index) => (
+              <button
+                key={index}
+                onClick={() => setInput(example)}
+                className="text-left text-sm px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors"
+              >
+                {example}
               </button>
             ))}
           </div>

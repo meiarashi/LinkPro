@@ -206,23 +206,46 @@ export default function NewProjectPage() {
         </div>
         
         {useAIWizard ? (
-          <AIProjectWizard
-            onComplete={(analysis, conversation) => {
-              // AIの分析結果をフォームデータに反映
-              setFormData(prev => ({
-                ...prev,
-                required_ai_level: analysis.required_ai_level || prev.required_ai_level,
-                required_ai_tools: analysis.required_ai_tools || prev.required_ai_tools,
-                project_difficulty: analysis.project_difficulty || prev.project_difficulty,
-                business_domain: analysis.business_domain || prev.business_domain,
-                // タイトルと説明を会話から生成することも可能
-                title: prev.title || `${analysis.business_domain}の${analysis.project_type === 'training' ? '支援' : '開発'}プロジェクト`,
-                description: prev.description || analysis.key_requirements?.join('\n') || '',
-              }));
-              // 通常のフォームに戻る
-              setUseAIWizard(false);
-            }}
-          />
+          <div className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                💡 AIアシスタントが会話を通じて、最適なAI人材とマッチングするための要件を整理します。
+                完了後、内容を確認・編集してからプロジェクトを作成できます。
+              </p>
+            </div>
+            <AIProjectWizard
+              onComplete={(analysis, conversation) => {
+                // AIの分析結果をフォームデータに反映（既存の値は上書き）
+                setFormData({
+                  title: analysis.key_requirements && analysis.key_requirements.length > 0 
+                    ? `${analysis.business_domain}での${analysis.project_type === 'training' ? 'AI活用支援' : 'AI開発'}プロジェクト`
+                    : formData.title,
+                  description: analysis.key_requirements?.join('\n') || formData.description,
+                  budget: analysis.estimated_budget_range 
+                    ? `${(analysis.estimated_budget_range.min / 10000).toFixed(0)}万円〜${(analysis.estimated_budget_range.max / 10000).toFixed(0)}万円`
+                    : formData.budget,
+                  duration: formData.duration, // これは会話から推定が難しいので保持
+                  required_skills: formData.required_skills, // 追加スキルは保持
+                  status: formData.status,
+                  // AI要件は完全に上書き
+                  required_ai_level: analysis.required_ai_level || '',
+                  required_ai_tools: analysis.required_ai_tools || [],
+                  project_difficulty: analysis.project_difficulty || '',
+                  business_domain: analysis.business_domain || '',
+                });
+                // 通常のフォームに戻る
+                setUseAIWizard(false);
+              }}
+            />
+            <Button
+              type="button"
+              onClick={() => setUseAIWizard(false)}
+              variant="outline"
+              className="w-full"
+            >
+              通常のフォームに戻る
+            </Button>
+          </div>
         ) : (
         <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-6">
           {error && (
