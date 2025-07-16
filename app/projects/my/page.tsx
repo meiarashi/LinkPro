@@ -98,12 +98,7 @@ function MyProjectsContent() {
         .select(`
           *,
           applications (
-            *,
-            pro_profile:profiles!applications_pro_id_fkey(
-              id,
-              full_name,
-              profile_details
-            )
+            *
           )
         `)
         .eq('client_id', user.id)
@@ -117,7 +112,25 @@ function MyProjectsContent() {
         
         // すべての応募を集計
         const allApplications = projectsData.flatMap(p => p.applications || []);
-        setApplications(allApplications);
+        
+        // プロフィール情報を別途取得
+        if (allApplications.length > 0) {
+          const proIds = [...new Set(allApplications.map(app => app.pro_id))];
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, full_name, profile_details')
+            .in('id', proIds);
+          
+          // 応募にプロフィール情報を追加
+          const applicationsWithProfiles = allApplications.map(app => ({
+            ...app,
+            pro_profile: profilesData?.find(p => p.id === app.pro_id)
+          }));
+          
+          setApplications(applicationsWithProfiles);
+        } else {
+          setApplications([]);
+        }
       } else {
         console.log('No projects data returned');
       }
