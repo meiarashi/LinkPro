@@ -115,7 +115,8 @@ function MyProjectsContent() {
         
         // プロフィール情報を別途取得
         if (allApplications.length > 0) {
-          const proIds = [...new Set(allApplications.map(app => app.pro_id))];
+          const proIdsSet = new Set(allApplications.map(app => app.pro_id));
+          const proIds = Array.from(proIdsSet);
           const { data: profilesData } = await supabase
             .from('profiles')
             .select('id, full_name, profile_details')
