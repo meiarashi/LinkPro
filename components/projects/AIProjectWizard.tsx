@@ -19,6 +19,7 @@ interface ProjectAnalysis {
   estimated_budget_range?: { min: number; max: number };
   key_requirements: string[];
   success_criteria: string[];
+  project_story?: string;
 }
 
 interface AIProjectWizardProps {
