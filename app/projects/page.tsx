@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Button } from "../../components/ui/button";
 import { Slider } from "../../components/ui/slider";
 import LoggedInHeader from '../../components/LoggedInHeader';
-import { Search, Filter, Briefcase, Clock, DollarSign, ChevronRight, Users, Save, Bookmark, Trash2, History } from 'lucide-react';
+import { Search, Filter, Briefcase, Clock, DollarSign, ChevronRight, Users, Save, Bookmark, Trash2, History, Sparkles, Brain, Bot } from 'lucide-react';
+import { LoadingPage } from '../../components/ui/loading';
 
 interface Project {
   id: string;
@@ -18,6 +19,12 @@ interface Project {
   required_skills: string[] | null;
   status: string;
   created_at: string;
+  pro_requirements?: {
+    required_ai_level?: string;
+    required_ai_tools?: string[];
+    project_difficulty?: string;
+    business_domain?: string;
+  } | null;
   client?: {
     id: string;
     full_name: string | null;
@@ -26,6 +33,7 @@ interface Project {
   _count?: {
     applications: number;
   };
+  matching_score?: number;
 }
 
 export default function ProjectsPage() {
@@ -48,11 +56,32 @@ export default function ProjectsPage() {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   
+  // AI要件フィルタ用の状態
+  const [aiLevelFilter, setAiLevelFilter] = useState<string>('all');
+  const [selectedAiTools, setSelectedAiTools] = useState<string[]>([]);
+  const [businessDomainFilter, setBusinessDomainFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'created_at' | 'matching_score'>('created_at');
+  const [matchingScores, setMatchingScores] = useState<Record<string, number>>({});
+  
   const supabase = createClient();
   const router = useRouter();
 
   // 全スキルのリストを取得
   const [allSkills, setAllSkills] = useState<string[]>([]);
+  const [allAiTools, setAllAiTools] = useState<string[]>([]);
+  const [allBusinessDomains, setAllBusinessDomains] = useState<string[]>([]);
+  
+  // 一般的なAIツール
+  const POPULAR_AI_TOOLS = [
+    'ChatGPT', 'Claude', 'GitHub Copilot', 'Midjourney', 
+    'Stable Diffusion', 'Python', 'Gemini', 'Perplexity'
+  ];
+  
+  // 一般的な業務領域
+  const BUSINESS_DOMAINS = [
+    '営業支援', 'マーケティング', 'コンテンツ生成', 
+    '業務効率化', 'データ分析', 'カスタマーサポート'
+  ];
 
   useEffect(() => {
     fetchProjects();
@@ -62,7 +91,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     filterProjects();
-  }, [searchQuery, selectedSkills, budgetFilter, projects, searchMode, skillsMode, budgetRange, useBudgetSlider]);
+  }, [searchQuery, selectedSkills, budgetFilter, projects, searchMode, skillsMode, budgetRange, useBudgetSlider, aiLevelFilter, selectedAiTools, businessDomainFilter, sortBy]);
 
   // 検索履歴の保存（デバウンス）
   useEffect(() => {
@@ -96,10 +125,10 @@ export default function ProjectsPage() {
         setUserProfile(profileData);
       }
 
-      // 公開中のプロジェクトを取得
+      // 公開中のプロジェクトを取得（pro_requirementsを含む）
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select('*')
+        .select('*, pro_requirements')
         .eq('status', 'public')
         .order('created_at', { ascending: false });
 
@@ -132,17 +161,52 @@ export default function ProjectsPage() {
           })
         );
 
-        setProjects(projectsWithCounts);
-        setFilteredProjects(projectsWithCounts);
+        // プロ人材の場合、マッチングスコアも取得
+        let projectsWithScores = projectsWithCounts;
+        if (profileData?.user_type === 'pro') {
+          const { data: scores } = await supabase
+            .from('matching_scores')
+            .select('project_id, total_score')
+            .eq('ai_talent_id', user.id);
+          
+          if (scores) {
+            const scoreMap: Record<string, number> = {};
+            scores.forEach(score => {
+              scoreMap[score.project_id] = score.total_score;
+            });
+            setMatchingScores(scoreMap);
+            
+            // プロジェクトにマッチングスコアを追加
+            projectsWithScores = projectsWithCounts.map(project => ({
+              ...project,
+              matching_score: scoreMap[project.id] || 0
+            }));
+          }
+        }
+        
+        setProjects(projectsWithScores);
+        setFilteredProjects(projectsWithScores);
 
-        // スキルリストを生成
+        // スキル・ツール・領域のリストを生成
         const skills = new Set<string>();
-        projectsWithCounts.forEach((project: Project) => {
+        const aiTools = new Set<string>();
+        const domains = new Set<string>();
+        
+        projectsWithScores.forEach((project: Project) => {
           if (project.required_skills) {
             project.required_skills.forEach((skill: string) => skills.add(skill));
           }
+          if (project.pro_requirements?.required_ai_tools) {
+            project.pro_requirements.required_ai_tools.forEach((tool: string) => aiTools.add(tool));
+          }
+          if (project.pro_requirements?.business_domain) {
+            domains.add(project.pro_requirements.business_domain);
+          }
         });
+        
         setAllSkills(Array.from(skills).sort());
+        setAllAiTools([...POPULAR_AI_TOOLS, ...Array.from(aiTools)].filter((v, i, a) => a.indexOf(v) === i).sort());
+        setAllBusinessDomains([...BUSINESS_DOMAINS, ...Array.from(domains)].filter((v, i, a) => a.indexOf(v) === i));
       }
     } catch (error) {
       console.error('Error in fetchProjects:', error);
@@ -251,6 +315,35 @@ export default function ProjectsPage() {
         }
       });
     }
+    
+    // AIレベルでフィルター
+    if (aiLevelFilter !== 'all') {
+      filtered = filtered.filter((project: Project) => {
+        return project.pro_requirements?.required_ai_level === aiLevelFilter;
+      });
+    }
+    
+    // AIツールでフィルター
+    if (selectedAiTools.length > 0) {
+      filtered = filtered.filter((project: Project) => {
+        if (!project.pro_requirements?.required_ai_tools) return false;
+        return selectedAiTools.some(tool => 
+          project.pro_requirements?.required_ai_tools?.includes(tool)
+        );
+      });
+    }
+    
+    // 業務領域でフィルター
+    if (businessDomainFilter !== 'all') {
+      filtered = filtered.filter((project: Project) => {
+        return project.pro_requirements?.business_domain === businessDomainFilter;
+      });
+    }
+    
+    // ソート
+    if (sortBy === 'matching_score' && userProfile?.user_type === 'pro') {
+      filtered.sort((a, b) => (b.matching_score || 0) - (a.matching_score || 0));
+    }
 
     setFilteredProjects(filtered);
   };
@@ -295,7 +388,11 @@ export default function ProjectsPage() {
         searchMode,
         skillsMode,
         budgetRange,
-        useBudgetSlider
+        useBudgetSlider,
+        aiLevelFilter,
+        selectedAiTools,
+        businessDomainFilter,
+        sortBy
       };
 
       const { error } = await supabase
@@ -325,6 +422,10 @@ export default function ProjectsPage() {
     setSkillsMode(params.skillsMode || 'and');
     setBudgetRange(params.budgetRange || [0, 10000000]);
     setUseBudgetSlider(params.useBudgetSlider || false);
+    setAiLevelFilter(params.aiLevelFilter || 'all');
+    setSelectedAiTools(params.selectedAiTools || []);
+    setBusinessDomainFilter(params.businessDomainFilter || 'all');
+    setSortBy(params.sortBy || 'created_at');
   };
 
   const deleteSavedSearch = async (id: string) => {
@@ -342,11 +443,7 @@ export default function ProjectsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   return (
@@ -424,9 +521,14 @@ export default function ProjectsPage() {
               >
                 <Filter className="w-4 h-4" />
                 フィルター
-                {(selectedSkills.length > 0 || budgetFilter !== 'all' || useBudgetSlider) && (
+                {(selectedSkills.length > 0 || budgetFilter !== 'all' || useBudgetSlider || 
+                   aiLevelFilter !== 'all' || selectedAiTools.length > 0 || businessDomainFilter !== 'all') && (
                   <span className="ml-1 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
-                    {selectedSkills.length + (budgetFilter !== 'all' || useBudgetSlider ? 1 : 0)}
+                    {selectedSkills.length + 
+                     (budgetFilter !== 'all' || useBudgetSlider ? 1 : 0) +
+                     (aiLevelFilter !== 'all' ? 1 : 0) +
+                     selectedAiTools.length +
+                     (businessDomainFilter !== 'all' ? 1 : 0)}
                   </span>
                 )}
               </Button>
@@ -485,6 +587,21 @@ export default function ProjectsPage() {
           {/* フィルターパネル */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t">
+              {/* ソートオプション */}
+              {userProfile?.user_type === 'pro' && (
+                <div className="mb-4 flex items-center justify-end gap-2">
+                  <span className="text-sm text-gray-600">並び替え:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'created_at' | 'matching_score')}
+                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                  >
+                    <option value="created_at">新着順</option>
+                    <option value="matching_score">マッチング度順</option>
+                  </select>
+                </div>
+              )}
+              
               <div className="grid md:grid-cols-2 gap-6">
                 {/* スキルフィルター */}
                 <div>
@@ -569,6 +686,77 @@ export default function ProjectsPage() {
                   </div>
                 </div>
               </div>
+              
+              {/* AI要件フィルター */}
+              <div className="mt-6 pt-6 border-t">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-purple-500" />
+                  <h3 className="text-base font-semibold text-gray-800">AI要件フィルター</h3>
+                </div>
+                
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* AIレベル */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      AIスキルレベル
+                    </label>
+                    <select
+                      value={aiLevelFilter}
+                      onChange={(e) => setAiLevelFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="all">すべて</option>
+                      <option value="expert">エキスパート</option>
+                      <option value="developer">開発者</option>
+                      <option value="user">活用者</option>
+                      <option value="supporter">支援者</option>
+                    </select>
+                  </div>
+                  
+                  {/* AIツール */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      必要なAIツール
+                    </label>
+                    <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
+                      {allAiTools.map((tool) => (
+                        <label key={tool} className="flex items-center py-1 hover:bg-gray-50 rounded px-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedAiTools.includes(tool)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedAiTools([...selectedAiTools, tool]);
+                              } else {
+                                setSelectedAiTools(selectedAiTools.filter(t => t !== tool));
+                              }
+                            }}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">{tool}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* 業務領域 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      業務領域
+                    </label>
+                    <select
+                      value={businessDomainFilter}
+                      onChange={(e) => setBusinessDomainFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="all">すべて</option>
+                      {allBusinessDomains.map((domain) => (
+                        <option key={domain} value={domain}>{domain}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -592,12 +780,23 @@ export default function ProjectsPage() {
                 <div className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <Link 
-                        href={`/projects/${project.id}`}
-                        className="text-xl font-semibold text-gray-900 hover:text-blue-600 transition-colors"
-                      >
-                        {project.title}
-                      </Link>
+                      <div className="flex items-start justify-between">
+                        <Link 
+                          href={`/projects/${project.id}`}
+                          className="text-xl font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                        >
+                          {project.title}
+                        </Link>
+                        {/* マッチングスコア表示（プロ人材のみ） */}
+                        {userProfile?.user_type === 'pro' && project.matching_score !== undefined && project.matching_score > 0 && (
+                          <div className="ml-3 flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-100 to-blue-100 rounded-full">
+                            <Sparkles className="w-4 h-4 text-purple-600" />
+                            <span className="text-sm font-semibold text-purple-700">
+                              {Math.round(project.matching_score)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       
                       {project.description && (
                         <p className="mt-2 text-gray-600 line-clamp-2">
@@ -624,8 +823,40 @@ export default function ProjectsPage() {
                         </div>
                       </div>
 
+                      {/* AI要件の表示 */}
+                      {project.pro_requirements && (
+                        <div className="mt-3 flex flex-wrap items-center gap-3">
+                          {project.pro_requirements.required_ai_level && (
+                            <div className="flex items-center gap-1">
+                              <Brain className="w-4 h-4 text-purple-500" />
+                              <span className="text-sm font-medium text-purple-700">
+                                {project.pro_requirements.required_ai_level === 'expert' && 'エキスパート'}
+                                {project.pro_requirements.required_ai_level === 'developer' && '開発者'}
+                                {project.pro_requirements.required_ai_level === 'user' && '活用者'}
+                                {project.pro_requirements.required_ai_level === 'supporter' && '支援者'}
+                              </span>
+                            </div>
+                          )}
+                          {project.pro_requirements.required_ai_tools && project.pro_requirements.required_ai_tools.length > 0 && (
+                            <div className="flex items-center gap-2">
+                              <Bot className="w-4 h-4 text-blue-500" />
+                              <div className="flex gap-1">
+                                {project.pro_requirements.required_ai_tools.slice(0, 3).map((tool, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                                    {tool}
+                                  </span>
+                                ))}
+                                {project.pro_requirements.required_ai_tools.length > 3 && (
+                                  <span className="text-xs text-gray-500">+{project.pro_requirements.required_ai_tools.length - 3}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
                       {project.required_skills && project.required_skills.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-2 flex flex-wrap gap-2">
                           {project.required_skills.map((skill: string, index: number) => (
                             <span
                               key={index}
