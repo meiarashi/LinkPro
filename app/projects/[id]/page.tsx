@@ -558,7 +558,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                             {tool}
                           </span>
                         ))}
-                        {match.pro_profile?.profile_details?.ai_tools?.length > 3 && (
+                        {match.pro_profile?.profile_details?.ai_tools && match.pro_profile.profile_details.ai_tools.length > 3 && (
                           <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">
                             +{match.pro_profile.profile_details.ai_tools.length - 3}
                           </span>
