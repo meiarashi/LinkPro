@@ -498,38 +498,55 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
         {/* マッチングした人材（オーナーのみ） */}
         {isOwner && matchingScores.length > 0 && (
-          <div className="mt-8 bg-white p-6 rounded-lg shadow-sm">
+          <div className="mt-8 bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-lg shadow-sm border border-purple-100">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Target className="w-5 h-5 text-purple-500" />
-              おすすめのAI人材
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              このプロジェクトに適したAI人材
             </h3>
             
             <div className="space-y-4">
-              {matchingScores.map((match) => (
-                <div key={match.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+              {matchingScores.slice(0, 5).map((match, index) => (
+                <div key={match.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h4 className="font-medium text-gray-800">
                           {match.pro_profile?.full_name || 'プロフィール未設定'}
                         </h4>
-                        <span className="px-3 py-1 text-sm font-bold rounded-full bg-purple-100 text-purple-700">
-                          {match.match_percentage}% マッチ
-                        </span>
+                        {index === 0 && (
+                          <span className="px-2 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-purple-500 to-blue-500 text-white">
+                            最も適合
+                          </span>
+                        )}
                       </div>
                       
-                      {/* マッチング理由 */}
-                      {match.recommendation_reason && (
-                        <p className="text-sm text-purple-600 mb-2 flex items-start gap-1">
-                          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                          {match.recommendation_reason}
-                        </p>
-                      )}
+                      {/* シンプルな推薦理由 */}
+                      <div className="text-sm text-gray-600 mb-3 space-y-1">
+                        {match.pro_profile?.profile_details?.ai_skills?.includes('expert') && 
+                         match.pro_profile?.profile_details?.ai_experience?.years >= 3 && (
+                          <p className="flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            豊富な経験を持つエキスパートです
+                          </p>
+                        )}
+                        {match.tool_match_score >= 20 && (
+                          <p className="flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            必要なAIツールの経験があります
+                          </p>
+                        )}
+                        {match.domain_match_score >= 15 && (
+                          <p className="flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            関連する業務領域の実績があります
+                          </p>
+                        )}
+                      </div>
                       
                       {/* AIスキル情報 */}
-                      <div className="flex flex-wrap gap-2 mb-2">
+                      <div className="flex flex-wrap gap-2">
                         {match.pro_profile?.profile_details?.ai_skills?.map((skill: string, index: number) => (
-                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                          <span key={index} className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
                             {skill === 'expert' && 'エキスパート'}
                             {skill === 'developer' && '開発者'}
                             {skill === 'user' && '活用者'}
@@ -541,44 +558,45 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                             {tool}
                           </span>
                         ))}
-                      </div>
-                      
-                      {/* スコア詳細 */}
-                      <div className="grid grid-cols-5 gap-2 text-xs text-gray-600">
-                        <div>
-                          <span className="block font-medium">レベル</span>
-                          <span className="text-blue-600">{Math.round(match.level_match_score)}/30</span>
-                        </div>
-                        <div>
-                          <span className="block font-medium">ツール</span>
-                          <span className="text-blue-600">{Math.round(match.tool_match_score)}/25</span>
-                        </div>
-                        <div>
-                          <span className="block font-medium">領域</span>
-                          <span className="text-blue-600">{Math.round(match.domain_match_score)}/20</span>
-                        </div>
-                        <div>
-                          <span className="block font-medium">経験</span>
-                          <span className="text-blue-600">{Math.round(match.experience_score)}/15</span>
-                        </div>
-                        <div>
-                          <span className="block font-medium">稼働</span>
-                          <span className="text-blue-600">{Math.round(match.availability_score)}/10</span>
-                        </div>
+                        {match.pro_profile?.profile_details?.ai_tools?.length > 3 && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">
+                            +{match.pro_profile.profile_details.ai_tools.length - 3}
+                          </span>
+                        )}
                       </div>
                     </div>
                     
-                    <div className="ml-4">
+                    <div className="ml-4 flex flex-col gap-2">
                       <Link href={`/pro/${match.ai_talent_id}`}>
-                        <Button variant="outline" size="sm">
-                          プロフィール確認
+                        <Button variant="outline" size="sm" className="w-full">
+                          詳細を見る
                         </Button>
                       </Link>
+                      <Button 
+                        size="sm" 
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                        onClick={() => {
+                          // スカウト機能は後で実装
+                          alert('スカウト機能は準備中です');
+                        }}
+                      >
+                        スカウトする
+                      </Button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+            
+            {matchingScores.length > 5 && (
+              <div className="mt-4 text-center">
+                <Link href="/pro-list">
+                  <Button variant="outline" size="sm">
+                    他の候補者も見る
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </main>
