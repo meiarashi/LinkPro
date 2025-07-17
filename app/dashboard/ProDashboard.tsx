@@ -66,20 +66,109 @@ export default function ProDashboard({
   const calculateAIProfileCompleteness = () => {
     let score = 0;
     const weights = {
-      basic: 20,      // 基本情報
-      aiSkills: 20,   // AIスキルタイプ
-      aiTools: 20,    // AIツール
-      aiExperience: 20, // AI経験
-      aiAchievements: 20 // AI実績
+      basic: 15,        // 基本情報（名前、紹介文）
+      aiSkills: 15,     // AIスキルタイプ
+      aiTools: 20,      // AIツール（3つ以上で満点）
+      aiExperience: 15, // AI経験（年数と領域）
+      aiAchievements: 15, // AI実績
+      hourlyRate: 10,   // 時間単価
+      availability: 10  // 稼働可能状況
     };
     
-    if (profile.full_name) score += weights.basic;
-    if (profile.profile_details?.ai_skills && profile.profile_details.ai_skills.length > 0) score += weights.aiSkills;
-    if (profile.profile_details?.ai_tools && profile.profile_details.ai_tools.length > 0) score += weights.aiTools;
-    if (profile.profile_details?.ai_experience?.years !== undefined) score += weights.aiExperience;
-    if (profile.profile_details?.ai_achievements) score += weights.aiAchievements;
+    // 基本情報
+    if (profile.full_name && profile.profile_details?.introduction) {
+      score += weights.basic;
+    } else if (profile.full_name) {
+      score += weights.basic * 0.5;
+    }
     
-    return score;
+    // AIスキル
+    if (profile.profile_details?.ai_skills && profile.profile_details.ai_skills.length > 0) {
+      score += weights.aiSkills;
+    }
+    
+    // AIツール（3つ以上で満点、1-2個で部分点）
+    const toolCount = profile.profile_details?.ai_tools?.length || 0;
+    if (toolCount >= 3) {
+      score += weights.aiTools;
+    } else if (toolCount > 0) {
+      score += weights.aiTools * (toolCount / 3);
+    }
+    
+    // AI経験（年数と領域両方あれば満点）
+    if (profile.profile_details?.ai_experience?.years !== undefined && 
+        profile.profile_details?.ai_experience?.domains?.length > 0) {
+      score += weights.aiExperience;
+    } else if (profile.profile_details?.ai_experience?.years !== undefined) {
+      score += weights.aiExperience * 0.5;
+    }
+    
+    // AI実績
+    if (profile.profile_details?.ai_achievements && profile.profile_details.ai_achievements.length > 50) {
+      score += weights.aiAchievements;
+    } else if (profile.profile_details?.ai_achievements) {
+      score += weights.aiAchievements * 0.5;
+    }
+    
+    // 時間単価
+    if (profile.rate_info?.hourly_rate) {
+      score += weights.hourlyRate;
+    }
+    
+    // 稼働可能状況
+    if (profile.availability?.status && profile.availability.status !== 'unavailable') {
+      score += weights.availability;
+    }
+    
+    return Math.round(score);
+  };
+  
+  // 改善提案を生成
+  const getImprovementSuggestions = () => {
+    const suggestions = [];
+    
+    if (!profile.profile_details?.introduction) {
+      suggestions.push({
+        priority: 'high',
+        message: '自己紹介を追加するとクライアントの信頼度が向上します',
+        impact: '+15%'
+      });
+    }
+    
+    const toolCount = profile.profile_details?.ai_tools?.length || 0;
+    if (toolCount < 3) {
+      suggestions.push({
+        priority: 'high',
+        message: `AIツールをあと${3 - toolCount}つ追加するとマッチング率が向上します`,
+        impact: '+20%'
+      });
+    }
+    
+    if (!profile.profile_details?.ai_experience?.domains || profile.profile_details.ai_experience.domains.length === 0) {
+      suggestions.push({
+        priority: 'medium',
+        message: '活用領域を追加すると適切なプロジェクトが見つかりやすくなります',
+        impact: '+10%'
+      });
+    }
+    
+    if (!profile.profile_details?.ai_achievements || profile.profile_details.ai_achievements.length < 50) {
+      suggestions.push({
+        priority: 'medium',
+        message: 'AI活用実績を詳しく記載すると応募承認率が上がります',
+        impact: '+25%'
+      });
+    }
+    
+    if (!profile.rate_info?.hourly_rate) {
+      suggestions.push({
+        priority: 'low',
+        message: '時間単価を設定すると案件とのミスマッチを防げます',
+        impact: '+5%'
+      });
+    }
+    
+    return suggestions.slice(0, 3); // 最大3つまで表示
   };
   
   return (
@@ -170,23 +259,35 @@ export default function ProDashboard({
                 <Sparkles className="w-4 h-4 text-blue-500" />
                 AIプロフィール
               </h2>
-              <span className="text-lg font-bold text-blue-600">
+              <span className={`text-lg font-bold ${
+                calculateAIProfileCompleteness() >= 80 ? 'text-green-600' : 
+                calculateAIProfileCompleteness() >= 60 ? 'text-blue-600' : 
+                'text-orange-600'
+              }`}>
                 {calculateAIProfileCompleteness()}%
               </span>
             </div>
         
             <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
               <div 
-                className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-300"
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  calculateAIProfileCompleteness() >= 80 ? 'bg-gradient-to-r from-green-400 to-green-600' :
+                  calculateAIProfileCompleteness() >= 60 ? 'bg-gradient-to-r from-blue-400 to-blue-600' :
+                  'bg-gradient-to-r from-orange-400 to-orange-600'
+                }`}
                 style={{ width: `${calculateAIProfileCompleteness()}%` }}
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 mb-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-600">基本情報</span>
-                <span className={`text-xs ${profile.full_name ? 'text-green-600' : 'text-gray-400'}`}>
-                  {profile.full_name ? '✓' : '×'}
+                <span className={`text-xs ${
+                  profile.full_name && profile.profile_details?.introduction ? 'text-green-600' :
+                  profile.full_name ? 'text-yellow-600' : 'text-gray-400'
+                }`}>
+                  {profile.full_name && profile.profile_details?.introduction ? '✓' :
+                   profile.full_name ? '△' : '×'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -197,35 +298,114 @@ export default function ProDashboard({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-600">AIツール</span>
-                <span className={`text-xs ${profile.profile_details?.ai_tools && profile.profile_details.ai_tools.length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                  {profile.profile_details?.ai_tools && profile.profile_details.ai_tools.length > 0 ? `✓ ${profile.profile_details.ai_tools.length}` : '×'}
+                <span className={`text-xs ${
+                  (profile.profile_details?.ai_tools?.length || 0) >= 3 ? 'text-green-600' :
+                  (profile.profile_details?.ai_tools?.length || 0) > 0 ? 'text-yellow-600' : 'text-gray-400'
+                }`}>
+                  {profile.profile_details?.ai_tools && profile.profile_details.ai_tools.length > 0 ? 
+                    `${profile.profile_details.ai_tools.length >= 3 ? '✓' : '△'} ${profile.profile_details.ai_tools.length}個` : '×'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600">経験年数</span>
-                <span className={`text-xs ${profile.profile_details?.ai_experience?.years !== undefined ? 'text-green-600' : 'text-gray-400'}`}>
-                  {profile.profile_details?.ai_experience?.years !== undefined ? '✓' : '×'}
+                <span className="text-xs text-gray-600">経験・領域</span>
+                <span className={`text-xs ${
+                  profile.profile_details?.ai_experience?.years !== undefined && 
+                  profile.profile_details?.ai_experience?.domains?.length > 0 ? 'text-green-600' :
+                  profile.profile_details?.ai_experience?.years !== undefined ? 'text-yellow-600' : 'text-gray-400'
+                }`}>
+                  {profile.profile_details?.ai_experience?.years !== undefined && 
+                   profile.profile_details?.ai_experience?.domains?.length > 0 ? '✓' :
+                   profile.profile_details?.ai_experience?.years !== undefined ? '△' : '×'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-600">実績</span>
-                <span className={`text-xs ${profile.profile_details?.ai_achievements ? 'text-green-600' : 'text-gray-400'}`}>
-                  {profile.profile_details?.ai_achievements ? '✓' : '×'}
+                <span className={`text-xs ${
+                  profile.profile_details?.ai_achievements && profile.profile_details.ai_achievements.length > 50 ? 'text-green-600' :
+                  profile.profile_details?.ai_achievements ? 'text-yellow-600' : 'text-gray-400'
+                }`}>
+                  {profile.profile_details?.ai_achievements && profile.profile_details.ai_achievements.length > 50 ? '✓' :
+                   profile.profile_details?.ai_achievements ? '△' : '×'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">時間単価</span>
+                <span className={`text-xs ${profile.rate_info?.hourly_rate ? 'text-green-600' : 'text-gray-400'}`}>
+                  {profile.rate_info?.hourly_rate ? '✓' : '×'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">稼働状況</span>
+                <span className={`text-xs ${
+                  profile.availability?.status && profile.availability.status !== 'unavailable' ? 'text-green-600' : 'text-gray-400'
+                }`}>
+                  {profile.availability?.status && profile.availability.status !== 'unavailable' ? '✓' : '×'}
                 </span>
               </div>
             </div>
             
+            {/* 改善提案 */}
             {calculateAIProfileCompleteness() < 100 && (
+              <div className="space-y-2 mb-3">
+                <p className="text-xs font-semibold text-gray-700">改善提案</p>
+                {getImprovementSuggestions().map((suggestion, index) => (
+                  <div key={index} className={`p-2 rounded text-xs ${
+                    suggestion.priority === 'high' ? 'bg-orange-50 border border-orange-200' :
+                    suggestion.priority === 'medium' ? 'bg-blue-50 border border-blue-200' :
+                    'bg-gray-50 border border-gray-200'
+                  }`}>
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1">
+                        <p className={`${
+                          suggestion.priority === 'high' ? 'text-orange-700' :
+                          suggestion.priority === 'medium' ? 'text-blue-700' :
+                          'text-gray-700'
+                        }`}>
+                          {suggestion.message}
+                        </p>
+                      </div>
+                      <span className={`font-bold whitespace-nowrap ${
+                        suggestion.priority === 'high' ? 'text-orange-600' :
+                        suggestion.priority === 'medium' ? 'text-blue-600' :
+                        'text-gray-600'
+                      }`}>
+                        {suggestion.impact}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {calculateAIProfileCompleteness() === 100 ? (
+              <div className="mt-3 p-2 bg-green-50 rounded border border-green-200">
+                <p className="text-xs text-green-700 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  プロフィール完成！マッチング率最大化
+                </p>
+              </div>
+            ) : calculateAIProfileCompleteness() >= 80 ? (
               <div className="mt-3 p-2 bg-blue-50 rounded">
                 <p className="text-xs text-blue-700 flex items-start gap-1">
                   <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                  プロフィールを充実させよう！
+                  あと少しで完璧なプロフィールに！
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 p-2 bg-orange-50 rounded">
+                <p className="text-xs text-orange-700 flex items-start gap-1">
+                  <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                  プロフィールを充実させてマッチング率UP！
                 </p>
               </div>
             )}
             
             <Link href="/profile/edit">
-              <Button variant="outline" size="sm" className="mt-3 w-full text-xs">
+              <Button 
+                variant={calculateAIProfileCompleteness() < 60 ? "default" : "outline"} 
+                size="sm" 
+                className="mt-3 w-full text-xs"
+              >
                 プロフィール編集
               </Button>
             </Link>
