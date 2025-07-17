@@ -23,7 +23,6 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${notoSansJP.variable} font-sans`}>
-        <Navbar />
         {children}
       </body>
     </html>
