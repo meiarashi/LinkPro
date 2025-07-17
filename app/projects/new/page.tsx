@@ -36,16 +36,13 @@ export default function NewProjectPage() {
     description: "",
     budget: "",
     duration: "",
-    required_skills: [] as string[],
     status: "draft" as "draft" | "public" | "private",
     // AI要件
     required_ai_level: "",
     required_ai_tools: [] as string[],
     project_difficulty: "",
-    business_domain: "",
   });
   
-  const [skillInput, setSkillInput] = useState("");
 
   useEffect(() => {
     loadUserData();
@@ -99,22 +96,6 @@ export default function NewProjectPage() {
     }));
   };
 
-  const handleAddSkill = () => {
-    if (skillInput.trim() && !formData.required_skills.includes(skillInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        required_skills: [...prev.required_skills, skillInput.trim()]
-      }));
-      setSkillInput("");
-    }
-  };
-
-  const handleRemoveSkill = (skillToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      required_skills: prev.required_skills.filter(skill => skill !== skillToRemove)
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent, isDraft: boolean = true) => {
     e.preventDefault();
@@ -154,13 +135,11 @@ export default function NewProjectPage() {
           description: formData.description,
           budget: formData.budget,
           duration: formData.duration,
-          required_skills: formData.required_skills,
           status: isDraft ? "draft" : formData.status,
           pro_requirements: {
             required_ai_level: formData.required_ai_level,
             required_ai_tools: formData.required_ai_tools,
             project_difficulty: formData.project_difficulty,
-            business_domain: formData.business_domain,
           },
         })
         .select()
@@ -257,20 +236,18 @@ export default function NewProjectPage() {
                 // AIの分析結果をフォームデータに反映（既存の値は上書き）
                 setFormData({
                   title: analysis.key_requirements && analysis.key_requirements.length > 0 
-                    ? `${analysis.business_domain}での${analysis.project_type === 'training' ? 'AI活用支援' : 'AI開発'}プロジェクト`
+                    ? `${analysis.project_type === 'training' ? 'AI活用支援' : 'AI開発'}プロジェクト`
                     : formData.title,
                   description: analysis.project_story || analysis.key_requirements?.join('\n') || formData.description,
                   budget: analysis.estimated_budget_range 
                     ? `${(analysis.estimated_budget_range.min / 10000).toFixed(0)}万円〜${(analysis.estimated_budget_range.max / 10000).toFixed(0)}万円`
                     : formData.budget,
                   duration: formData.duration, // これは会話から推定が難しいので保持
-                  required_skills: formData.required_skills, // 追加スキルは保持
                   status: formData.status,
                   // AI要件は完全に上書き
                   required_ai_level: analysis.required_ai_level || '',
                   required_ai_tools: analysis.required_ai_tools || [],
                   project_difficulty: analysis.project_difficulty || '',
-                  business_domain: analysis.business_domain || '',
                 });
                 // 会話IDを保存
                 if (conversationId) {
@@ -450,79 +427,9 @@ export default function NewProjectPage() {
                 </div>
               </div>
 
-              {/* 業務領域 */}
-              <div>
-                <label htmlFor="business_domain" className="block text-sm font-medium text-gray-700 mb-1">
-                  業務領域
-                </label>
-                <input
-                  type="text"
-                  id="business_domain"
-                  name="business_domain"
-                  value={formData.business_domain}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="例: 営業支援、マーケティング、業務効率化"
-                />
-              </div>
             </div>
           </div>
 
-          {/* 求めるスキル */}
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">その他のスキル要件</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="skill" className="block text-sm font-medium text-gray-700 mb-1">
-                  必要なスキルを追加
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    id="skill"
-                    value={skillInput}
-                    onChange={(e) => setSkillInput(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddSkill();
-                      }
-                    }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="例: プロジェクトマネジメント"
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleAddSkill}
-                    variant="outline"
-                  >
-                    追加
-                  </Button>
-                </div>
-              </div>
-
-              {formData.required_skills.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {formData.required_skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSkill(skill)}
-                        className="ml-1 text-blue-500 hover:text-blue-700"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* 公開設定 */}
           <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -601,13 +508,11 @@ export default function NewProjectPage() {
                         description: formData.description,
                         budget: formData.budget,
                         duration: formData.duration,
-                        required_skills: formData.required_skills,
                         status: "public", // 直接publicを指定
                         pro_requirements: {
                           required_ai_level: formData.required_ai_level,
                           required_ai_tools: formData.required_ai_tools,
                           project_difficulty: formData.project_difficulty,
-                          business_domain: formData.business_domain,
                         },
                       })
                       .select()

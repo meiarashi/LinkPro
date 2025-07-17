@@ -33,7 +33,6 @@ interface Project {
   description: string | null;
   budget: string | null;
   duration: string | null;
-  required_skills: string[];
   status: 'draft' | 'public' | 'private' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
@@ -372,21 +371,6 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <p className="text-gray-600 whitespace-pre-wrap">{project.description}</p>
               </div>
 
-              {project.required_skills.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">求めるスキル</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {project.required_skills.map((skill: string) => (
-                      <span
-                        key={skill}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

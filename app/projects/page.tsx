@@ -16,14 +16,12 @@ interface Project {
   description: string | null;
   budget: string | null;
   duration: string | null;
-  required_skills: string[] | null;
   status: string;
   created_at: string;
   pro_requirements?: {
     required_ai_level?: string;
     required_ai_tools?: string[];
     project_difficulty?: string;
-    business_domain?: string;
   } | null;
   client?: {
     id: string;
@@ -41,13 +39,11 @@ export default function ProjectsPage() {
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [budgetFilter, setBudgetFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [searchMode, setSearchMode] = useState<'and' | 'or'>('and');
-  const [skillsMode, setSkillsMode] = useState<'and' | 'or'>('and');
   const [budgetRange, setBudgetRange] = useState<number[]>([0, 10000000]);
   const [useBudgetSlider, setUseBudgetSlider] = useState(false);
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
@@ -57,30 +53,21 @@ export default function ProjectsPage() {
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   
   // AI要件フィルタ用の状態
-  const [aiLevelFilter, setAiLevelFilter] = useState<string>('all');
+  const [selectedAiLevels, setSelectedAiLevels] = useState<string[]>([]);
   const [selectedAiTools, setSelectedAiTools] = useState<string[]>([]);
-  const [businessDomainFilter, setBusinessDomainFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'created_at' | 'matching_score'>('created_at');
   const [matchingScores, setMatchingScores] = useState<Record<string, number>>({});
   
   const supabase = createClient();
   const router = useRouter();
 
-  // 全スキルのリストを取得
-  const [allSkills, setAllSkills] = useState<string[]>([]);
+  // AIツールのリストを取得
   const [allAiTools, setAllAiTools] = useState<string[]>([]);
-  const [allBusinessDomains, setAllBusinessDomains] = useState<string[]>([]);
   
   // 一般的なAIツール
   const POPULAR_AI_TOOLS = [
     'ChatGPT', 'Claude', 'GitHub Copilot', 'Midjourney', 
     'Stable Diffusion', 'Python', 'Gemini', 'Perplexity'
-  ];
-  
-  // 一般的な業務領域
-  const BUSINESS_DOMAINS = [
-    '営業支援', 'マーケティング', 'コンテンツ生成', 
-    '業務効率化', 'データ分析', 'カスタマーサポート'
   ];
 
   useEffect(() => {
@@ -91,7 +78,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     filterProjects();
-  }, [searchQuery, selectedSkills, budgetFilter, projects, searchMode, skillsMode, budgetRange, useBudgetSlider, aiLevelFilter, selectedAiTools, businessDomainFilter, sortBy]);
+  }, [searchQuery, budgetFilter, projects, searchMode, budgetRange, useBudgetSlider, selectedAiLevels, selectedAiTools, sortBy]);
 
   // 検索履歴の保存（デバウンス）
   useEffect(() => {
@@ -187,26 +174,16 @@ export default function ProjectsPage() {
         setProjects(projectsWithScores);
         setFilteredProjects(projectsWithScores);
 
-        // スキル・ツール・領域のリストを生成
-        const skills = new Set<string>();
+        // AIツールのリストを生成
         const aiTools = new Set<string>();
-        const domains = new Set<string>();
         
         projectsWithScores.forEach((project: Project) => {
-          if (project.required_skills) {
-            project.required_skills.forEach((skill: string) => skills.add(skill));
-          }
           if (project.pro_requirements?.required_ai_tools) {
             project.pro_requirements.required_ai_tools.forEach((tool: string) => aiTools.add(tool));
           }
-          if (project.pro_requirements?.business_domain) {
-            domains.add(project.pro_requirements.business_domain);
-          }
         });
         
-        setAllSkills(Array.from(skills).sort());
         setAllAiTools([...POPULAR_AI_TOOLS, ...Array.from(aiTools)].filter((v, i, a) => a.indexOf(v) === i).sort());
-        setAllBusinessDomains([...BUSINESS_DOMAINS, ...Array.from(domains)].filter((v, i, a) => a.indexOf(v) === i));
       }
     } catch (error) {
       console.error('Error in fetchProjects:', error);
@@ -250,38 +227,13 @@ export default function ProjectsPage() {
           // AND検索: すべての検索語が含まれている必要がある
           return searchTerms.every(term =>
             project.title.toLowerCase().includes(term) ||
-            project.description?.toLowerCase().includes(term) ||
-            project.required_skills?.some((skill: string) => 
-              skill.toLowerCase().includes(term)
-            )
+            project.description?.toLowerCase().includes(term)
           );
         } else {
           // OR検索: いずれかの検索語が含まれていればOK
           return searchTerms.some(term =>
             project.title.toLowerCase().includes(term) ||
-            project.description?.toLowerCase().includes(term) ||
-            project.required_skills?.some((skill: string) => 
-              skill.toLowerCase().includes(term)
-            )
-          );
-        }
-      });
-    }
-
-    // スキルでフィルター
-    if (selectedSkills.length > 0) {
-      filtered = filtered.filter((project: Project) => {
-        if (!project.required_skills) return false;
-        
-        if (skillsMode === 'and') {
-          // AND: すべての選択スキルが必要
-          return selectedSkills.every((skill: string) =>
-            project.required_skills?.includes(skill)
-          );
-        } else {
-          // OR: いずれかの選択スキルがあればOK
-          return selectedSkills.some((skill: string) =>
-            project.required_skills?.includes(skill)
+            project.description?.toLowerCase().includes(term)
           );
         }
       });
@@ -316,10 +268,11 @@ export default function ProjectsPage() {
       });
     }
     
-    // AIレベルでフィルター
-    if (aiLevelFilter !== 'all') {
+    // AIレベルでフィルター（複数選択対応）
+    if (selectedAiLevels.length > 0) {
       filtered = filtered.filter((project: Project) => {
-        return project.pro_requirements?.required_ai_level === aiLevelFilter;
+        if (!project.pro_requirements?.required_ai_level) return false;
+        return selectedAiLevels.includes(project.pro_requirements.required_ai_level);
       });
     }
     
@@ -333,13 +286,6 @@ export default function ProjectsPage() {
       });
     }
     
-    // 業務領域でフィルター
-    if (businessDomainFilter !== 'all') {
-      filtered = filtered.filter((project: Project) => {
-        return project.pro_requirements?.business_domain === businessDomainFilter;
-      });
-    }
-    
     // ソート
     if (sortBy === 'matching_score' && userProfile?.user_type === 'pro') {
       filtered.sort((a, b) => (b.matching_score || 0) - (a.matching_score || 0));
@@ -348,13 +294,6 @@ export default function ProjectsPage() {
     setFilteredProjects(filtered);
   };
 
-  const toggleSkill = (skill: string) => {
-    setSelectedSkills(prev =>
-      prev.includes(skill)
-        ? prev.filter(s => s !== skill)
-        : [...prev, skill]
-    );
-  };
 
   const fetchSavedSearches = async () => {
     try {
@@ -383,15 +322,12 @@ export default function ProjectsPage() {
 
       const searchParams = {
         searchQuery,
-        selectedSkills,
         budgetFilter,
         searchMode,
-        skillsMode,
         budgetRange,
         useBudgetSlider,
-        aiLevelFilter,
+        selectedAiLevels,
         selectedAiTools,
-        businessDomainFilter,
         sortBy
       };
 
@@ -416,15 +352,12 @@ export default function ProjectsPage() {
   const loadSavedSearch = (savedSearch: any) => {
     const params = savedSearch.search_params;
     setSearchQuery(params.searchQuery || '');
-    setSelectedSkills(params.selectedSkills || []);
     setBudgetFilter(params.budgetFilter || 'all');
     setSearchMode(params.searchMode || 'and');
-    setSkillsMode(params.skillsMode || 'and');
     setBudgetRange(params.budgetRange || [0, 10000000]);
     setUseBudgetSlider(params.useBudgetSlider || false);
-    setAiLevelFilter(params.aiLevelFilter || 'all');
+    setSelectedAiLevels(params.selectedAiLevels || []);
     setSelectedAiTools(params.selectedAiTools || []);
-    setBusinessDomainFilter(params.businessDomainFilter || 'all');
     setSortBy(params.sortBy || 'created_at');
   };
 
@@ -521,19 +454,17 @@ export default function ProjectsPage() {
               >
                 <Filter className="w-4 h-4" />
                 フィルター
-                {(selectedSkills.length > 0 || budgetFilter !== 'all' || useBudgetSlider || 
-                   aiLevelFilter !== 'all' || selectedAiTools.length > 0 || businessDomainFilter !== 'all') && (
+                {(budgetFilter !== 'all' || useBudgetSlider || 
+                   selectedAiLevels.length > 0 || selectedAiTools.length > 0) && (
                   <span className="ml-1 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
-                    {selectedSkills.length + 
-                     (budgetFilter !== 'all' || useBudgetSlider ? 1 : 0) +
-                     (aiLevelFilter !== 'all' ? 1 : 0) +
-                     selectedAiTools.length +
-                     (businessDomainFilter !== 'all' ? 1 : 0)}
+                    {(budgetFilter !== 'all' || useBudgetSlider ? 1 : 0) +
+                     selectedAiLevels.length +
+                     selectedAiTools.length}
                   </span>
                 )}
               </Button>
               
-              {(searchQuery || selectedSkills.length > 0 || budgetFilter !== 'all' || useBudgetSlider) && (
+              {(searchQuery || budgetFilter !== 'all' || useBudgetSlider || selectedAiLevels.length > 0 || selectedAiTools.length > 0) && (
                 <Button
                   variant="outline"
                   onClick={() => setShowSaveDialog(true)}
@@ -602,43 +533,7 @@ export default function ProjectsPage() {
                 </div>
               )}
               
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* スキルフィルター */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-medium text-gray-700">必要スキル</h3>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setSkillsMode('and')}
-                        className={`px-2 py-1 text-xs rounded ${skillsMode === 'and' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                      >
-                        すべて含む
-                      </button>
-                      <button
-                        onClick={() => setSkillsMode('or')}
-                        className={`px-2 py-1 text-xs rounded ${skillsMode === 'or' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                      >
-                        いずれか含む
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {allSkills.map((skill: string) => (
-                      <button
-                        key={skill}
-                        onClick={() => toggleSkill(skill)}
-                        className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                          selectedSkills.includes(skill)
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {skill}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
+              <div className="grid md:grid-cols-1 gap-6">
                 {/* 予算フィルター */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -694,23 +589,36 @@ export default function ProjectsPage() {
                   <h3 className="text-base font-semibold text-gray-800">AI要件フィルター</h3>
                 </div>
                 
-                <div className="grid md:grid-cols-3 gap-6">
-                  {/* AIレベル */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* AIレベル（複数選択） */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       AIスキルレベル
                     </label>
-                    <select
-                      value={aiLevelFilter}
-                      onChange={(e) => setAiLevelFilter(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="all">すべて</option>
-                      <option value="expert">エキスパート</option>
-                      <option value="developer">開発者</option>
-                      <option value="user">活用者</option>
-                      <option value="supporter">支援者</option>
-                    </select>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'expert', label: 'エキスパート' },
+                        { value: 'developer', label: '開発者' },
+                        { value: 'user', label: '活用者' },
+                        { value: 'supporter', label: '支援者' }
+                      ].map((level) => (
+                        <label key={level.value} className="flex items-center hover:bg-gray-50 rounded px-2 py-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedAiLevels.includes(level.value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedAiLevels([...selectedAiLevels, level.value]);
+                              } else {
+                                setSelectedAiLevels(selectedAiLevels.filter(l => l !== level.value));
+                              }
+                            }}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">{level.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                   
                   {/* AIツール */}
@@ -737,23 +645,6 @@ export default function ProjectsPage() {
                         </label>
                       ))}
                     </div>
-                  </div>
-                  
-                  {/* 業務領域 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      業務領域
-                    </label>
-                    <select
-                      value={businessDomainFilter}
-                      onChange={(e) => setBusinessDomainFilter(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="all">すべて</option>
-                      {allBusinessDomains.map((domain) => (
-                        <option key={domain} value={domain}>{domain}</option>
-                      ))}
-                    </select>
                   </div>
                 </div>
               </div>
@@ -855,18 +746,6 @@ export default function ProjectsPage() {
                         </div>
                       )}
                       
-                      {project.required_skills && project.required_skills.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {project.required_skills.map((skill: string, index: number) => (
-                            <span
-                              key={index}
-                              className="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
 
                     <Link href={`/projects/${project.id}`}>

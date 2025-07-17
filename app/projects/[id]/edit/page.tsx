@@ -21,7 +21,6 @@ interface Project {
   description: string;
   budget: string;
   duration: string;
-  required_skills: string[];
   status: string;
 }
 
@@ -39,7 +38,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
   const [duration, setDuration] = useState("");
-  const [skills, setSkills] = useState("");
   const [status, setStatus] = useState("public");
   
   // UI状態
@@ -104,7 +102,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       setDescription(projectData.description || "");
       setBudget(projectData.budget || "");
       setDuration(projectData.duration || "");
-      setSkills(projectData.required_skills?.join(", ") || "");
       setStatus(projectData.status);
     } catch (error) {
       console.error("Error:", error);
@@ -125,7 +122,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
         description,
         budget,
         duration,
-        required_skills: skills.split(",").map(s => s.trim()).filter(s => s),
         status,
         updated_at: new Date().toISOString()
       };
@@ -271,19 +267,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
             />
           </div>
 
-          <div>
-            <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-1">
-              必要なスキル
-            </label>
-            <input
-              id="skills"
-              type="text"
-              value={skills}
-              onChange={(e) => setSkills(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="スキルをカンマ区切りで入力 (例: Python, データ分析, 機械学習)"
-            />
-          </div>
 
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
