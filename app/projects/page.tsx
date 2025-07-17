@@ -20,7 +20,6 @@ interface Project {
   created_at: string;
   pro_requirements?: {
     required_ai_level?: string;
-    required_ai_tools?: string[];
     project_difficulty?: string;
   } | null;
   client?: {
@@ -54,21 +53,12 @@ export default function ProjectsPage() {
   
   // AI要件フィルタ用の状態
   const [selectedAiLevels, setSelectedAiLevels] = useState<string[]>([]);
-  const [selectedAiTools, setSelectedAiTools] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'created_at' | 'matching_score'>('created_at');
   const [matchingScores, setMatchingScores] = useState<Record<string, number>>({});
   
   const supabase = createClient();
   const router = useRouter();
 
-  // AIツールのリストを取得
-  const [allAiTools, setAllAiTools] = useState<string[]>([]);
-  
-  // 一般的なAIツール
-  const POPULAR_AI_TOOLS = [
-    'ChatGPT', 'Claude', 'GitHub Copilot', 'Midjourney', 
-    'Stable Diffusion', 'Python', 'Gemini', 'Perplexity'
-  ];
 
   useEffect(() => {
     fetchProjects();
@@ -78,7 +68,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     filterProjects();
-  }, [searchQuery, budgetFilter, projects, searchMode, budgetRange, useBudgetSlider, selectedAiLevels, selectedAiTools, sortBy]);
+  }, [searchQuery, budgetFilter, projects, searchMode, budgetRange, useBudgetSlider, selectedAiLevels, sortBy]);
 
   // 検索履歴の保存（デバウンス）
   useEffect(() => {
@@ -174,16 +164,6 @@ export default function ProjectsPage() {
         setProjects(projectsWithScores);
         setFilteredProjects(projectsWithScores);
 
-        // AIツールのリストを生成
-        const aiTools = new Set<string>();
-        
-        projectsWithScores.forEach((project: Project) => {
-          if (project.pro_requirements?.required_ai_tools) {
-            project.pro_requirements.required_ai_tools.forEach((tool: string) => aiTools.add(tool));
-          }
-        });
-        
-        setAllAiTools([...POPULAR_AI_TOOLS, ...Array.from(aiTools)].filter((v, i, a) => a.indexOf(v) === i).sort());
       }
     } catch (error) {
       console.error('Error in fetchProjects:', error);
@@ -276,16 +256,6 @@ export default function ProjectsPage() {
       });
     }
     
-    // AIツールでフィルター
-    if (selectedAiTools.length > 0) {
-      filtered = filtered.filter((project: Project) => {
-        if (!project.pro_requirements?.required_ai_tools) return false;
-        return selectedAiTools.some(tool => 
-          project.pro_requirements?.required_ai_tools?.includes(tool)
-        );
-      });
-    }
-    
     // ソート
     if (sortBy === 'matching_score' && userProfile?.user_type === 'pro') {
       filtered.sort((a, b) => (b.matching_score || 0) - (a.matching_score || 0));
@@ -327,7 +297,6 @@ export default function ProjectsPage() {
         budgetRange,
         useBudgetSlider,
         selectedAiLevels,
-        selectedAiTools,
         sortBy
       };
 
@@ -357,7 +326,6 @@ export default function ProjectsPage() {
     setBudgetRange(params.budgetRange || [0, 10000000]);
     setUseBudgetSlider(params.useBudgetSlider || false);
     setSelectedAiLevels(params.selectedAiLevels || []);
-    setSelectedAiTools(params.selectedAiTools || []);
     setSortBy(params.sortBy || 'created_at');
   };
 
@@ -455,16 +423,15 @@ export default function ProjectsPage() {
                 <Filter className="w-4 h-4" />
                 フィルター
                 {(budgetFilter !== 'all' || useBudgetSlider || 
-                   selectedAiLevels.length > 0 || selectedAiTools.length > 0) && (
+                   selectedAiLevels.length > 0) && (
                   <span className="ml-1 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
                     {(budgetFilter !== 'all' || useBudgetSlider ? 1 : 0) +
-                     selectedAiLevels.length +
-                     selectedAiTools.length}
+                     selectedAiLevels.length}
                   </span>
                 )}
               </Button>
               
-              {(searchQuery || budgetFilter !== 'all' || useBudgetSlider || selectedAiLevels.length > 0 || selectedAiTools.length > 0) && (
+              {(searchQuery || budgetFilter !== 'all' || useBudgetSlider || selectedAiLevels.length > 0) && (
                 <Button
                   variant="outline"
                   onClick={() => setShowSaveDialog(true)}
@@ -620,32 +587,6 @@ export default function ProjectsPage() {
                       ))}
                     </div>
                   </div>
-                  
-                  {/* AIツール */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      必要なAIツール
-                    </label>
-                    <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                      {allAiTools.map((tool) => (
-                        <label key={tool} className="flex items-center py-1 hover:bg-gray-50 rounded px-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={selectedAiTools.includes(tool)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedAiTools([...selectedAiTools, tool]);
-                              } else {
-                                setSelectedAiTools(selectedAiTools.filter(t => t !== tool));
-                              }
-                            }}
-                            className="mr-2"
-                          />
-                          <span className="text-sm">{tool}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -726,21 +667,6 @@ export default function ProjectsPage() {
                                 {project.pro_requirements.required_ai_level === 'user' && '活用者'}
                                 {project.pro_requirements.required_ai_level === 'supporter' && '支援者'}
                               </span>
-                            </div>
-                          )}
-                          {project.pro_requirements.required_ai_tools && project.pro_requirements.required_ai_tools.length > 0 && (
-                            <div className="flex items-center gap-2">
-                              <Bot className="w-4 h-4 text-blue-500" />
-                              <div className="flex gap-1">
-                                {project.pro_requirements.required_ai_tools.slice(0, 3).map((tool, idx) => (
-                                  <span key={idx} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
-                                    {tool}
-                                  </span>
-                                ))}
-                                {project.pro_requirements.required_ai_tools.length > 3 && (
-                                  <span className="text-xs text-gray-500">+{project.pro_requirements.required_ai_tools.length - 3}</span>
-                                )}
-                              </div>
                             </div>
                           )}
                         </div>

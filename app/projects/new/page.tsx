@@ -39,7 +39,6 @@ export default function NewProjectPage() {
     status: "draft" as "draft" | "public" | "private",
     // AI要件
     required_ai_level: "",
-    required_ai_tools: [] as string[],
     project_difficulty: "",
   });
   
@@ -138,7 +137,6 @@ export default function NewProjectPage() {
           status: isDraft ? "draft" : formData.status,
           pro_requirements: {
             required_ai_level: formData.required_ai_level,
-            required_ai_tools: formData.required_ai_tools,
             project_difficulty: formData.project_difficulty,
           },
         })
@@ -246,7 +244,6 @@ export default function NewProjectPage() {
                   status: formData.status,
                   // AI要件は完全に上書き
                   required_ai_level: analysis.required_ai_level || '',
-                  required_ai_tools: analysis.required_ai_tools || [],
                   project_difficulty: analysis.project_difficulty || '',
                 });
                 // 会話IDを保存
@@ -394,38 +391,6 @@ export default function NewProjectPage() {
                 </select>
               </div>
 
-              {/* 必要なAIツール */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  必要なAIツール <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {['ChatGPT', 'Claude', 'GitHub Copilot', 'Midjourney', 'Stable Diffusion', 'Python'].map(tool => (
-                    <label key={tool} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        value={tool}
-                        checked={formData.required_ai_tools.includes(tool)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData(prev => ({
-                              ...prev,
-                              required_ai_tools: [...prev.required_ai_tools, tool]
-                            }));
-                          } else {
-                            setFormData(prev => ({
-                              ...prev,
-                              required_ai_tools: prev.required_ai_tools.filter(t => t !== tool)
-                            }));
-                          }
-                        }}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{tool}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
 
             </div>
           </div>
@@ -511,8 +476,7 @@ export default function NewProjectPage() {
                         status: "public", // 直接publicを指定
                         pro_requirements: {
                           required_ai_level: formData.required_ai_level,
-                          required_ai_tools: formData.required_ai_tools,
-                          project_difficulty: formData.project_difficulty,
+                                        project_difficulty: formData.project_difficulty,
                         },
                       })
                       .select()

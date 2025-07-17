@@ -1,16 +1,17 @@
 -- 20250117_cleanup_unused_fields.sql
 -- 使用されなくなったフィールドのクリーンアップ
+-- 業務領域、必要スキル、AIツール要件を削除
 
 -- 1. projectsテーブルからrequired_skillsカラムを削除
 ALTER TABLE projects 
 DROP COLUMN IF EXISTS required_skills;
 
--- 2. pro_requirementsからbusiness_domainを削除（既存データの更新）
+-- 2. pro_requirementsからbusiness_domainとrequired_ai_toolsを削除（既存データの更新）
 UPDATE projects 
-SET pro_requirements = pro_requirements - 'business_domain'
-WHERE pro_requirements ? 'business_domain';
+SET pro_requirements = pro_requirements - 'business_domain' - 'required_ai_tools'
+WHERE pro_requirements ? 'business_domain' OR pro_requirements ? 'required_ai_tools';
 
--- 3. マッチングスコア計算関数を更新（business_domain関連の計算を削除）
+-- 3. マッチングスコア計算関数を更新（business_domainとAIツール関連の計算を削除）
 CREATE OR REPLACE FUNCTION calculate_matching_scores_for_project()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -52,24 +53,8 @@ BEGIN
       ELSE 5
     END;
 
-    -- AIツール一致度（25点満点）
-    IF NEW.pro_requirements->'required_ai_tools' IS NOT NULL AND 
-       jsonb_array_length(NEW.pro_requirements->'required_ai_tools') > 0 THEN
-      WITH tool_matches AS (
-        SELECT COUNT(*) as match_count
-        FROM jsonb_array_elements_text(NEW.pro_requirements->'required_ai_tools') AS required_tool
-        WHERE required_tool = ANY(ARRAY(SELECT jsonb_array_elements_text(pro_user.profile_details->'ai_tools')))
-      )
-      SELECT 
-        CASE 
-          WHEN match_count > 0 THEN 
-            LEAST(25, (match_count::NUMERIC / jsonb_array_length(NEW.pro_requirements->'required_ai_tools')::NUMERIC) * 25)
-          ELSE 0
-        END INTO tool_score
-      FROM tool_matches;
-    ELSE
-      tool_score := 15; -- AIツール要件なしの場合
-    END IF;
+    -- AIツールマッチングは削除（クライアントはツールを指定しない）
+    tool_score := 0;
 
     -- 経験年数スコア（15点満点）
     experience_score := CASE
@@ -86,8 +71,8 @@ BEGIN
       ELSE 5
     END;
 
-    -- 合計スコア（80点満点に変更、business_domainの20点を削除）
-    total_score := level_score + tool_score + experience_score + availability_score;
+    -- 合計スコア（55点満点に変更、business_domainと20点、AIツールと25点を削除）
+    total_score := level_score + experience_score + availability_score;
 
     -- スコアを保存
     INSERT INTO matching_scores (
