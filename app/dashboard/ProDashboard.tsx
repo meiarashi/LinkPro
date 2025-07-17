@@ -119,37 +119,43 @@ export default function ProDashboard({
 
         {/* サマリーカード */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-600">応募中</p>
-                <p className="text-xl font-bold text-yellow-600">
-                  {proApplications.filter(a => a.status === 'pending').length}
-                </p>
+          <Link href="/projects?filter=applied&status=pending" className="block">
+            <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-600">応募中</p>
+                  <p className="text-xl font-bold text-yellow-600">
+                    {proApplications.filter(a => a.status === 'pending').length}
+                  </p>
+                </div>
+                <Clock className="w-6 h-6 text-gray-400" />
               </div>
-              <Clock className="w-6 h-6 text-gray-400" />
             </div>
-          </div>
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-600">承認済み</p>
-                <p className="text-xl font-bold text-green-600">
-                  {proApplications.filter(a => a.status === 'accepted').length}
-                </p>
+          </Link>
+          <Link href="/projects?filter=applied&status=accepted" className="block">
+            <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-600">承認済み</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {proApplications.filter(a => a.status === 'accepted').length}
+                  </p>
+                </div>
+                <CheckCircle className="w-6 h-6 text-gray-400" />
               </div>
-              <CheckCircle className="w-6 h-6 text-gray-400" />
             </div>
-          </div>
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-600">総応募数</p>
-                <p className="text-xl font-bold text-gray-800">{proApplications.length}</p>
+          </Link>
+          <Link href="/projects?filter=applied" className="block">
+            <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-600">総応募数</p>
+                  <p className="text-xl font-bold text-gray-800">{proApplications.length}</p>
+                </div>
+                <MessageSquare className="w-6 h-6 text-gray-400" />
               </div>
-              <MessageSquare className="w-6 h-6 text-gray-400" />
             </div>
-          </div>
+          </Link>
         </div>
       </div>
 
@@ -348,7 +354,16 @@ export default function ProDashboard({
 
           {/* 応募一覧 */}
           <div className="bg-white p-4 rounded-lg shadow-sm">
-            <h2 className="text-base font-semibold text-gray-800 mb-3">最近の応募</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-gray-800">最近の応募</h2>
+              {proApplications.length > 0 && (
+                <Link href="/projects?filter=applied">
+                  <Button variant="outline" size="sm" className="text-xs">
+                    すべて見る
+                  </Button>
+                </Link>
+              )}
+            </div>
             {projectsLoading ? (
               <div className="text-center py-4">
                 <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary mx-auto"></div>
