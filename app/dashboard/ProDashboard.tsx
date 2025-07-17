@@ -24,7 +24,12 @@ interface Profile {
     experience?: string;
     portfolio?: string;
   };
-  rate_info?: any;
+  rate_info?: {
+    hourly_rate?: string;
+  };
+  availability?: {
+    status?: string;
+  };
 }
 
 interface Application {
