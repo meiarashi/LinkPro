@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/button";
 import { createClient } from "../../utils/supabase/client";
 import LoggedInHeader from "../../components/LoggedInHeader";
 import { ArrowLeft, MessageSquare, Clock, CheckCircle, User, Loader2, Send, X, MoreVertical, Edit2, Trash2, Check } from "lucide-react";
+import { LoadingPage } from "../../components/ui/loading";
 
 interface Conversation {
   id: string;
@@ -441,11 +442,7 @@ export default function MessagesPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   return (

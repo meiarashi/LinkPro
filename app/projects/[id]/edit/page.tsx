@@ -6,6 +6,7 @@ import { Button } from "../../../../components/ui/button";
 import { createClient } from "../../../../utils/supabase/client";
 import LoggedInHeader from "../../../../components/LoggedInHeader";
 import { Loader2, ArrowLeft, Save, Trash2, AlertCircle } from "lucide-react";
+import { LoadingPage } from "../../../../components/ui/loading";
 
 interface Profile {
   id: string;
@@ -173,11 +174,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!userProfile || !project) {

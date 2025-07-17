@@ -18,6 +18,8 @@ import {
   Sparkles,
   Target
 } from "lucide-react";
+import { useToast } from "../../../components/ui/toast";
+import { LoadingPage } from "../../../components/ui/loading";
 
 interface Profile {
   id: string;
@@ -80,6 +82,7 @@ interface MatchingScore {
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const supabase = createClient();
+  const { addToast } = useToast();
   
   const [project, setProject] = useState<Project | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -228,18 +231,37 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           message: applicationMessage
         });
 
-      if (error) throw error;
-
-      setHasApplied(true);
-      setShowApplicationModal(false);
-      setApplicationMessage('');
-      alert('応募が完了しました！');
-      
-      // ページをリロードして最新状態を取得
-      fetchProjectData();
-    } catch (error) {
+      if (error) {
+        // 重複応募エラーのチェック
+        if (error.code === '23505' || error.message?.includes('duplicate')) {
+          addToast({
+            type: "warning",
+            message: "すでにこのプロジェクトに応募済みです",
+          });
+          setHasApplied(true);
+        } else {
+          throw error;
+        }
+      } else {
+        setHasApplied(true);
+        setShowApplicationModal(false);
+        setApplicationMessage('');
+        addToast({
+          type: "success",
+          message: "応募が完了しました！クライアントからの返信をお待ちください。",
+        });
+        
+        // ページをリロードして最新状態を取得
+        setTimeout(() => {
+          fetchProjectData();
+        }, 1000);
+      }
+    } catch (error: any) {
       console.error('Error submitting application:', error);
-      alert('応募に失敗しました。もう一度お試しください。');
+      addToast({
+        type: "error",
+        message: error.message || "応募に失敗しました。もう一度お試しください。",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -264,9 +286,17 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           app.id === applicationId ? { ...app, status: newStatus } : app
         )
       );
+      
+      addToast({
+        type: "success",
+        message: newStatus === 'accepted' ? "応募を承認しました" : "応募を却下しました",
+      });
     } catch (error) {
       console.error("Error updating application status:", error);
-      alert("ステータスの更新に失敗しました");
+      addToast({
+        type: "error",
+        message: "ステータスの更新に失敗しました",
+      });
     } finally {
       setApplicationStatusUpdating(null);
     }
@@ -301,11 +331,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!project) {
@@ -576,8 +602,10 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                         size="sm" 
                         className="w-full bg-purple-600 hover:bg-purple-700"
                         onClick={() => {
-                          // スカウト機能は後で実装
-                          alert('スカウト機能は準備中です');
+                          addToast({
+                            type: "warning",
+                            message: "スカウト機能は現在準備中です。応募をお待ちください。",
+                          });
                         }}
                       >
                         スカウトする

@@ -9,6 +9,8 @@ import LoggedInHeader from "../../../components/LoggedInHeader";
 import AIProfileSection from "../../../components/profile/AIProfileSection";
 import { ArrowLeft, Save, Loader2, Sparkles, AlertCircle, CheckCircle, TrendingUp } from "lucide-react";
 import { AISkillType } from "../../../types/ai-talent";
+import { useToast } from "../../../components/ui/toast";
+import { LoadingPage } from "../../../components/ui/loading";
 
 interface Profile {
   id: string;
@@ -23,6 +25,7 @@ interface Profile {
 export default function ProfileEditPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -201,25 +204,32 @@ export default function ProfileEditPage() {
 
       if (error) {
         console.error("Error updating profile:", error);
-        alert("プロフィールの更新に失敗しました");
+        addToast({
+          type: "error",
+          message: "プロフィールの更新に失敗しました",
+        });
       } else {
-        alert("プロフィールを更新しました");
-        router.push("/dashboard");
+        addToast({
+          type: "success",
+          message: "プロフィールを更新しました",
+        });
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1000);
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("エラーが発生しました");
+      addToast({
+        type: "error",
+        message: "エラーが発生しました。もう一度お試しください。",
+      });
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!profile) {

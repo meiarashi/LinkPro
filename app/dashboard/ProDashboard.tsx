@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/button";
 import { FolderOpen, MessageSquare, Clock, CheckCircle, Target, Sparkles, AlertCircle } from 'lucide-react';
 import { AISkillType } from "../../types/ai-talent";
 import { createClient } from "../../utils/supabase/client";
+import { useToast } from "../../components/ui/toast";
 
 interface Profile {
   id: string;
@@ -66,6 +67,7 @@ export default function ProDashboard({
 }: ProDashboardProps) {
   const router = useRouter();
   const supabase = createClient();
+  const { addToast } = useToast();
   
   // AIプロフィール充実度を計算
   const calculateAIProfileCompleteness = () => {
@@ -501,21 +503,40 @@ export default function ProDashboard({
                               
                               if (error) {
                                 console.error('Application error:', error);
-                                button.textContent = 'エラー';
-                                setTimeout(() => {
-                                  button.disabled = false;
+                                // 重複応募エラーのチェック
+                                if (error.code === '23505' || error.message?.includes('duplicate')) {
+                                  addToast({
+                                    type: "warning",
+                                    message: "すでにこのプロジェクトに応募済みです",
+                                  });
+                                  button.textContent = '応募済み';
+                                  button.classList.add('bg-gray-500', 'hover:bg-gray-500');
+                                } else {
+                                  addToast({
+                                    type: "error",
+                                    message: "応募に失敗しました。もう一度お試しください。",
+                                  });
                                   button.textContent = '応募する';
-                                }, 2000);
+                                  button.disabled = false;
+                                }
                               } else {
+                                addToast({
+                                  type: "success",
+                                  message: "応募が完了しました！",
+                                });
                                 button.textContent = '応募済み';
                                 button.classList.add('bg-gray-500', 'hover:bg-gray-500');
                                 // ページをリロードして状態を更新
                                 setTimeout(() => {
                                   window.location.reload();
-                                }, 1000);
+                                }, 1500);
                               }
-                            } catch (err) {
+                            } catch (err: any) {
                               console.error('Error:', err);
+                              addToast({
+                                type: "error",
+                                message: "エラーが発生しました",
+                              });
                               button.disabled = false;
                               button.textContent = '応募する';
                             }

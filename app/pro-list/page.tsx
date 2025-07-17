@@ -8,6 +8,7 @@ import { createClient } from "../../utils/supabase/client";
 import LoggedInHeader from "../../components/LoggedInHeader";
 import { User, MessageSquare, Star, Filter, Search, Loader2, Clock, Globe, CheckCircle, Briefcase, Sparkles, Bot } from "lucide-react";
 import { AI_SKILLS, AISkillType } from "../../types/ai-talent";
+import { LoadingPage } from "../../components/ui/loading";
 
 interface ProProfile {
   id: string;
@@ -342,11 +343,7 @@ export default function ProListPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   return (

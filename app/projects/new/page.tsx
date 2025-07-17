@@ -9,6 +9,8 @@ import Link from "next/link";
 import { ArrowLeft, Save, Eye, Loader2, Sparkles, Target, Brain, Users, Bot } from "lucide-react";
 import { AI_SKILLS } from "../../../types/ai-talent";
 import AIProjectWizard from "../../../components/projects/AIProjectWizard";
+import { useToast } from "../../../components/ui/toast";
+import { LoadingPage } from "../../../components/ui/loading";
 
 interface Profile {
   id: string;
@@ -19,6 +21,7 @@ interface Profile {
 export default function NewProjectPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { addToast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -115,6 +118,24 @@ export default function NewProjectPage() {
 
   const handleSubmit = async (e: React.FormEvent, isDraft: boolean = true) => {
     e.preventDefault();
+    
+    // バリデーション
+    if (!formData.title.trim()) {
+      addToast({
+        type: "error",
+        message: "タイトルを入力してください",
+      });
+      return;
+    }
+    
+    if (!formData.description.trim()) {
+      addToast({
+        type: "error",
+        message: "プロジェクトの説明を入力してください",
+      });
+      return;
+    }
+    
     setSaving(true);
     setError(null);
 
@@ -159,9 +180,20 @@ export default function NewProjectPage() {
           .eq('id', conversationId);
       }
 
-      router.push(`/projects/${data.id}`);
+      addToast({
+        type: "success",
+        message: isDraft ? "下書きを保存しました" : "プロジェクトを作成しました",
+      });
+      
+      setTimeout(() => {
+        router.push(`/projects/${data.id}`);
+      }, 1000);
     } catch (err: any) {
       console.error("Error creating project:", err);
+      addToast({
+        type: "error",
+        message: err.message || "プロジェクトの作成に失敗しました",
+      });
       setError(err.message || "プロジェクトの作成に失敗しました");
     } finally {
       setSaving(false);
@@ -169,11 +201,7 @@ export default function NewProjectPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!userProfile) {
