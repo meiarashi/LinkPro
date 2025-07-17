@@ -200,9 +200,7 @@ function checkRequirementCompleteness(messages: any[], analysis: any) {
   const missingInfo = [];
   
   // 必須項目のチェック
-  if (!analysis.business_domain) {
-    missingInfo.push('背景・業務領域');
-  }
+  // 背景はプロジェクトストーリーに含まれるからそちらで確認
   
   if (!analysis.key_requirements || analysis.key_requirements.length < 2) {
     missingInfo.push('具体的な課題・要件');

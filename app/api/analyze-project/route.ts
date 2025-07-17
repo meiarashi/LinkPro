@@ -29,30 +29,24 @@ ${JSON.stringify(currentProjectInfo, null, 2)}
    - "user": ChatGPT等の活用支援や業務効率化
    - "supporter": 導入支援や研修など
 
-2. required_ai_tools: 必要になりそうなAIツール（配列）
-   例: ["ChatGPT", "Claude", "Python", "LangChain"]
-
-3. business_domain: 業務領域
-   例: "営業支援", "マーケティング", "業務効率化", "教育・研修"
-
-4. project_difficulty: プロジェクト難易度
+2. project_difficulty: プロジェクト難易度
    - "beginner": 1-2ヶ月程度の簡易案件
    - "intermediate": 3-6ヶ月程度の標準案件
    - "advanced": 6ヶ月以上の大規模案件
 
-5. project_type: プロジェクトタイプ
+3. project_type: プロジェクトタイプ
    例: "development", "training", "consulting", "operation"
 
-6. estimated_budget_range: 予算感
+4. estimated_budget_range: 予算感
    例: { min: 500000, max: 2000000 }
 
-7. key_requirements: 重要な要件（3-5個）
+5. key_requirements: 重要な要件（3-5個）
    例: ["営業部門20名への研修", "プロンプトテンプレート作成", "月次サポート"]
 
-8. success_criteria: 成功基準
+6. success_criteria: 成功基準
    例: ["メール作成時間50%削減", "提案書品質向上"]
 
-9. project_story: プロジェクトストーリー（重要！）
+7. project_story: プロジェクトストーリー（重要！）
    以下の構成で、魅力的なプロジェクト説明文を作成してください：
    
    【背景】
@@ -85,25 +79,29 @@ JSON形式で出力してください。
     
     const analysis = JSON.parse(jsonMatch[0]);
     
-    // pro_requirements形式に変換
+    // pro_requirements形式に変換（必要な項目のみ）
     const proRequirements = {
       required_ai_level: analysis.required_ai_level,
-      required_ai_tools: analysis.required_ai_tools,
-      business_domain: analysis.business_domain,
+      project_difficulty: analysis.project_difficulty
+    };
+    
+    // 不要なフィールドを削除した分析結果
+    const cleanedAnalysis = {
+      required_ai_level: analysis.required_ai_level,
       project_difficulty: analysis.project_difficulty,
-      // 追加情報も保存
       project_type: analysis.project_type,
+      estimated_budget_range: analysis.estimated_budget_range,
       key_requirements: analysis.key_requirements,
       success_criteria: analysis.success_criteria,
-      estimated_budget: analysis.estimated_budget_range
+      project_story: analysis.project_story
     };
     
     return NextResponse.json({
       success: true,
-      analysis,
+      analysis: cleanedAnalysis,
       proRequirements,
       // 次の質問の提案
-      suggestedQuestions: generateFollowUpQuestions(analysis)
+      suggestedQuestions: generateFollowUpQuestions(cleanedAnalysis)
     });
     
   } catch (error) {
