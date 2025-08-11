@@ -6,10 +6,16 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(request: NextRequest) {
   try {
+    // APIキーの確認
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY is not configured');
+      throw new Error('API configuration error');
+    }
+    
     const { messages, currentProjectInfo } = await request.json();
     
-    // Gemini 2.0 Flash モデルを使用
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    // Gemini 2.5 Pro モデルを使用
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
     
     // プロンプトの構築
     const prompt = `
@@ -71,13 +77,23 @@ JSON形式で出力してください。
     const response = await result.response;
     const text = response.text();
     
+    console.log('Gemini response:', text); // デバッグ用ログ
+    
     // JSONを抽出（Geminiの出力からJSON部分を取り出す）
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('Failed to extract JSON from response:', text);
       throw new Error('Failed to extract JSON from response');
     }
     
-    const analysis = JSON.parse(jsonMatch[0]);
+    let analysis;
+    try {
+      analysis = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('JSON string:', jsonMatch[0]);
+      throw new Error('Failed to parse JSON response');
+    }
     
     // pro_requirements形式に変換（必要な項目のみ）
     const proRequirements = {
@@ -106,10 +122,16 @@ JSON形式で出力してください。
     
   } catch (error) {
     console.error('Project analysis error:', error);
-    return NextResponse.json(
-      { error: 'Failed to analyze project requirements' },
-      { status: 500 }
-    );
+    
+    // エラーメッセージの詳細を返す
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorDetails = {
+      error: 'Failed to analyze project requirements',
+      message: errorMessage,
+      details: error instanceof Error ? error.stack : undefined
+    };
+    
+    return NextResponse.json(errorDetails, { status: 500 });
   }
 }
 

@@ -119,7 +119,8 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
       if (!analyzeResponse.ok) {
         const errorData = await analyzeResponse.json();
         console.error('Analyze API error:', errorData);
-        throw new Error(errorData.error || 'Failed to analyze project');
+        console.error('Error details:', errorData.message, errorData.details);
+        throw new Error(errorData.message || errorData.error || 'Failed to analyze project requirements');
       }
 
       const analyzeData = await analyzeResponse.json();
@@ -161,9 +162,12 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
       }
     } catch (error) {
       console.error("Error in conversation:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setMessages([...newMessages, { 
         role: "assistant", 
-        content: "申し訳ございません。エラーが発生しました。もう一度お試しください。" 
+        content: `申し訳ございません。エラーが発生しました: ${errorMessage}
+        
+もう一度お試しいただくか、別の言葉で質問してみてください。` 
       }]);
     } finally {
       setIsLoading(false);

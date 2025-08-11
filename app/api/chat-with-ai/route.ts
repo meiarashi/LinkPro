@@ -5,9 +5,16 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(request: NextRequest) {
   try {
+    // APIキーの確認
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY is not configured');
+      throw new Error('API configuration error');
+    }
+    
     const { messages, currentAnalysis } = await request.json();
     
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    // Gemini 2.5 Pro モデルを使用
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
     
     // 対話の文脈を理解して、適切な応答を生成
     const prompt = `
