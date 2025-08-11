@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     
     const { messages, currentAnalysis } = await request.json();
     
-    // Gemini 2.5 Pro モデルを使用
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    // Gemini 2.0 Flash Experimental モデルを使用
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     
     // 対話の文脈を理解して、適切な応答を生成
     const prompt = `
