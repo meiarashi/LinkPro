@@ -7,7 +7,7 @@
 
 ### 1. Supabaseダッシュボードにログイン
 1. https://supabase.com/dashboard にアクセス
-2. LinkProプロジェクトを選択
+2. LinkProプロジェクトを選択.
 
 ### 2. SQL Editorを開く
 1. 左側のメニューから「SQL Editor」をクリック
