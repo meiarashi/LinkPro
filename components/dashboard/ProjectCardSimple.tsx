@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { MoreVertical, MessageSquare, Users, Bell, Clock, AlertCircle } from 'lucide-react';
 import { PROJECT_STATUS_CONFIG } from '../../types/project-status';
 import { Button } from '../ui/button';
+import { Avatar } from '../ui/avatar';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -117,19 +118,12 @@ export function ProjectCard({
         {/* Pro情報（実行中以降） */}
         {project.selected_pro && ['executing', 'completed'].includes(project.status) && (
           <div className="flex items-center gap-2 text-xs text-gray-600">
-            <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
-              {project.selected_pro.avatar_url ? (
-                <img 
-                  src={project.selected_pro.avatar_url} 
-                  alt={project.selected_pro.full_name}
-                  className="w-5 h-5 rounded-full"
-                />
-              ) : (
-                <span className="text-[10px]">
-                  {project.selected_pro.full_name.slice(0, 1)}
-                </span>
-              )}
-            </div>
+            <Avatar 
+              src={project.selected_pro.avatar_url}
+              alt={project.selected_pro.full_name}
+              fallbackName={project.selected_pro.full_name}
+              size="xs"
+            />
             <span className="truncate">{project.selected_pro.full_name}</span>
           </div>
         )}

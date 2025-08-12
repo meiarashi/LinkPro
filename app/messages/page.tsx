@@ -8,6 +8,7 @@ import { createClient } from "../../utils/supabase/client";
 import LoggedInHeader from "../../components/LoggedInHeader";
 import { ArrowLeft, MessageSquare, Clock, CheckCircle, User, Loader2, Send, X, MoreVertical, Edit2, Trash2, Check } from "lucide-react";
 import { LoadingPage } from "../../components/ui/loading";
+import { Avatar } from "../../components/ui/avatar";
 
 interface Conversation {
   id: string;
@@ -25,9 +26,11 @@ interface Conversation {
   };
   client_profile?: {
     full_name: string | null;
+    avatar_url?: string | null;
   };
   pro_profile?: {
     full_name: string | null;
+    avatar_url?: string | null;
   };
   last_message?: {
     content: string;
@@ -547,9 +550,12 @@ export default function MessagesPage() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="flex-shrink-0">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                              <User className="w-5 h-5 text-gray-500" />
-                            </div>
+                            <Avatar 
+                              src={otherUser?.avatar_url}
+                              alt={otherUser?.full_name || 'ユーザー'}
+                              fallbackName={otherUser?.full_name}
+                              size="md"
+                            />
                           </div>
                           
                           <div className="flex-1 min-w-0">

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../../../components/ui/toast";
 import { LoadingPage } from "../../../components/ui/loading";
+import { Avatar } from "../../../components/ui/avatar";
 
 interface Profile {
   id: string;
@@ -49,9 +50,10 @@ interface Application {
   pro_profile: {
     id: string;
     full_name: string | null;
+    avatar_url?: string | null;
     profile_details: any;
     rate_info: any;
-    availability: any;
+    availability: any | { status?: string };
   };
 }
 
@@ -72,9 +74,10 @@ interface MatchingScore {
   pro_profile?: {
     id: string;
     full_name: string | null;
+    avatar_url?: string | null;
     profile_details: any;
     rate_info: any;
-    availability: string;
+    availability: any | { status?: string };
   };
 }
 
@@ -161,7 +164,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           const proIds = Array.from(new Set(applicationsData.map(app => app.pro_id)));
           const { data: profilesData } = await supabase
             .from('profiles')
-            .select('id, full_name, profile_details, rate_info, availability')
+            .select('id, full_name, avatar_url, profile_details, rate_info, availability')
             .in('id', proIds);
           
           // プロフィール情報をマージ
@@ -178,13 +181,14 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         }
 
         // マッチングスコアも取得（プロジェクトオーナーの場合）
-        const { data: matchingData } = await supabase
+        const { data: matchingData, error: matchingError } = await supabase
           .from("matching_scores")
           .select(`
             *,
-            pro_profile:profiles!pro_id(
+            pro_profile:profiles!ai_talent_id(
               id,
               full_name,
+              avatar_url,
               profile_details,
               rate_info,
               availability
@@ -193,6 +197,10 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           .eq("project_id", params.id)
           .order("total_score", { ascending: false })
           .limit(10);
+        
+        if (matchingError) {
+          console.error("Error fetching matching scores:", matchingError);
+        }
         
         if (matchingData) {
           // すでに応募している人材のIDリスト
@@ -478,7 +486,13 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          {/* 応募者名をクリック可能に */}
+                          {/* アバターと応募者名 */}
+                          <Avatar 
+                            src={application.pro_profile.avatar_url}
+                            alt={application.pro_profile.full_name || 'プロフィール未設定'}
+                            fallbackName={application.pro_profile.full_name}
+                            size="sm"
+                          />
                           <Link href={`/pro/${application.pro_id}`} className="hover:text-blue-600">
                             <h4 className="font-medium text-gray-800 underline decoration-dotted underline-offset-2">
                               {application.pro_profile.full_name || 'プロフィール未設定'}
@@ -527,7 +541,9 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                             ))}
                             {application.pro_profile.availability && (
                               <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                                {application.pro_profile.availability}
+                                {typeof application.pro_profile.availability === 'string' 
+                                  ? application.pro_profile.availability 
+                                  : application.pro_profile.availability?.status || '確認中'}
                               </span>
                             )}
                           </div>

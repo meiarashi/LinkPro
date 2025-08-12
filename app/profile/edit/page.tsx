@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../../../components/ui/button";
 import { createClient } from "../../../utils/supabase/client";
 import Link from "next/link";
 import LoggedInHeader from "../../../components/LoggedInHeader";
 import AIProfileSection from "../../../components/profile/AIProfileSection";
-import { ArrowLeft, Save, Loader2, Sparkles, AlertCircle, CheckCircle, TrendingUp } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sparkles, AlertCircle, CheckCircle, TrendingUp, Upload, User, X } from "lucide-react";
 import { AISkillType } from "../../../types/ai-talent";
 import { useToast } from "../../../components/ui/toast";
 import { LoadingPage } from "../../../components/ui/loading";
@@ -16,6 +16,7 @@ interface Profile {
   id: string;
   user_type: string;
   full_name: string | null;
+  avatar_url?: string | null;
   profile_details?: any;
   rate_info?: any;
   contact_info?: any;
@@ -29,9 +30,13 @@ export default function ProfileEditPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // フォームの状態
   const [fullName, setFullName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [portfolio, setPortfolio] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [availability, setAvailability] = useState("full-time");
@@ -145,6 +150,7 @@ export default function ProfileEditPage() {
           
           // フォームにデータをセット
           setFullName(profileData.full_name || "");
+          setAvatarUrl(profileData.avatar_url || null);
           setIntroduction(profileData.profile_details?.introduction || "");
           setPortfolio(profileData.profile_details?.portfolio_url || "");
           setHourlyRate(profileData.rate_info?.hourly_rate || "");
@@ -170,6 +176,85 @@ export default function ProfileEditPage() {
     loadProfile();
   }, [router, supabase]);
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // ファイルサイズチェック（5MBまで）
+    if (file.size > 5 * 1024 * 1024) {
+      addToast({
+        type: "error",
+        message: "画像サイズは5MB以下にしてください",
+      });
+      return;
+    }
+
+    // ファイルタイプチェック
+    if (!file.type.startsWith('image/')) {
+      addToast({
+        type: "error",
+        message: "画像ファイルを選択してください",
+      });
+      return;
+    }
+
+    setAvatarFile(file);
+    
+    // プレビュー表示
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadAvatar = async (): Promise<string | null> => {
+    if (!avatarFile || !profile) return avatarUrl;
+    
+    setUploadingAvatar(true);
+    try {
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // 古いアバターを削除
+      if (profile.avatar_url) {
+        const oldPath = profile.avatar_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage
+            .from('avatars')
+            .remove([`avatars/${oldPath}`]);
+        }
+      }
+
+      // 新しいアバターをアップロード
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, avatarFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // 公開URLを取得
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      addToast({
+        type: "error",
+        message: "アバターのアップロードに失敗しました",
+      });
+      return null;
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -178,10 +263,20 @@ export default function ProfileEditPage() {
     setSaving(true);
     
     try {
+      // アバターをアップロード（変更があれば）
+      let finalAvatarUrl = avatarUrl;
+      if (avatarFile) {
+        const uploadedUrl = await uploadAvatar();
+        if (uploadedUrl) {
+          finalAvatarUrl = uploadedUrl;
+        }
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update({
           full_name: fullName,
+          avatar_url: finalAvatarUrl,
           profile_details: {
             // 基本情報
             introduction: introduction,
@@ -392,6 +487,71 @@ export default function ProfileEditPage() {
             <h2 className="text-lg font-semibold mb-4">基本情報</h2>
             
             <div className="space-y-4">
+              {/* アバター */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  プロフィール画像
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                      {avatarUrl ? (
+                        <img 
+                          src={avatarUrl} 
+                          alt="Avatar" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-12 h-12 text-gray-400" />
+                      )}
+                    </div>
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAvatarUrl(null);
+                          setAvatarFile(null);
+                        }}
+                        className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      className="flex items-center gap-2"
+                    >
+                      {uploadingAvatar ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          アップロード中...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          画像を選択
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-gray-500 mt-1">
+                      JPG、PNG（最大5MB）
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
                   氏名 <span className="text-red-500">*</span>
