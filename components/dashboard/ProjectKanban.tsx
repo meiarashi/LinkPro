@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Filter, LayoutGrid, List } from 'lucide-react';
+import { canTransitionTo } from '../../lib/project-status-utils';
 import { Button } from '../ui/button';
 import { ProjectCard } from './ProjectCard';
 import { PROJECT_STATUS_CONFIG, KANBAN_STATUSES, ProjectWithStatus, ProjectStatus } from '../../types/project-status';
@@ -34,9 +35,30 @@ export function ProjectKanban({
     return acc;
   }, {} as Record<ProjectStatus, ProjectWithStatus[]>);
 
-  // ステータス変更処理
+  // ステータス変更処理（ロールバック機能付き）
   const handleStatusChange = async (projectId: string, newStatus: string) => {
+    // 変更前の状態を保存
+    const originalProject = projects.find(p => p.id === projectId);
+    if (!originalProject) return;
+    
+    // クライアント側で遷移可能性をチェック
+    const canTransition = canTransitionTo(originalProject.status, newStatus as ProjectStatus);
+    if (!canTransition) {
+      addToast({
+        message: `${PROJECT_STATUS_CONFIG[originalProject.status].label}から${PROJECT_STATUS_CONFIG[newStatus as ProjectStatus].label}への変更はできません`,
+        type: "error"
+      });
+      return;
+    }
+    
     setIsUpdating(projectId);
+    
+    // 楽観的更新（即座にUIを更新）
+    setProjects(prev => prev.map(p => 
+      p.id === projectId 
+        ? { ...p, status: newStatus as ProjectStatus }
+        : p
+    ));
     
     try {
       const { error } = await supabase
@@ -46,17 +68,11 @@ export function ProjectKanban({
           ...(newStatus === 'in_progress' && { started_at: new Date().toISOString() }),
           ...(newStatus === 'completed' && { completed_at: new Date().toISOString() }),
           ...(newStatus === 'cancelled' && { cancelled_at: new Date().toISOString() }),
+          ...(newStatus === 'contracted' && { matched_at: new Date().toISOString() }),
         })
         .eq('id', projectId);
 
       if (error) throw error;
-
-      // ローカル状態を更新
-      setProjects(prev => prev.map(p => 
-        p.id === projectId 
-          ? { ...p, status: newStatus as ProjectStatus }
-          : p
-      ));
 
       addToast({
         message: "ステータスを更新しました",
@@ -67,10 +83,28 @@ export function ProjectKanban({
       if (onProjectUpdate) {
         onProjectUpdate();
       }
-    } catch (error) {
+    } catch (error: any) {
+      // エラー時はロールバック
+      setProjects(prev => prev.map(p => 
+        p.id === projectId 
+          ? originalProject
+          : p
+      ));
+      
       console.error('Error updating project status:', error);
+      
+      // エラーメッセージをユーザーフレンドリーに
+      let errorMessage = "ステータスの更新に失敗しました";
+      if (error.message?.includes('Invalid status transition')) {
+        errorMessage = "この状態変更は許可されていません";
+      } else if (error.message?.includes('Only project owner')) {
+        errorMessage = "プロジェクトオーナーのみステータスを変更できます";
+      } else if (error.message?.includes('Cannot start project without')) {
+        errorMessage = "プロ人材を選定してからプロジェクトを開始してください";
+      }
+      
       addToast({
-        message: "ステータスの更新に失敗しました",
+        message: errorMessage,
         type: "error"
       });
     } finally {
@@ -88,7 +122,11 @@ export function ProjectKanban({
     const config = PROJECT_STATUS_CONFIG[status];
     
     return (
-      <div className={`flex-1 min-w-[280px]`}>
+      <div 
+        className={`flex-1 min-w-[280px]`}
+        role="region"
+        aria-label={`${config.label}ステータスのプロジェクト`}
+      >
         {/* カラムヘッダー */}
         <div className={`
           px-3 py-2 rounded-t-lg border-b-2
@@ -96,14 +134,17 @@ export function ProjectKanban({
         `}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-lg">{config.icon}</span>
+              <span className="text-lg" aria-hidden="true">{config.icon}</span>
               <h3 className={`font-medium text-sm ${config.color}`}>
                 {config.label}
               </h3>
-              <span className={`
-                text-xs px-1.5 py-0.5 rounded-full
-                ${config.bgColor} ${config.color}
-              `}>
+              <span 
+                className={`
+                  text-xs px-1.5 py-0.5 rounded-full
+                  ${config.bgColor} ${config.color}
+                `}
+                aria-label={`${projects.length}件`}
+              >
                 {projects.length}
               </span>
             </div>
@@ -111,23 +152,27 @@ export function ProjectKanban({
         </div>
 
         {/* カード一覧 */}
-        <div className={`
-          p-2 space-y-2 min-h-[400px] rounded-b-lg
-          ${config.bgColor} bg-opacity-30
-        `}>
+        <div 
+          className={`
+            p-2 space-y-2 min-h-[400px] rounded-b-lg
+            ${config.bgColor} bg-opacity-30
+          `}
+          role="list"
+        >
           {projects.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm">
+            <div className="text-center py-8 text-gray-400 text-sm" role="status">
               プロジェクトなし
             </div>
           ) : (
             projects.map(project => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onStatusChange={handleStatusChange}
-                onMessage={handleMessage}
-                isDragging={isUpdating === project.id}
-              />
+              <div key={project.id} role="listitem">
+                <ProjectCard
+                  project={project}
+                  onStatusChange={handleStatusChange}
+                  onMessage={handleMessage}
+                  isDragging={isUpdating === project.id}
+                />
+              </div>
             ))
           )}
         </div>

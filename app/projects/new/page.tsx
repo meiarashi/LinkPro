@@ -232,11 +232,19 @@ export default function NewProjectPage() {
             <AIProjectWizard
               onComplete={(analysis, conversation, conversationId) => {
                 // AIの分析結果をフォームデータに反映（既存の値は上書き）
+                // descriptionの設定を修正
+                let description = formData.description;
+                if (analysis.project_story) {
+                  description = analysis.project_story;
+                } else if (analysis.key_requirements && Array.isArray(analysis.key_requirements) && analysis.key_requirements.length > 0) {
+                  description = analysis.key_requirements.join('\n');
+                }
+                
                 setFormData({
                   title: analysis.key_requirements && analysis.key_requirements.length > 0 
                     ? `${analysis.project_type === 'training' ? 'AI活用支援' : 'AI開発'}プロジェクト`
                     : formData.title,
-                  description: analysis.project_story || analysis.key_requirements?.join('\n') || formData.description,
+                  description: description,
                   budget: analysis.estimated_budget_range 
                     ? `${(analysis.estimated_budget_range.min / 10000).toFixed(0)}万円〜${(analysis.estimated_budget_range.max / 10000).toFixed(0)}万円`
                     : formData.budget,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { MoreVertical, MessageSquare, Users, Calendar, DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -29,6 +29,21 @@ export function ProjectCard({
   isDragging = false 
 }: ProjectCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  // キーボード操作のハンドラ
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (e.ctrlKey || e.metaKey) {
+        setIsMenuOpen(true);
+      } else {
+        window.location.href = `/projects/${project.id}`;
+      }
+    } else if (e.key === 'Escape') {
+      setIsMenuOpen(false);
+    }
+  };
 
   // ステータスに応じた表示内容を取得
   const getStatusSpecificInfo = () => {
@@ -71,9 +86,18 @@ export function ProjectCard({
             <div className="w-full">
               <div className="flex justify-between text-xs text-gray-600 mb-1">
                 <span>進捗</span>
-                <span>{project.progress_percentage}%</span>
+                <span aria-label={`進捗率${project.progress_percentage}パーセント`}>
+                  {project.progress_percentage}%
+                </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div 
+                className="w-full bg-gray-200 rounded-full h-1.5" 
+                role="progressbar" 
+                aria-valuenow={project.progress_percentage} 
+                aria-valuemin={0} 
+                aria-valuemax={100}
+                aria-label="プロジェクト進捗"
+              >
                 <div 
                   className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300"
                   style={{ width: `${project.progress_percentage}%` }}
