@@ -113,30 +113,40 @@ export default function ProjectsPage() {
 
       // 各プロジェクトの応募数とクライアント情報を取得
       if (projectsData) {
-        const projectsWithCounts = await Promise.all(
-          projectsData.map(async (project: any) => {
-            // 応募数を取得
-            const { count } = await supabase
-              .from('applications')
-              .select('*', { count: 'exact', head: true })
-              .eq('project_id', project.id);
-            
-            // クライアント情報を取得
-            const { data: clientData } = await supabase
-              .from('profiles')
-              .select('id, full_name, avatar_url')
-              .eq('id', project.client_id)
-              .single();
-            
-            return {
-              ...project,
-              client: clientData,
-              _count: {
-                applications: count || 0
-              }
-            };
-          })
-        );
+        // 一度のクエリで全プロジェクトの応募数を取得
+        const projectIds = projectsData.map((p: any) => p.id);
+        const { data: applicationCounts } = await supabase
+          .from('applications')
+          .select('project_id')
+          .in('project_id', projectIds);
+        
+        // プロジェクトごとの応募数を集計
+        const countsMap = applicationCounts?.reduce((acc: Record<string, number>, app: any) => {
+          acc[app.project_id] = (acc[app.project_id] || 0) + 1;
+          return acc;
+        }, {}) || {};
+        
+        // 一度のクエリで全クライアント情報を取得
+        const clientIds = Array.from(new Set(projectsData.map((p: any) => p.client_id)));
+        const { data: clientsData } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', clientIds);
+        
+        // クライアント情報をマップに変換
+        const clientsMap = clientsData?.reduce((acc: Record<string, any>, client: any) => {
+          acc[client.id] = client;
+          return acc;
+        }, {}) || {};
+        
+        // プロジェクトに情報を統合
+        const projectsWithCounts = projectsData.map((project: any) => ({
+          ...project,
+          client: clientsMap[project.client_id],
+          _count: {
+            applications: countsMap[project.id] || 0
+          }
+        }));
 
         // プロ人材の場合、マッチングスコアも取得
         let projectsWithScores = projectsWithCounts;

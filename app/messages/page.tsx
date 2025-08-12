@@ -191,36 +191,46 @@ export default function MessagesPage() {
           supabase.from("profiles").select("id, full_name").in("id", proIds)
         ]);
 
-        // 最新メッセージと未読数を取得
-        const conversationsWithDetails = await Promise.all(
-          conversationsData.map(async (conv) => {
-            // 最新メッセージを取得
-            const { data: lastMessageData } = await supabase
-              .from("messages")
-              .select("content, created_at, sender_id")
-              .eq("conversation_id", conv.id)
-              .order("created_at", { ascending: false })
-              .limit(1);
-            
-            const lastMessage = lastMessageData && lastMessageData.length > 0 ? lastMessageData[0] : null;
-
-            // 未読メッセージ数を取得
-            const { count: unreadCount } = await supabase
-              .from("messages")
-              .select("*", { count: "exact", head: true })
-              .eq("conversation_id", conv.id)
-              .eq("receiver_id", user.id)
-              .eq("read_status", false);
-
-            return {
-              ...conv,
-              client_profile: clientProfiles.data?.find(p => p.id === conv.client_id),
-              pro_profile: proProfiles.data?.find(p => p.id === conv.pro_id),
-              last_message: lastMessage,
-              unread_count: unreadCount || 0
-            };
-          })
-        );
+        // 一度のクエリで全会話の最新メッセージを取得
+        const conversationIds = conversationsData.map(c => c.id);
+        
+        // 各会話の最新メッセージを取得（Window関数を使用）
+        const { data: lastMessages } = await supabase
+          .from("messages")
+          .select("conversation_id, content, created_at, sender_id")
+          .in("conversation_id", conversationIds)
+          .order("created_at", { ascending: false });
+        
+        // 会話ごとの最新メッセージをマップに変換
+        const lastMessagesMap = lastMessages?.reduce((acc: Record<string, any>, msg) => {
+          if (!acc[msg.conversation_id]) {
+            acc[msg.conversation_id] = msg;
+          }
+          return acc;
+        }, {}) || {};
+        
+        // 未読メッセージ数を一度のクエリで取得
+        const { data: unreadMessages } = await supabase
+          .from("messages")
+          .select("conversation_id")
+          .in("conversation_id", conversationIds)
+          .eq("receiver_id", user.id)
+          .eq("read_status", false);
+        
+        // 会話ごとの未読数を集計
+        const unreadCountsMap = unreadMessages?.reduce((acc: Record<string, number>, msg) => {
+          acc[msg.conversation_id] = (acc[msg.conversation_id] || 0) + 1;
+          return acc;
+        }, {}) || {};
+        
+        // 会話情報を統合
+        const conversationsWithDetails = conversationsData.map(conv => ({
+          ...conv,
+          client_profile: clientProfiles.data?.find(p => p.id === conv.client_id),
+          pro_profile: proProfiles.data?.find(p => p.id === conv.pro_id),
+          last_message: lastMessagesMap[conv.id] || null,
+          unread_count: unreadCountsMap[conv.id] || 0
+        }));
 
         setConversations(conversationsWithDetails);
       }

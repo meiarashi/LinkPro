@@ -82,17 +82,25 @@ export default function DashboardPage() {
       console.error("Error fetching projects:", projectsError);
     } else if (projectsData) {
       console.log("Projects fetched:", projectsData.length, "projects");
-      // 各プロジェクトの応募数を取得
-      const projectsWithCounts = await Promise.all(
-        projectsData.map(async (project) => {
-          const { count } = await supabase
-            .from('applications')
-            .select('*', { count: 'exact', head: true })
-            .eq('project_id', project.id);
-          
-          return { ...project, applications_count: count || 0 };
-        })
-      );
+      
+      // 一度のクエリで全プロジェクトの応募数を取得
+      const projectIds = projectsData.map(p => p.id);
+      const { data: applicationCounts } = await supabase
+        .from('applications')
+        .select('project_id')
+        .in('project_id', projectIds);
+      
+      // プロジェクトごとの応募数を集計
+      const countsMap = applicationCounts?.reduce((acc, app) => {
+        acc[app.project_id] = (acc[app.project_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+      
+      // プロジェクトに応募数を追加
+      const projectsWithCounts = projectsData.map(project => ({
+        ...project,
+        applications_count: countsMap[project.id] || 0
+      }));
       
       setProjects(projectsWithCounts);
       
