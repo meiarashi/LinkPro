@@ -26,16 +26,25 @@ export const ProjectKanban = ({
   const [projects, setProjects] = useState<ProjectWithStatus[]>(initialProjects);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const supabase = createClient();
   const { addToast } = useToast();
 
   useEffect(() => {
-    setIsMounted(true);
-    return () => setIsMounted(false);
-  }, []);
-
-  useEffect(() => {
+    // IDの重複をチェック
+    const ids = new Set();
+    const duplicates = initialProjects.filter(p => {
+      if (ids.has(p.id)) {
+        console.error('Duplicate project ID found:', p.id);
+        return true;
+      }
+      ids.add(p.id);
+      return false;
+    });
+    
+    if (duplicates.length > 0) {
+      console.error('Duplicate projects:', duplicates);
+    }
+    
     setProjects(initialProjects);
   }, [initialProjects]);
 
@@ -249,13 +258,20 @@ export const ProjectKanban = ({
               `}
               role="list"
             >
-              {projects.map((project, index) => (
-                <Draggable 
-                  key={project.id} 
-                  draggableId={project.id} 
-                  index={index}
-                  isDragDisabled={isUpdating === project.id}
-                >
+              {projects.map((project, index) => {
+                // プロジェクトIDが存在することを確認
+                if (!project.id) {
+                  console.error('Project without ID:', project);
+                  return null;
+                }
+                
+                return (
+                  <Draggable 
+                    key={project.id} 
+                    draggableId={project.id} 
+                    index={index}
+                    isDragDisabled={isUpdating === project.id}
+                  >
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
@@ -275,8 +291,9 @@ export const ProjectKanban = ({
                       />
                     </div>
                   )}
-                </Draggable>
-              ))}
+                  </Draggable>
+                );
+              })}
               {projects.length === 0 && (
                 <div className="text-center py-8 text-gray-400 text-sm" role="status">
                   プロジェクトなし
@@ -308,22 +325,20 @@ export const ProjectKanban = ({
 
       {/* メインコンテンツ */}
       <div className="p-4">
-        {isMounted && (
-          <DragDropContext 
-            onDragEnd={handleDragEnd}
-            onDragStart={() => setIsDragging(true)}
-          >
-            <div className="flex gap-3 justify-center pb-4">
-              {KANBAN_STATUSES.map(status => (
-                <Column
-                  key={status}
-                  status={status}
-                  projects={projectsByStatus[status]}
-                />
-              ))}
-            </div>
-          </DragDropContext>
-        )}
+        <DragDropContext 
+          onDragEnd={handleDragEnd}
+          onDragStart={() => setIsDragging(true)}
+        >
+          <div className="flex gap-3 justify-center pb-4">
+            {KANBAN_STATUSES.map(status => (
+              <Column
+                key={status}
+                status={status}
+                projects={projectsByStatus[status]}
+              />
+            ))}
+          </div>
+        </DragDropContext>
       </div>
 
       {/* プロジェクトがない場合 */}
