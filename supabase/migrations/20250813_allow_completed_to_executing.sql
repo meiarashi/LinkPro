@@ -1,6 +1,6 @@
--- ステータス遷移検証を5段階システムに完全対応させる修正
+-- 完了から実行中への遷移を許可する修正
 
--- 既存のトリガー関数を置き換え
+-- 既存のトリガー関数を更新
 CREATE OR REPLACE FUNCTION validate_project_status_transition()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -15,7 +15,6 @@ BEGIN
         
       WHEN 'recruiting'::project_status_enum THEN
         -- 募集中からは下書き、実行中、キャンセルへ遷移可能
-        -- Pro人材の選定要件は削除（シンプルな5段階フローのため）
         IF NEW.status NOT IN ('draft'::project_status_enum, 'executing'::project_status_enum, 'cancelled'::project_status_enum) THEN
           RAISE EXCEPTION 'Invalid status transition from recruiting to %', NEW.status;
         END IF;
@@ -27,8 +26,10 @@ BEGIN
         END IF;
         
       WHEN 'completed'::project_status_enum THEN
-        -- 完了済みからは変更不可
-        RAISE EXCEPTION 'Cannot change status from completed';
+        -- 完了からは実行中に戻すことが可能（再開するケース）
+        IF NEW.status NOT IN ('executing'::project_status_enum) THEN
+          RAISE EXCEPTION 'Invalid status transition from completed to %', NEW.status;
+        END IF;
         
       WHEN 'cancelled'::project_status_enum THEN
         -- キャンセル済みからは変更不可
@@ -42,12 +43,18 @@ BEGIN
     -- ステータス変更時に関連するタイムスタンプを自動設定
     CASE NEW.status
       WHEN 'executing'::project_status_enum THEN
-        IF NEW.started_at IS NULL THEN
-          NEW.started_at = NOW();
-        END IF;
-        -- matched_atも設定（Pro人材が決定したタイミング）
-        IF NEW.matched_at IS NULL THEN
-          NEW.matched_at = NOW();
+        -- 完了から実行中に戻す場合は、タイムスタンプは更新しない（既存の値を保持）
+        IF OLD.status = 'completed'::project_status_enum THEN
+          -- 再開時の処理（必要に応じて再開日時を記録する場合はここに追加）
+          NULL;
+        ELSE
+          -- 新規に実行中になる場合
+          IF NEW.started_at IS NULL THEN
+            NEW.started_at = NOW();
+          END IF;
+          IF NEW.matched_at IS NULL THEN
+            NEW.matched_at = NOW();
+          END IF;
         END IF;
         
       WHEN 'completed'::project_status_enum THEN
@@ -83,4 +90,4 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- コメント更新
-COMMENT ON FUNCTION validate_project_status_transition() IS '5段階ステータスシステムの遷移検証（Pro人材選定要件なし）';
+COMMENT ON FUNCTION validate_project_status_transition() IS '5段階ステータスシステムの遷移検証（完了から実行中への戻りを許可）';

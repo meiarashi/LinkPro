@@ -27,7 +27,6 @@ import { ProjectCard } from './ProjectCard';
 import { PROJECT_STATUS_CONFIG, KANBAN_STATUSES, ProjectWithStatus, ProjectStatus } from '../../types/project-status';
 import { createClient } from '../../utils/supabase/client';
 import { useToast } from '../ui/toast';
-import { canTransitionTo } from '../../lib/project-status-utils';
 
 interface ProjectKanbanProps {
   projects: ProjectWithStatus[];
@@ -223,14 +222,7 @@ export const ProjectKanban = ({
 
     if (!newStatus || newStatus === activeProject.status) return;
 
-    // ステータス遷移が可能かチェック
-    if (!canTransitionTo(activeProject.status, newStatus)) {
-      addToast({
-        message: `${PROJECT_STATUS_CONFIG[activeProject.status].label}から${PROJECT_STATUS_CONFIG[newStatus].label}への変更はできません`,
-        type: "error"
-      });
-      return;
-    }
+    // ステータス遷移の制限は撤廃されたのでチェック不要
 
     // 楽観的更新
     const updatedProjects = projects.map(p => 
@@ -254,10 +246,7 @@ export const ProjectKanban = ({
 
       if (error) throw error;
 
-      addToast({
-        message: "ステータスを更新しました",
-        type: "success"
-      });
+      // 成功トーストは表示しない（邪魔になるため）
 
       if (onProjectUpdate) {
         onProjectUpdate();
@@ -287,13 +276,7 @@ export const ProjectKanban = ({
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
     
-    if (!canTransitionTo(project.status, newStatus as ProjectStatus)) {
-      addToast({
-        message: `${PROJECT_STATUS_CONFIG[project.status].label}から${PROJECT_STATUS_CONFIG[newStatus as ProjectStatus].label}への変更はできません`,
-        type: "error"
-      });
-      return;
-    }
+    // ステータス遷移の制限は撤廃されたのでチェック不要
     
     setIsUpdating(projectId);
     
@@ -317,10 +300,7 @@ export const ProjectKanban = ({
 
       if (error) throw error;
 
-      addToast({
-        message: "ステータスを更新しました",
-        type: "success"
-      });
+      // 成功トーストは表示しない（邪魔になるため）
 
       if (onProjectUpdate) {
         onProjectUpdate();

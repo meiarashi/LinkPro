@@ -100,13 +100,7 @@ export const canTransitionTo = (
   currentStatus: ProjectStatus,
   newStatus: ProjectStatus
 ): boolean => {
-  const transitions: Record<ProjectStatus, ProjectStatus[]> = {
-    draft: ['recruiting', 'cancelled'],
-    recruiting: ['draft', 'executing', 'cancelled'],  // 下書きに戻せる
-    executing: ['completed', 'cancelled'],  // 実行中からは完了かキャンセルのみ
-    completed: [], // 完了後は変更不可
-    cancelled: [] // キャンセル後も変更不可
-  };
-  
-  return transitions[currentStatus]?.includes(newStatus) ?? false;
+  // すべてのステータス間の遷移を許可（自由に変更可能）
+  // ユーザーが間違えても修正できるようにする
+  return true;
 };
