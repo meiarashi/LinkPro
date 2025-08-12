@@ -589,28 +589,40 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                           </>
                         )}
                         
-                        {/* ステータス変更可能（承認済み・却下済みから変更） */}
+                        {/* 承認済みの場合はメッセージボタンを表示 */}
                         {application.status === 'accepted' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full text-yellow-600 hover:bg-yellow-50"
-                            onClick={() => handleApplicationStatusUpdate(application.id, 'pending')}
-                            disabled={applicationStatusUpdating === application.id}
-                          >
-                            保留に戻す
-                          </Button>
+                          <Link href={`/messages?project=${project.id}`}>
+                            <Button
+                              size="sm"
+                              className="w-full"
+                            >
+                              メッセージを送る
+                            </Button>
+                          </Link>
                         )}
+                        
+                        {/* ステータス変更可能（却下済みからのみ変更可能） */}
                         {application.status === 'rejected' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full text-green-600 hover:bg-green-50"
-                            onClick={() => handleApplicationStatusUpdate(application.id, 'accepted')}
-                            disabled={applicationStatusUpdating === application.id}
-                          >
-                            承認に変更
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full text-green-600 hover:bg-green-50"
+                              onClick={() => handleApplicationStatusUpdate(application.id, 'accepted')}
+                              disabled={applicationStatusUpdating === application.id}
+                            >
+                              承認に変更
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full text-yellow-600 hover:bg-yellow-50"
+                              onClick={() => handleApplicationStatusUpdate(application.id, 'pending')}
+                              disabled={applicationStatusUpdating === application.id}
+                            >
+                              未対応に戻す
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>

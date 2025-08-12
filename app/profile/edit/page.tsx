@@ -213,17 +213,31 @@ export default function ProfileEditPage() {
     
     setUploadingAvatar(true);
     try {
-      const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      // ファイル拡張子を安全に取得・検証
+      const fileExt = avatarFile.name.split('.').pop()?.toLowerCase();
+      const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      
+      if (!fileExt || !allowedExtensions.includes(fileExt)) {
+        throw new Error('許可されていないファイル形式です');
+      }
+      
+      // 安全なファイル名を生成（UUIDベース）
+      const fileName = `${profile.id}/${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
 
-      // 古いアバターを削除
+      // 古いアバターを安全に削除
       if (profile.avatar_url) {
-        const oldPath = profile.avatar_url.split('/').pop();
-        if (oldPath) {
-          await supabase.storage
-            .from('avatars')
-            .remove([`avatars/${oldPath}`]);
+        // Supabase Storage URLから安全にファイルパスを抽出
+        // URLパターン: https://xxx.supabase.co/storage/v1/object/public/avatars/[user_id]/[timestamp].[ext]
+        const urlParts = profile.avatar_url.split('/storage/v1/object/public/avatars/');
+        if (urlParts.length === 2) {
+          const oldFilePath = urlParts[1];
+          // ユーザーIDで始まるパスのみ削除を許可
+          if (oldFilePath.startsWith(profile.id)) {
+            await supabase.storage
+              .from('avatars')
+              .remove([oldFilePath]);
+          }
         }
       }
 
