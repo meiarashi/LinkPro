@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DropResult, resetServerContext } from 'react-beautiful-dnd';
 import { Plus, Filter, LayoutGrid, List } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ProjectCard } from './ProjectCard';
@@ -16,16 +16,27 @@ interface ProjectKanbanProps {
   viewMode?: 'kanban' | 'list';
 }
 
-export function ProjectKanban({ 
+// StrictMode対応のためresetServerContextを呼び出し
+if (typeof window === 'undefined') {
+  resetServerContext();
+}
+
+export const ProjectKanban = ({ 
   projects: initialProjects, 
   onProjectUpdate,
   viewMode = 'kanban' 
-}: ProjectKanbanProps) {
+}: ProjectKanbanProps) => {
   const [projects, setProjects] = useState<ProjectWithStatus[]>(initialProjects);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const supabase = createClient();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   useEffect(() => {
     setProjects(initialProjects);
@@ -228,7 +239,7 @@ export function ProjectKanban({
         </div>
 
         {/* カード一覧（ドロップ可能エリア） */}
-        <Droppable droppableId={status}>
+        <Droppable droppableId={status} type="CARD">
           {(provided, snapshot) => (
             <div 
               ref={provided.innerRef}
@@ -300,20 +311,31 @@ export function ProjectKanban({
 
       {/* メインコンテンツ */}
       <div className="p-4">
-        <DragDropContext 
-          onDragEnd={handleDragEnd}
-          onDragStart={() => setIsDragging(true)}
-        >
+        {isMounted ? (
+          <DragDropContext 
+            onDragEnd={handleDragEnd}
+            onDragStart={() => setIsDragging(true)}
+          >
+            <div className="flex gap-3 justify-center pb-4">
+              {KANBAN_STATUSES.map(status => (
+                <Column
+                  key={status}
+                  status={status}
+                  projects={projectsByStatus[status]}
+                />
+              ))}
+            </div>
+          </DragDropContext>
+        ) : (
           <div className="flex gap-3 justify-center pb-4">
             {KANBAN_STATUSES.map(status => (
-              <Column
-                key={status}
-                status={status}
-                projects={projectsByStatus[status]}
-              />
+              <div key={status} className="flex-1 min-w-[240px] max-w-[320px]">
+                <div className="h-10 bg-gray-200 rounded-t-lg mb-2 animate-pulse"></div>
+                <div className="h-96 bg-gray-100 rounded-b-lg animate-pulse"></div>
+              </div>
             ))}
           </div>
-        </DragDropContext>
+        )}
       </div>
 
       {/* プロジェクトがない場合 */}
@@ -350,4 +372,4 @@ export function ProjectKanban({
       )}
     </div>
   );
-}
+};

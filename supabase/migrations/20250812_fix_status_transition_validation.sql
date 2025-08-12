@@ -59,6 +59,10 @@ BEGIN
         IF NEW.cancelled_at IS NULL THEN
           NEW.cancelled_at = NOW();
         END IF;
+      
+      ELSE
+        -- その他のステータスでは何もしない
+        NULL;
     END CASE;
   END IF;
   

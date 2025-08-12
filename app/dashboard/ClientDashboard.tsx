@@ -6,7 +6,7 @@ import { Button } from "../../components/ui/button";
 import { Plus, FolderOpen, Users, MessageSquare, AlertCircle, Check, X, Sparkles } from 'lucide-react';
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { ProjectKanban } from "../../components/dashboard/ProjectKanbanDnd";
+import { ProjectKanbanWrapper } from "../../components/dashboard/ProjectKanbanWrapper";
 import { ProjectWithStatus } from "../../types/project-status";
 
 // ProjectWithStatus型を使用するため、Projectインターフェースは削除
@@ -195,7 +195,7 @@ export default function ClientDashboard({
 
       {/* カンバンビュー */}
       <div className="mt-6">
-        <ProjectKanban 
+        <ProjectKanbanWrapper 
           projects={projects}
           onProjectUpdate={onApplicationUpdate}
         />
