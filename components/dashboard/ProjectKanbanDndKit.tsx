@@ -23,7 +23,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Plus } from 'lucide-react';
 import { Button } from '../ui/button';
-import { ProjectCard } from './ProjectCard';
+import { ProjectCard } from './ProjectCardSimple';
 import { PROJECT_STATUS_CONFIG, KANBAN_STATUSES, ProjectWithStatus, ProjectStatus } from '../../types/project-status';
 import { createClient } from '../../utils/supabase/client';
 import { useToast } from '../ui/toast';
@@ -32,14 +32,17 @@ interface ProjectKanbanProps {
   projects: ProjectWithStatus[];
   onProjectUpdate?: () => void;
   viewMode?: 'kanban' | 'list';
+  projectNotifications?: Record<string, { unreadCount: number; newApplications: number }>;
 }
 
 // ドラッグ可能なカードコンポーネント
-function SortableProjectCard({ project, onStatusChange, onMessage, isDisabled }: {
+function SortableProjectCard({ project, onStatusChange, onMessage, isDisabled, unreadCount, newApplications }: {
   project: ProjectWithStatus;
   onStatusChange: (projectId: string, newStatus: string) => Promise<void>;
   onMessage: (projectId: string) => void;
   isDisabled: boolean;
+  unreadCount: number;
+  newApplications: number;
 }) {
   const {
     attributes,
@@ -66,18 +69,21 @@ function SortableProjectCard({ project, onStatusChange, onMessage, isDisabled }:
         onStatusChange={onStatusChange}
         onMessage={onMessage}
         isDragging={isDragging}
+        unreadCount={unreadCount}
+        newApplications={newApplications}
       />
     </div>
   );
 }
 
 // ドロップ可能なカラムコンポーネント
-function DroppableColumn({ status, projects, onStatusChange, onMessage, isUpdating }: {
+function DroppableColumn({ status, projects, onStatusChange, onMessage, isUpdating, projectNotifications }: {
   status: ProjectStatus;
   projects: ProjectWithStatus[];
   onStatusChange: (projectId: string, newStatus: string) => Promise<void>;
   onMessage: (projectId: string) => void;
   isUpdating: string | null;
+  projectNotifications: Record<string, { unreadCount: number; newApplications: number }>;
 }) {
   const config = PROJECT_STATUS_CONFIG[status];
   const {
@@ -137,6 +143,8 @@ function DroppableColumn({ status, projects, onStatusChange, onMessage, isUpdati
               onStatusChange={onStatusChange}
               onMessage={onMessage}
               isDisabled={isUpdating === project.id}
+              unreadCount={projectNotifications[project.id]?.unreadCount || 0}
+              newApplications={projectNotifications[project.id]?.newApplications || 0}
             />
           ))}
         </SortableContext>
@@ -164,7 +172,8 @@ const dropAnimation: DropAnimation = {
 export const ProjectKanban = ({ 
   projects: initialProjects, 
   onProjectUpdate,
-  viewMode = 'kanban' 
+  viewMode = 'kanban',
+  projectNotifications = {}
 }: ProjectKanbanProps) => {
   const [projects, setProjects] = useState<ProjectWithStatus[]>(initialProjects);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
@@ -372,6 +381,7 @@ export const ProjectKanban = ({
                   onStatusChange={handleStatusChange}
                   onMessage={handleMessage}
                   isUpdating={isUpdating}
+                  projectNotifications={projectNotifications}
                 />
               ))}
             </SortableContext>
@@ -385,6 +395,8 @@ export const ProjectKanban = ({
                   onStatusChange={handleStatusChange}
                   onMessage={handleMessage}
                   isDragging={true}
+                  unreadCount={projectNotifications[activeProject.id]?.unreadCount || 0}
+                  newApplications={projectNotifications[activeProject.id]?.newApplications || 0}
                 />
               </div>
             ) : null}
