@@ -15,7 +15,8 @@
       "mcp__supabase__query",
       "Bash(npm run build:*)",
       "Bash(npm install:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": []
   }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useId } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult, resetServerContext } from 'react-beautiful-dnd';
+import { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Plus, Filter, LayoutGrid, List } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ProjectCard } from './ProjectCard';
@@ -16,8 +16,7 @@ interface ProjectKanbanProps {
   viewMode?: 'kanban' | 'list';
 }
 
-// StrictMode対応のためresetServerContextを呼び出し
-resetServerContext();
+// @hello-pangea/dndはReact 18とStrictModeに対応済み
 
 export const ProjectKanban = ({ 
   projects: initialProjects, 
@@ -28,7 +27,6 @@ export const ProjectKanban = ({
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const uniqueId = useId();
   const supabase = createClient();
   const { addToast } = useToast();
 
