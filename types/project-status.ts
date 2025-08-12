@@ -2,10 +2,8 @@
 
 export type ProjectStatus = 
   | 'draft'        // 下書き
-  | 'recruiting'   // 募集中（旧: published + reviewing）
-  | 'contracted'   // 契約済み（開始前）
-  | 'in_progress'  // 進行中
-  | 'in_review'    // 完了確認中
+  | 'recruiting'   // 募集中
+  | 'executing'    // 実行中
   | 'completed'    // 完了
   | 'cancelled';   // キャンセル
 
@@ -32,26 +30,12 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, ProjectStatusConfig> =
     bgColor: 'bg-blue-50',
     borderColor: 'border-blue-200'
   },
-  contracted: {
-    label: '契約済',
-    icon: '🤝',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200'
-  },
-  in_progress: {
-    label: '進行中',
+  executing: {
+    label: '実行中',
     icon: '🚀',
     color: 'text-indigo-600',
     bgColor: 'bg-indigo-50',
     borderColor: 'border-indigo-200'
-  },
-  in_review: {
-    label: '確認中',
-    icon: '👀',
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200'
   },
   completed: {
     label: '完了',
@@ -73,9 +57,7 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, ProjectStatusConfig> =
 export const KANBAN_STATUSES: ProjectStatus[] = [
   'draft',
   'recruiting',
-  'contracted',
-  'in_progress',
-  'in_review',
+  'executing',
   'completed',
   'cancelled'
 ];
@@ -120,10 +102,8 @@ export const canTransitionTo = (
 ): boolean => {
   const transitions: Record<ProjectStatus, ProjectStatus[]> = {
     draft: ['recruiting', 'cancelled'],
-    recruiting: ['draft', 'contracted', 'cancelled'],  // 下書きに戻せる
-    contracted: ['in_progress', 'cancelled'],  // 契約後は下書きに戻せない
-    in_progress: ['in_review', 'cancelled'],
-    in_review: ['completed', 'in_progress', 'cancelled'],
+    recruiting: ['draft', 'executing', 'cancelled'],  // 下書きに戻せる
+    executing: ['completed', 'cancelled'],  // 実行中からは完了かキャンセルのみ
     completed: [], // 完了後は変更不可
     cancelled: [] // キャンセル後も変更不可
   };

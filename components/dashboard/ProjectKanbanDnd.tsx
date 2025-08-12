@@ -84,10 +84,9 @@ export function ProjectKanban({
         .from('projects')
         .update({ 
           status: destinationStatus,
-          ...(destinationStatus === 'in_progress' && { started_at: new Date().toISOString() }),
+          ...(destinationStatus === 'executing' && { started_at: new Date().toISOString(), matched_at: new Date().toISOString() }),
           ...(destinationStatus === 'completed' && { completed_at: new Date().toISOString() }),
           ...(destinationStatus === 'cancelled' && { cancelled_at: new Date().toISOString() }),
-          ...(destinationStatus === 'contracted' && { matched_at: new Date().toISOString() }),
         })
         .eq('id', projectId);
 
@@ -150,10 +149,9 @@ export function ProjectKanban({
         .from('projects')
         .update({ 
           status: newStatus,
-          ...(newStatus === 'in_progress' && { started_at: new Date().toISOString() }),
+          ...(newStatus === 'executing' && { started_at: new Date().toISOString(), matched_at: new Date().toISOString() }),
           ...(newStatus === 'completed' && { completed_at: new Date().toISOString() }),
           ...(newStatus === 'cancelled' && { cancelled_at: new Date().toISOString() }),
-          ...(newStatus === 'contracted' && { matched_at: new Date().toISOString() }),
         })
         .eq('id', projectId);
 
@@ -195,7 +193,7 @@ export function ProjectKanban({
     const config = PROJECT_STATUS_CONFIG[status];
     
     return (
-      <div className={`flex-1 min-w-[280px]`}>
+      <div className={`flex-1 min-w-[240px] max-w-[320px]`}>
         {/* カラムヘッダー */}
         <div className={`
           px-3 py-2 rounded-t-lg border-b-2
@@ -297,7 +295,7 @@ export function ProjectKanban({
           onDragEnd={handleDragEnd}
           onDragStart={() => setIsDragging(true)}
         >
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="flex gap-3 justify-center pb-4">
             {KANBAN_STATUSES.map(status => (
               <Column
                 key={status}

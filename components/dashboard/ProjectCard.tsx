@@ -62,22 +62,12 @@ export function ProjectCard({
           </>
         );
 
-      case 'contracted':
-        return project.matched_at ? (
-          <div className="text-xs text-purple-600">
-            <Calendar className="w-3 h-3 inline mr-1" />
-            {formatDistanceToNow(new Date(project.matched_at), { 
-              addSuffix: true, 
-              locale: ja 
-            })}に契約
-          </div>
-        ) : null;
 
-      case 'in_progress':
+      case 'executing':
         return (
           <div className="text-xs text-indigo-600">
             <Clock className="w-3 h-3 inline mr-1" />
-            進行中
+            実行中
             {project.started_at && (
               <span className="ml-2 text-gray-500">
                 {formatDistanceToNow(new Date(project.started_at), { 
@@ -125,8 +115,8 @@ export function ProjectCard({
       );
     }
     
-    // 進行中：進捗確認が最重要
-    if (['in_progress', 'in_review'].includes(project.status)) {
+    // 実行中：進捗確認が最重要
+    if (project.status === 'executing') {
       return (
         <Link href={`/projects/${project.id}`}>
           <Button 
@@ -160,7 +150,7 @@ export function ProjectCard({
   return (
     <div 
       className={`
-        bg-white p-3 rounded-lg border transition-all
+        bg-white p-2.5 rounded-lg border transition-all
         ${isDragging 
           ? 'shadow-lg opacity-90 rotate-2 scale-105' 
           : 'shadow-sm hover:shadow-md'
@@ -181,7 +171,7 @@ export function ProjectCard({
             </span>
           </div>
           <Link href={`/projects/${project.id}`}>
-            <h4 className="font-medium text-sm line-clamp-2 hover:text-blue-600 transition-colors">
+            <h4 className="font-medium text-sm line-clamp-1 hover:text-blue-600 transition-colors">
               {project.title}
             </h4>
           </Link>
@@ -235,8 +225,8 @@ export function ProjectCard({
         </DropdownMenu>
       </div>
 
-      {/* Pro情報（契約済み以降） */}
-      {project.selected_pro && ['contracted', 'in_progress', 'in_review', 'completed'].includes(project.status) && (
+      {/* Pro情報（実行中以降） */}
+      {project.selected_pro && ['executing', 'completed'].includes(project.status) && (
         <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
           <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
             {project.selected_pro.avatar_url ? (
@@ -279,7 +269,7 @@ export function ProjectCard({
       </div>
 
       {/* クイックアクション */}
-      <div className="mt-2 pt-2 border-t">
+      <div className="mt-1.5 pt-1.5 border-t">
         {getQuickActions()}
       </div>
     </div>

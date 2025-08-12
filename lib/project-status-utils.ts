@@ -12,10 +12,8 @@ export function canTransitionTo(from: ProjectStatus, to: ProjectStatus): boolean
   
   const transitions: Record<ProjectStatus, ProjectStatus[]> = {
     'draft': ['recruiting', 'cancelled'],
-    'recruiting': ['draft', 'contracted', 'cancelled'],  // 下書きに戻せる
-    'contracted': ['in_progress', 'cancelled'],  // 契約後は下書きに戻せない
-    'in_progress': ['in_review', 'cancelled'],
-    'in_review': ['completed', 'in_progress', 'cancelled'],
+    'recruiting': ['draft', 'executing', 'cancelled'],  // 下書きに戻せる
+    'executing': ['completed', 'cancelled'],  // 実行中からは完了かキャンセルのみ
     'completed': [], // 完了からは変更不可
     'cancelled': [], // キャンセルからは変更不可
   };
@@ -31,10 +29,8 @@ export function canTransitionTo(from: ProjectStatus, to: ProjectStatus): boolean
 export function getNextPossibleStatuses(currentStatus: ProjectStatus): ProjectStatus[] {
   const transitions: Record<ProjectStatus, ProjectStatus[]> = {
     'draft': ['recruiting', 'cancelled'],
-    'recruiting': ['draft', 'contracted', 'cancelled'],  // 下書きに戻せる
-    'contracted': ['in_progress', 'cancelled'],  // 契約後は下書きに戻せない
-    'in_progress': ['in_review', 'cancelled'],
-    'in_review': ['completed', 'in_progress', 'cancelled'],
+    'recruiting': ['draft', 'executing', 'cancelled'],  // 下書きに戻せる
+    'executing': ['completed', 'cancelled'],  // 実行中からは完了かキャンセルのみ
     'completed': [],
     'cancelled': [],
   };
@@ -61,8 +57,8 @@ export function validateStatusChange(
   }
   
   // 特定の条件チェック
-  if (newStatus === 'in_progress' && !project.selected_pro_id) {
-    return 'プロジェクトを開始するには、まずプロ人材を選定してください';
+  if (newStatus === 'executing' && !project.selected_pro_id) {
+    return 'プロジェクトを実行するには、まずプロ人材を選定してください';
   }
   
   return null;
@@ -84,5 +80,5 @@ export function isFinalStatus(status: ProjectStatus): boolean {
  * @returns アクティブな場合true
  */
 export function isActiveStatus(status: ProjectStatus): boolean {
-  return ['recruiting', 'contracted', 'in_progress', 'in_review'].includes(status);
+  return ['recruiting', 'executing'].includes(status);
 }
