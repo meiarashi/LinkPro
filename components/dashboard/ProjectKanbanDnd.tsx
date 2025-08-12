@@ -248,7 +248,7 @@ export const ProjectKanban = ({
         </div>
 
         {/* カード一覧（ドロップ可能エリア） */}
-        <Droppable droppableId={status} type="CARD">
+        <Droppable droppableId={status}>
           {(provided, snapshot) => (
             <div 
               ref={provided.innerRef}
@@ -259,40 +259,40 @@ export const ProjectKanban = ({
                 ${snapshot.isDraggingOver ? 'bg-opacity-50 ring-2 ring-blue-500 ring-opacity-50' : ''}
               `}
               role="list"
+              data-droppable-id={status}
             >
-              {projects.length === 0 ? (
+              {projects.map((project, index) => (
+                <Draggable 
+                  key={project.id} 
+                  draggableId={project.id} 
+                  index={index}
+                  isDragDisabled={isUpdating === project.id}
+                >
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      style={{
+                        ...provided.draggableProps.style,
+                        opacity: snapshot.isDragging ? 0.8 : 1,
+                      }}
+                      role="listitem"
+                    >
+                      <ProjectCard
+                        project={project}
+                        onStatusChange={handleStatusChange}
+                        onMessage={handleMessage}
+                        isDragging={snapshot.isDragging || isUpdating === project.id}
+                      />
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {projects.length === 0 && (
                 <div className="text-center py-8 text-gray-400 text-sm" role="status">
                   プロジェクトなし
                 </div>
-              ) : (
-                projects.map((project, index) => (
-                  <Draggable 
-                    key={project.id} 
-                    draggableId={project.id} 
-                    index={index}
-                    isDragDisabled={isUpdating === project.id}
-                  >
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        style={{
-                          ...provided.draggableProps.style,
-                          opacity: snapshot.isDragging ? 0.8 : 1,
-                        }}
-                        role="listitem"
-                      >
-                        <ProjectCard
-                          project={project}
-                          onStatusChange={handleStatusChange}
-                          onMessage={handleMessage}
-                          isDragging={snapshot.isDragging || isUpdating === project.id}
-                        />
-                      </div>
-                    )}
-                  </Draggable>
-                ))
               )}
               {provided.placeholder}
             </div>
@@ -320,7 +320,7 @@ export const ProjectKanban = ({
 
       {/* メインコンテンツ */}
       <div className="p-4">
-        {isMounted ? (
+        {isMounted && (
           <DragDropContext 
             onDragEnd={handleDragEnd}
             onDragStart={() => {
@@ -329,6 +329,12 @@ export const ProjectKanban = ({
             }}
             onDragUpdate={(update) => {
               console.log('[DnD Debug] Drag update:', update);
+            }}
+            onBeforeCapture={() => {
+              console.log('[DnD Debug] Before capture');
+            }}
+            onBeforeDragStart={() => {
+              console.log('[DnD Debug] Before drag start');
             }}
           >
             <div className="flex gap-3 justify-center pb-4">
@@ -341,15 +347,6 @@ export const ProjectKanban = ({
               ))}
             </div>
           </DragDropContext>
-        ) : (
-          <div className="flex gap-3 justify-center pb-4">
-            {KANBAN_STATUSES.map(status => (
-              <div key={status} className="flex-1 min-w-[240px] max-w-[320px]">
-                <div className="h-10 bg-gray-200 rounded-t-lg mb-2 animate-pulse"></div>
-                <div className="h-96 bg-gray-100 rounded-b-lg animate-pulse"></div>
-              </div>
-            ))}
-          </div>
         )}
       </div>
 
