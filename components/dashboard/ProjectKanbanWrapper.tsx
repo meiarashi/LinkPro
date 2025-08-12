@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { ProjectWithStatus } from '../../types/project-status';
 
-// react-beautiful-dndをSSRを無効にして動的インポート
+// @hello-pangea/dndをSSRを無効にして動的インポート
 const ProjectKanban = dynamic(
   () => import('./ProjectKanbanDnd').then(mod => mod.ProjectKanban),
   { 

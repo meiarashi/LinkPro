@@ -31,12 +31,8 @@ export const ProjectKanban = ({
   const { addToast } = useToast();
 
   useEffect(() => {
-    console.log('[DnD Debug] Component mounting');
     setIsMounted(true);
-    return () => {
-      console.log('[DnD Debug] Component unmounting');
-      setIsMounted(false);
-    };
+    return () => setIsMounted(false);
   }, []);
 
   useEffect(() => {
@@ -51,20 +47,15 @@ export const ProjectKanban = ({
 
   // ドラッグ終了時の処理
   const handleDragEnd = async (result: DropResult) => {
-    console.log('[DnD Debug] handleDragEnd called with result:', result);
     setIsDragging(false);
     
     if (!result.destination) {
-      console.log('[DnD Debug] No destination, dropping outside');
       return;
     }
 
     // ステータスを取得
     const sourceStatus = result.source.droppableId as ProjectStatus;
     const destinationStatus = result.destination.droppableId as ProjectStatus;
-    
-    console.log('[DnD Debug] Source status:', sourceStatus);
-    console.log('[DnD Debug] Destination status:', destinationStatus);
     
     // 同じカラム内での移動は無視
     if (sourceStatus === destinationStatus) {
@@ -257,7 +248,6 @@ export const ProjectKanban = ({
                 ${snapshot.isDraggingOver ? 'bg-opacity-50 ring-2 ring-blue-500 ring-opacity-50' : ''}
               `}
               role="list"
-              data-droppable-id={status}
             >
               {projects.map((project, index) => (
                 <Draggable 
@@ -321,19 +311,7 @@ export const ProjectKanban = ({
         {isMounted && (
           <DragDropContext 
             onDragEnd={handleDragEnd}
-            onDragStart={() => {
-              console.log('[DnD Debug] Drag started');
-              setIsDragging(true);
-            }}
-            onDragUpdate={(update) => {
-              console.log('[DnD Debug] Drag update:', update);
-            }}
-            onBeforeCapture={() => {
-              console.log('[DnD Debug] Before capture');
-            }}
-            onBeforeDragStart={() => {
-              console.log('[DnD Debug] Before drag start');
-            }}
+            onDragStart={() => setIsDragging(true)}
           >
             <div className="flex gap-3 justify-center pb-4">
               {KANBAN_STATUSES.map(status => (
