@@ -58,9 +58,10 @@ function mapOldStatusToNew(oldStatus: string): ProjectStatus {
     'published': 'recruiting',
     'reviewing': 'recruiting',
     'recruiting': 'recruiting',
-    'contracted': 'contracted',
-    'in_progress': 'in_progress',
-    'in_review': 'in_review',
+    'contracted': 'executing',  // 契約済みは実行中へ
+    'in_progress': 'executing',  // 進行中は実行中へ
+    'in_review': 'executing',    // 確認中は実行中へ
+    'executing': 'executing',
     'completed': 'completed',
     'cancelled': 'cancelled'
   };

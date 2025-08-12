@@ -21,7 +21,7 @@ interface Project {
   description: string;
   budget: string;
   duration: string;
-  status: 'draft' | 'recruiting' | 'contracted' | 'in_progress' | 'in_review' | 'completed' | 'cancelled';
+  status: 'draft' | 'recruiting' | 'executing' | 'completed' | 'cancelled';
 }
 
 export default function EditProjectPage({ params }: { params: { id: string } }) {
@@ -291,29 +291,14 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 <>
                   <option value="recruiting">📢 募集中</option>
                   <option value="draft">📝 下書き（非公開に戻す）</option>
-                  <option value="contracted">🤝 契約済</option>
+                  <option value="executing">🚀 実行中</option>
                   <option value="cancelled">❌ キャンセル</option>
                 </>
               )}
-              {project.status === 'contracted' && (
+              {project.status === 'executing' && (
                 <>
-                  <option value="contracted">🤝 契約済</option>
-                  <option value="in_progress">🚀 進行中</option>
-                  <option value="cancelled">❌ キャンセル</option>
-                </>
-              )}
-              {project.status === 'in_progress' && (
-                <>
-                  <option value="in_progress">🚀 進行中</option>
-                  <option value="in_review">👀 確認中</option>
-                  <option value="cancelled">❌ キャンセル</option>
-                </>
-              )}
-              {project.status === 'in_review' && (
-                <>
-                  <option value="in_review">👀 確認中</option>
+                  <option value="executing">🚀 実行中</option>
                   <option value="completed">✅ 完了</option>
-                  <option value="in_progress">🚀 進行中（修正のため）</option>
                   <option value="cancelled">❌ キャンセル</option>
                 </>
               )}
