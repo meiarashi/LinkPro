@@ -191,7 +191,7 @@ export function ProjectCard({
         )}
         
         {unreadCount > 0 && (
-          <Link href={`/projects/${project.id}?tab=messages`} className="block">
+          <Link href={`/messages?project=${project.id}`} className="block">
             <Button 
               size="sm" 
               variant="outline" 
@@ -224,7 +224,7 @@ export function ProjectCard({
           
           {/* メッセージ */}
           {['recruiting', 'executing'].includes(project.status) && (
-            <Link href={`/projects/${project.id}?tab=messages`} className="flex-1">
+            <Link href={`/messages?project=${project.id}`} className="flex-1">
               <Button 
                 size="sm" 
                 variant="ghost" 

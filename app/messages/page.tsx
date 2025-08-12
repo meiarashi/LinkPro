@@ -69,8 +69,16 @@ export default function MessagesPage() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const [showMenuForMessage, setShowMenuForMessage] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [userProjects, setUserProjects] = useState<any[]>([]);
 
   useEffect(() => {
+    // URLパラメータからプロジェクトIDを取得
+    const searchParams = new URLSearchParams(window.location.search);
+    const projectId = searchParams.get('project');
+    if (projectId) {
+      setSelectedProjectId(projectId);
+    }
     loadConversations();
   }, []);
 
@@ -156,6 +164,19 @@ export default function MessagesPage() {
         .single();
       
       setUserProfile(profileData);
+      
+      // ユーザーのプロジェクト一覧を取得（フィルター用）
+      if (profileData?.user_type === 'client') {
+        const { data: projects } = await supabase
+          .from('projects')
+          .select('id, title')
+          .eq('client_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (projects) {
+          setUserProjects(projects);
+        }
+      }
 
       // 会話一覧を取得
       let query = supabase
@@ -467,8 +488,26 @@ export default function MessagesPage() {
         <div className="h-full flex">
           {/* 左側: 会話リスト */}
           <div className={`${showMobileChat ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 bg-white border-r`}>
-            <div className="h-16 px-4 border-b flex items-center">
-              <h2 className="font-semibold">メッセージ一覧</h2>
+            <div className="h-auto px-4 py-3 border-b">
+              <h2 className="font-semibold mb-3">メッセージ一覧</h2>
+              
+              {/* プロジェクトフィルター（クライアントのみ） */}
+              {userProfile?.user_type === 'client' && userProjects.length > 0 && (
+                <div className="mb-2">
+                  <select
+                    value={selectedProjectId || ''}
+                    onChange={(e) => setSelectedProjectId(e.target.value || null)}
+                    className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">すべてのプロジェクト</option>
+                    {userProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             
             <div className="flex-1 overflow-y-auto">
@@ -484,7 +523,15 @@ export default function MessagesPage() {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {conversations.map((conversation) => {
+                  {conversations
+                    .filter((conv) => {
+                      // プロジェクトフィルターを適用
+                      if (selectedProjectId) {
+                        return conv.project_id === selectedProjectId;
+                      }
+                      return true;
+                    })
+                    .map((conversation) => {
                     const otherUser = userProfile?.user_type === 'client' 
                       ? conversation.pro_profile 
                       : conversation.client_profile;

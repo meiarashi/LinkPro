@@ -339,7 +339,7 @@ export const ProjectKanban = ({
   };
 
   const handleMessage = (projectId: string) => {
-    window.location.href = `/projects/${projectId}?tab=messages`;
+    window.location.href = `/messages?project=${projectId}`;
   };
 
   const activeProject = activeId ? projects.find(p => p.id === activeId) : null;
