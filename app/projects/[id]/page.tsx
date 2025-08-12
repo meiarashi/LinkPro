@@ -33,7 +33,7 @@ interface Project {
   description: string | null;
   budget: string | null;
   duration: string | null;
-  status: 'draft' | 'public' | 'private' | 'completed' | 'cancelled';
+  status: 'draft' | 'recruiting' | 'executing' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
   client_id: string;
@@ -182,7 +182,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           .from("matching_scores")
           .select(`
             *,
-            pro_profile:profiles!matching_scores_ai_talent_id_fkey(
+            pro_profile:profiles!pro_id(
               id,
               full_name,
               profile_details,
@@ -304,10 +304,10 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const getStatusBadge = (status: string) => {
     const statusMap = {
       draft: { label: '下書き', className: 'bg-gray-100 text-gray-700' },
-      public: { label: '公開中', className: 'bg-green-100 text-green-700' },
-      private: { label: '非公開', className: 'bg-yellow-100 text-yellow-700' },
-      completed: { label: '完了', className: 'bg-blue-100 text-blue-700' },
-      cancelled: { label: '中止', className: 'bg-red-100 text-red-700' }
+      recruiting: { label: '募集中', className: 'bg-green-100 text-green-700' },
+      executing: { label: '実行中', className: 'bg-blue-100 text-blue-700' },
+      completed: { label: '完了', className: 'bg-purple-100 text-purple-700' },
+      cancelled: { label: 'キャンセル', className: 'bg-red-100 text-red-700' }
     };
     
     const config = statusMap[status as keyof typeof statusMap] || statusMap.draft;
