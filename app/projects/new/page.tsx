@@ -231,21 +231,44 @@ export default function NewProjectPage() {
             </div>
             <AIProjectWizard
               onComplete={(analysis, conversation, conversationId) => {
+                // デバッグログ
+                console.log('AIProjectWizard onComplete called with:', {
+                  analysis,
+                  analysisType: typeof analysis,
+                  project_story: analysis.project_story,
+                  project_story_type: typeof analysis.project_story,
+                  key_requirements: analysis.key_requirements,
+                  key_requirements_type: typeof analysis.key_requirements,
+                  isArray: Array.isArray(analysis.key_requirements)
+                });
+                
                 // AIの分析結果をフォームデータに反映（既存の値は上書き）
                 // descriptionの設定を修正
                 let description = formData.description;
-                if (analysis.project_story) {
+                
+                // project_storyが文字列として存在する場合
+                if (analysis.project_story && typeof analysis.project_story === 'string') {
                   description = analysis.project_story;
-                } else if (analysis.key_requirements && Array.isArray(analysis.key_requirements) && analysis.key_requirements.length > 0) {
+                } 
+                // key_requirementsが配列として存在する場合
+                else if (analysis.key_requirements && Array.isArray(analysis.key_requirements) && analysis.key_requirements.length > 0) {
                   description = analysis.key_requirements.join('\n');
                 }
+                // それ以外の場合はフォールバック
+                else if (analysis.key_requirements && typeof analysis.key_requirements === 'string') {
+                  // もしkey_requirementsが文字列の場合
+                  description = analysis.key_requirements;
+                }
+                
+                console.log('Setting description to:', description);
+                console.log('Description type:', typeof description);
                 
                 setFormData({
-                  title: analysis.key_requirements && analysis.key_requirements.length > 0 
+                  title: analysis.key_requirements && Array.isArray(analysis.key_requirements) && analysis.key_requirements.length > 0 
                     ? `${analysis.project_type === 'training' ? 'AI活用支援' : 'AI開発'}プロジェクト`
                     : formData.title,
                   description: description,
-                  budget: analysis.estimated_budget_range 
+                  budget: analysis.estimated_budget_range && typeof analysis.estimated_budget_range === 'object'
                     ? `${(analysis.estimated_budget_range.min / 10000).toFixed(0)}万円〜${(analysis.estimated_budget_range.max / 10000).toFixed(0)}万円`
                     : formData.budget,
                   duration: formData.duration, // これは会話から推定が難しいので保持
