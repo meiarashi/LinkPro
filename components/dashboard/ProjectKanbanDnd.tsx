@@ -33,8 +33,12 @@ export const ProjectKanban = ({
   const { addToast } = useToast();
 
   useEffect(() => {
+    console.log('[DnD Debug] Component mounting');
     setIsMounted(true);
-    return () => setIsMounted(false);
+    return () => {
+      console.log('[DnD Debug] Component unmounting');
+      setIsMounted(false);
+    };
   }, []);
 
   useEffect(() => {
@@ -49,15 +53,20 @@ export const ProjectKanban = ({
 
   // ドラッグ終了時の処理
   const handleDragEnd = async (result: DropResult) => {
+    console.log('[DnD Debug] handleDragEnd called with result:', result);
     setIsDragging(false);
     
     if (!result.destination) {
+      console.log('[DnD Debug] No destination, dropping outside');
       return;
     }
 
-    // uniqueIdを除去してステータスを取得
-    const sourceStatus = result.source.droppableId.split('-')[0] as ProjectStatus;
-    const destinationStatus = result.destination.droppableId.split('-')[0] as ProjectStatus;
+    // ステータスを取得
+    const sourceStatus = result.source.droppableId as ProjectStatus;
+    const destinationStatus = result.destination.droppableId as ProjectStatus;
+    
+    console.log('[DnD Debug] Source status:', sourceStatus);
+    console.log('[DnD Debug] Destination status:', destinationStatus);
     
     // 同じカラム内での移動は無視
     if (sourceStatus === destinationStatus) {
@@ -239,7 +248,7 @@ export const ProjectKanban = ({
         </div>
 
         {/* カード一覧（ドロップ可能エリア） */}
-        <Droppable droppableId={`${status}-${uniqueId}`} type="CARD">
+        <Droppable droppableId={status} type="CARD">
           {(provided, snapshot) => (
             <div 
               ref={provided.innerRef}
@@ -314,7 +323,13 @@ export const ProjectKanban = ({
         {isMounted ? (
           <DragDropContext 
             onDragEnd={handleDragEnd}
-            onDragStart={() => setIsDragging(true)}
+            onDragStart={() => {
+              console.log('[DnD Debug] Drag started');
+              setIsDragging(true);
+            }}
+            onDragUpdate={(update) => {
+              console.log('[DnD Debug] Drag update:', update);
+            }}
           >
             <div className="flex gap-3 justify-center pb-4">
               {KANBAN_STATUSES.map(status => (
