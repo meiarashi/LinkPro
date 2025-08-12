@@ -174,40 +174,81 @@ export function ProjectCard({
         </div>
       </div>
 
-      {/* アクションボタン（主要な1つだけ） */}
-      <div className="mt-2 pt-2 border-t">
-        {project.status === 'recruiting' && newApplications > 0 ? (
+      {/* クイックアクセスボタン（複数表示） */}
+      <div className="mt-2 pt-2 border-t space-y-1">
+        {/* 新着がある場合は強調表示 */}
+        {newApplications > 0 && (
           <Link href={`/projects/${project.id}?tab=applications`} className="block">
             <Button 
               size="sm" 
               variant="outline" 
-              className="w-full h-7 text-xs text-orange-600 hover:bg-orange-50"
+              className="w-full h-7 text-xs text-orange-600 hover:bg-orange-50 justify-start"
             >
-              <AlertCircle className="w-3 h-3 mr-1" />
-              新着応募を確認
-            </Button>
-          </Link>
-        ) : unreadCount > 0 ? (
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="w-full h-7 text-xs text-blue-600 hover:bg-blue-50"
-            onClick={() => onMessage?.(project.id)}
-          >
-            <MessageSquare className="w-3 h-3 mr-1" />
-            メッセージを確認
-          </Button>
-        ) : (
-          <Link href={`/projects/${project.id}`} className="block">
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="w-full h-7 text-xs"
-            >
-              詳細を見る
+              <AlertCircle className="w-3 h-3 mr-1.5 flex-shrink-0" />
+              <span className="truncate">新着{newApplications}件！ 応募を確認</span>
             </Button>
           </Link>
         )}
+        
+        {unreadCount > 0 && (
+          <Link href={`/projects/${project.id}?tab=messages`} className="block">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="w-full h-7 text-xs text-blue-600 hover:bg-blue-50 justify-start"
+            >
+              <Bell className="w-3 h-3 mr-1.5 flex-shrink-0" />
+              <span className="truncate">未読{unreadCount}件のメッセージ</span>
+            </Button>
+          </Link>
+        )}
+
+        {/* 常時表示のクイックアクセス */}
+        <div className="flex gap-1">
+          {/* 応募者一覧（募集中の場合） */}
+          {project.status === 'recruiting' && (
+            <Link href={`/projects/${project.id}?tab=applications`} className="flex-1">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="w-full h-7 text-xs hover:bg-gray-50 px-2"
+                title={`応募者一覧${project.applications_count ? ` (${project.applications_count}名)` : ''}`}
+              >
+                <Users className="w-3 h-3 mr-1" />
+                <span className="truncate">
+                  {project.applications_count ? `${project.applications_count}名` : '応募'}
+                </span>
+              </Button>
+            </Link>
+          )}
+          
+          {/* メッセージ */}
+          {['recruiting', 'executing'].includes(project.status) && (
+            <Link href={`/projects/${project.id}?tab=messages`} className="flex-1">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="w-full h-7 text-xs hover:bg-gray-50 px-2"
+                title="メッセージ一覧"
+              >
+                <MessageSquare className="w-3 h-3 mr-1" />
+                <span className="truncate">メッセージ</span>
+              </Button>
+            </Link>
+          )}
+          
+          {/* 詳細 */}
+          <Link href={`/projects/${project.id}`} className="flex-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="w-full h-7 text-xs hover:bg-gray-50 px-2"
+              title="プロジェクト詳細"
+            >
+              詳細
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
