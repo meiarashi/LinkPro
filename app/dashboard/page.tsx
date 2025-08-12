@@ -52,11 +52,12 @@ function mapOldStatusToNew(oldStatus: string): ProjectStatus {
   const statusMap: Record<string, ProjectStatus> = {
     // 旧ステータス
     'draft': 'draft',
-    'public': 'published',
-    'private': 'published',
+    'public': 'recruiting',
+    'private': 'recruiting',
     // 新ステータス（すでに移行済みの場合はそのまま）
-    'published': 'published',
-    'reviewing': 'reviewing',
+    'published': 'recruiting',
+    'reviewing': 'recruiting',
+    'recruiting': 'recruiting',
     'contracted': 'contracted',
     'in_progress': 'in_progress',
     'in_review': 'in_review',
@@ -116,8 +117,7 @@ export default function DashboardPage() {
           ...project,
           applications_count: countsMap[project.id] || 0,
           // 旧ステータスから新ステータスへのマッピング
-          status: mappedStatus,
-          progress_percentage: project.progress_percentage || 0
+          status: mappedStatus
         };
       });
       

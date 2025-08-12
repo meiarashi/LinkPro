@@ -2,7 +2,9 @@
 
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
-import { MoreVertical, MessageSquare, Users, Calendar, DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { MoreVertical, MessageSquare, Users, Calendar, DollarSign, TrendingUp, Clock, CheckCircle, ChevronRight } from 'lucide-react';
+import { getNextPossibleStatuses } from '../../lib/project-status-utils';
+import { PROJECT_STATUS_CONFIG } from '../../types/project-status';
 import { Button } from '../ui/button';
 import { 
   DropdownMenu,
@@ -48,7 +50,7 @@ export function ProjectCard({
   // ステータスに応じた表示内容を取得
   const getStatusSpecificInfo = () => {
     switch (project.status) {
-      case 'published':
+      case 'recruiting':
         return (
           <>
             {project.applications_count !== undefined && project.applications_count > 0 && (
@@ -58,14 +60,6 @@ export function ProjectCard({
               </div>
             )}
           </>
-        );
-      
-      case 'reviewing':
-        return (
-          <div className="text-xs text-yellow-600">
-            <Clock className="w-3 h-3 inline mr-1" />
-            選定中
-          </div>
         );
 
       case 'contracted':
@@ -81,34 +75,16 @@ export function ProjectCard({
 
       case 'in_progress':
         return (
-          <div className="space-y-2">
-            {/* 進捗バー */}
-            <div className="w-full">
-              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                <span>進捗</span>
-                <span aria-label={`進捗率${project.progress_percentage}パーセント`}>
-                  {project.progress_percentage}%
-                </span>
-              </div>
-              <div 
-                className="w-full bg-gray-200 rounded-full h-1.5" 
-                role="progressbar" 
-                aria-valuenow={project.progress_percentage} 
-                aria-valuemin={0} 
-                aria-valuemax={100}
-                aria-label="プロジェクト進捗"
-              >
-                <div 
-                  className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${project.progress_percentage}%` }}
-                />
-              </div>
-            </div>
-            {project.estimated_end_date && (
-              <div className="text-xs text-gray-600">
-                <Calendar className="w-3 h-3 inline mr-1" />
-                予定: {new Date(project.estimated_end_date).toLocaleDateString('ja-JP')}
-              </div>
+          <div className="text-xs text-indigo-600">
+            <Clock className="w-3 h-3 inline mr-1" />
+            進行中
+            {project.started_at && (
+              <span className="ml-2 text-gray-500">
+                {formatDistanceToNow(new Date(project.started_at), { 
+                  addSuffix: true, 
+                  locale: ja 
+                })}に開始
+              </span>
             )}
           </div>
         );
@@ -130,36 +106,55 @@ export function ProjectCard({
 
   // クイックアクション
   const getQuickActions = () => {
-    const actions = [];
+    // ステータスに応じて最も重要なアクション1つだけを表示
     
-    if (onMessage) {
-      actions.push(
-        <Button
-          key="message"
-          size="sm"
-          variant="ghost"
-          className="h-7 px-2"
-          onClick={(e) => {
-            e.preventDefault();
-            onMessage(project.id);
-          }}
-        >
-          <MessageSquare className="w-3 h-3" />
-        </Button>
-      );
-    }
-
-    if (project.status === 'published' && project.applications_count && project.applications_count > 0) {
-      actions.push(
-        <Link key="applications" href={`/projects/${project.id}?tab=applications`}>
-          <Button size="sm" variant="ghost" className="h-7 px-2">
-            <Users className="w-3 h-3" />
+    // 募集中：応募者の確認が最重要
+    if (project.status === 'recruiting' && project.applications_count && project.applications_count > 0) {
+      return (
+        <Link href={`/projects/${project.id}?tab=applications`}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-7 px-3 flex items-center gap-1.5 text-blue-600 hover:bg-blue-50"
+            title={`応募者を確認（${project.applications_count}名）`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">{project.applications_count}名の応募</span>
           </Button>
         </Link>
       );
     }
-
-    return actions;
+    
+    // 進行中：進捗確認が最重要
+    if (['in_progress', 'in_review'].includes(project.status)) {
+      return (
+        <Link href={`/projects/${project.id}`}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-7 px-3 flex items-center gap-1.5 text-green-600 hover:bg-green-50"
+            title="進捗を確認"
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">進捗確認</span>
+          </Button>
+        </Link>
+      );
+    }
+    
+    // その他：詳細を見る
+    return (
+      <Link href={`/projects/${project.id}`}>
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          className="h-7 px-3 text-xs"
+          title="プロジェクト詳細"
+        >
+          詳細を見る
+        </Button>
+      </Link>
+    );
   };
 
   return (
@@ -174,14 +169,23 @@ export function ProjectCard({
     >
       {/* ヘッダー */}
       <div className="flex justify-between items-start mb-2">
-        <Link 
-          href={`/projects/${project.id}`}
-          className="flex-1 min-w-0"
-        >
-          <h4 className="font-medium text-sm line-clamp-2 hover:text-blue-600 transition-colors">
-            {project.title}
-          </h4>
-        </Link>
+        <div className="flex-1 min-w-0">
+          {/* ステータスバッジ */}
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`
+              inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+              ${PROJECT_STATUS_CONFIG[project.status].bgColor} ${PROJECT_STATUS_CONFIG[project.status].color}
+            `}>
+              <span>{PROJECT_STATUS_CONFIG[project.status].icon}</span>
+              {PROJECT_STATUS_CONFIG[project.status].label}
+            </span>
+          </div>
+          <Link href={`/projects/${project.id}`}>
+            <h4 className="font-medium text-sm line-clamp-2 hover:text-blue-600 transition-colors">
+              {project.title}
+            </h4>
+          </Link>
+        </div>
         
         <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <DropdownMenuTrigger asChild>
@@ -205,21 +209,26 @@ export function ProjectCard({
               </Link>
             </DropdownMenuItem>
             
-            {onStatusChange && (
+            {onStatusChange && getNextPossibleStatuses(project.status).length > 0 && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => onStatusChange(project.id, 'in_progress')}
-                  disabled={project.status !== 'contracted'}
-                >
-                  開始する
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => onStatusChange(project.id, 'completed')}
-                  disabled={project.status !== 'in_review'}
-                >
-                  完了確定
-                </DropdownMenuItem>
+                <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                  ステータスを変更
+                </div>
+                {getNextPossibleStatuses(project.status).map((nextStatus) => {
+                  const config = PROJECT_STATUS_CONFIG[nextStatus];
+                  return (
+                    <DropdownMenuItem
+                      key={nextStatus}
+                      onClick={() => onStatusChange(project.id, nextStatus)}
+                      className="flex items-center gap-2"
+                    >
+                      <ChevronRight className="w-3 h-3" />
+                      <span className="text-sm">{config.icon}</span>
+                      <span>{config.label}へ</span>
+                    </DropdownMenuItem>
+                  );
+                })}
               </>
             )}
           </DropdownMenuContent>
@@ -270,11 +279,9 @@ export function ProjectCard({
       </div>
 
       {/* クイックアクション */}
-      {getQuickActions().length > 0 && (
-        <div className="mt-2 pt-2 border-t flex gap-1">
-          {getQuickActions()}
-        </div>
-      )}
+      <div className="mt-2 pt-2 border-t">
+        {getQuickActions()}
+      </div>
     </div>
   );
 }

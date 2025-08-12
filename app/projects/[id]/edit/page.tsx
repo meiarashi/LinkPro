@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "../../../../components/ui/button";
 import { createClient } from "../../../../utils/supabase/client";
 import LoggedInHeader from "../../../../components/LoggedInHeader";
-import { Loader2, ArrowLeft, Save, Trash2, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Save, Trash2, AlertCircle, Info } from "lucide-react";
 import { LoadingPage } from "../../../../components/ui/loading";
 
 interface Profile {
@@ -21,7 +21,7 @@ interface Project {
   description: string;
   budget: string;
   duration: string;
-  status: string;
+  status: 'draft' | 'recruiting' | 'contracted' | 'in_progress' | 'in_review' | 'completed' | 'cancelled';
 }
 
 export default function EditProjectPage({ params }: { params: { id: string } }) {
@@ -38,7 +38,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
   const [duration, setDuration] = useState("");
-  const [status, setStatus] = useState("public");
+  const [status, setStatus] = useState<Project['status']>("recruiting");
   
   // UI状態
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -275,14 +275,61 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
             <select
               id="status"
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => setStatus(e.target.value as Project['status'])}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={['completed', 'cancelled'].includes(project.status)}
             >
-              <option value="public">公開</option>
-              <option value="private">非公開</option>
-              <option value="completed">完了</option>
-              <option value="cancelled">中止</option>
+              {/* 現在のステータスに応じて選択可能なオプションを動的に生成 */}
+              {project.status === 'draft' && (
+                <>
+                  <option value="draft">📝 下書き</option>
+                  <option value="recruiting">📢 募集中</option>
+                  <option value="cancelled">❌ キャンセル</option>
+                </>
+              )}
+              {project.status === 'recruiting' && (
+                <>
+                  <option value="recruiting">📢 募集中</option>
+                  <option value="draft">📝 下書き（非公開に戻す）</option>
+                  <option value="contracted">🤝 契約済</option>
+                  <option value="cancelled">❌ キャンセル</option>
+                </>
+              )}
+              {project.status === 'contracted' && (
+                <>
+                  <option value="contracted">🤝 契約済</option>
+                  <option value="in_progress">🚀 進行中</option>
+                  <option value="cancelled">❌ キャンセル</option>
+                </>
+              )}
+              {project.status === 'in_progress' && (
+                <>
+                  <option value="in_progress">🚀 進行中</option>
+                  <option value="in_review">👀 確認中</option>
+                  <option value="cancelled">❌ キャンセル</option>
+                </>
+              )}
+              {project.status === 'in_review' && (
+                <>
+                  <option value="in_review">👀 確認中</option>
+                  <option value="completed">✅ 完了</option>
+                  <option value="in_progress">🚀 進行中（修正のため）</option>
+                  <option value="cancelled">❌ キャンセル</option>
+                </>
+              )}
+              {project.status === 'completed' && (
+                <option value="completed">✅ 完了（変更不可）</option>
+              )}
+              {project.status === 'cancelled' && (
+                <option value="cancelled">❌ キャンセル（変更不可）</option>
+              )}
             </select>
+            {['completed', 'cancelled'].includes(project.status) && (
+              <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                最終ステータスのため変更できません
+              </p>
+            )}
           </div>
 
           <div className="flex justify-between items-center pt-4">

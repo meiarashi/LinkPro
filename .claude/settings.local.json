@@ -13,7 +13,8 @@
       "Bash(del list-tables.js)",
       "Bash(rm:*)",
       "mcp__supabase__query",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

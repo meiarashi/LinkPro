@@ -6,7 +6,7 @@ import { Button } from "../../components/ui/button";
 import { Plus, FolderOpen, Users, MessageSquare, AlertCircle, Check, X, Sparkles } from 'lucide-react';
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { ProjectKanban } from "../../components/dashboard/ProjectKanban";
+import { ProjectKanban } from "../../components/dashboard/ProjectKanbanDnd";
 import { ProjectWithStatus } from "../../types/project-status";
 
 // ProjectWithStatus型を使用するため、Projectインターフェースは削除
@@ -59,7 +59,7 @@ export default function ClientDashboard({
     };
     
     if (projects.length > 0) score += weights.hasProjects;
-    if (projects.filter(p => p.status === 'published').length > 0) score += weights.hasActiveProjects;
+    if (projects.filter(p => p.status === 'recruiting').length > 0) score += weights.hasActiveProjects;
     if (recentApplications.length > 0) score += weights.hasApplications;
     if (unreadMessageCount > 0 || recentApplications.some(a => a.status === 'accepted')) score += weights.hasMessages;
     
@@ -232,9 +232,9 @@ export default function ClientDashboard({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600">公開中プロジェクト</span>
-                <span className={`text-xs ${projects.filter(p => p.status === 'published').length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                  {projects.filter(p => p.status === 'published').length > 0 ? '✓' : '×'}
+                <span className="text-xs text-gray-600">募集中プロジェクト</span>
+                <span className={`text-xs ${projects.filter(p => p.status === 'recruiting').length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                  {projects.filter(p => p.status === 'recruiting').length > 0 ? '✓' : '×'}
                 </span>
               </div>
               <div className="flex items-center justify-between">

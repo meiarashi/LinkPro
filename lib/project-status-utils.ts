@@ -11,10 +11,9 @@ export function canTransitionTo(from: ProjectStatus, to: ProjectStatus): boolean
   if (from === to) return true;
   
   const transitions: Record<ProjectStatus, ProjectStatus[]> = {
-    'draft': ['published', 'cancelled'],
-    'published': ['reviewing', 'cancelled'],
-    'reviewing': ['contracted', 'published', 'cancelled'],
-    'contracted': ['in_progress', 'cancelled'],
+    'draft': ['recruiting', 'cancelled'],
+    'recruiting': ['draft', 'contracted', 'cancelled'],  // 下書きに戻せる
+    'contracted': ['in_progress', 'cancelled'],  // 契約後は下書きに戻せない
     'in_progress': ['in_review', 'cancelled'],
     'in_review': ['completed', 'in_progress', 'cancelled'],
     'completed': [], // 完了からは変更不可
@@ -31,10 +30,9 @@ export function canTransitionTo(from: ProjectStatus, to: ProjectStatus): boolean
  */
 export function getNextPossibleStatuses(currentStatus: ProjectStatus): ProjectStatus[] {
   const transitions: Record<ProjectStatus, ProjectStatus[]> = {
-    'draft': ['published', 'cancelled'],
-    'published': ['reviewing', 'cancelled'],
-    'reviewing': ['contracted', 'published', 'cancelled'],
-    'contracted': ['in_progress', 'cancelled'],
+    'draft': ['recruiting', 'cancelled'],
+    'recruiting': ['draft', 'contracted', 'cancelled'],  // 下書きに戻せる
+    'contracted': ['in_progress', 'cancelled'],  // 契約後は下書きに戻せない
     'in_progress': ['in_review', 'cancelled'],
     'in_review': ['completed', 'in_progress', 'cancelled'],
     'completed': [],
@@ -54,7 +52,6 @@ export function validateStatusChange(
   project: { 
     status: ProjectStatus; 
     selected_pro_id?: string | null;
-    progress_percentage?: number;
   }, 
   newStatus: ProjectStatus
 ): string | null {
@@ -68,32 +65,9 @@ export function validateStatusChange(
     return 'プロジェクトを開始するには、まずプロ人材を選定してください';
   }
   
-  if (newStatus === 'completed' && project.progress_percentage !== undefined && project.progress_percentage < 90) {
-    return 'プロジェクトを完了するには、進捗が90%以上である必要があります';
-  }
-  
   return null;
 }
 
-/**
- * ステータスの進行度を数値で取得（0-100）
- * @param status ステータス
- * @returns 進行度（0-100）
- */
-export function getStatusProgress(status: ProjectStatus): number {
-  const progressMap: Record<ProjectStatus, number> = {
-    'draft': 0,
-    'published': 10,
-    'reviewing': 20,
-    'contracted': 30,
-    'in_progress': 50,
-    'in_review': 90,
-    'completed': 100,
-    'cancelled': -1, // キャンセルは特殊扱い
-  };
-  
-  return progressMap[status] ?? 0;
-}
 
 /**
  * ステータスが最終状態かどうかを判定
@@ -110,5 +84,5 @@ export function isFinalStatus(status: ProjectStatus): boolean {
  * @returns アクティブな場合true
  */
 export function isActiveStatus(status: ProjectStatus): boolean {
-  return ['published', 'reviewing', 'contracted', 'in_progress', 'in_review'].includes(status);
+  return ['recruiting', 'contracted', 'in_progress', 'in_review'].includes(status);
 }
