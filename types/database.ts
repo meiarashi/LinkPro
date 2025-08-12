@@ -72,7 +72,7 @@ export interface Project {
   duration: string | null;
   required_skills: string[];
   status: 'draft' | 'public' | 'private' | 'completed' | 'cancelled';
-  pm_requirements: AIRequirements; // AI要件を含む
+  pro_requirements: AIRequirements; // AI要件を含む
   created_at: string;
   updated_at: string;
 }
@@ -81,7 +81,7 @@ export interface Project {
 export interface Application {
   id: string;
   project_id: string;
-  pro_id: string; // pm_idから変更
+  pro_id: string; // プロフェッショナルのID
   status: 'pending' | 'accepted' | 'rejected';
   message: string | null;
   attachments: Attachment[];

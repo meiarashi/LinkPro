@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(cat:*)",
+      "Bash(npx:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp:*)",
+      "mcp__ide__executeCode",
+      "Bash(psql:*)",
+      "Bash(node:*)",
+      "Bash(del list-tables.js)",
+      "Bash(rm:*)",
+      "mcp__supabase__query"
     ],
     "deny": []
   }

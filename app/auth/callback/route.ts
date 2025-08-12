@@ -54,6 +54,8 @@ export async function GET(request: Request) {
             
             if (insertError) {
               console.error('Error creating profile:', insertError)
+              // プロフィール作成に失敗した場合、エラーメッセージと共にログインページへリダイレクト
+              return NextResponse.redirect(`${origin}/login?error=profile_creation_failed&message=${encodeURIComponent(insertError.message)}`)
             }
             
             // Proユーザーは直接プロフィール編集へ、Clientはオンボーディングへ

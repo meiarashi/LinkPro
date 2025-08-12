@@ -208,7 +208,7 @@ AI人材の需要と供給のアンバランスを解決し、AI人材を必要�
    }
    ```
 
-2. **projects** - AI要件をpm_requirements (JSONB)に追加
+2. **projects** - AI要件をpro_requirements (JSONB)に追加
    ```json
    {
      "required_ai_level": "developer",
