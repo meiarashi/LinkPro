@@ -266,7 +266,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     }
   };
 
-  const handleApplicationStatusUpdate = async (applicationId: string, newStatus: 'accepted' | 'rejected') => {
+  const handleApplicationStatusUpdate = async (applicationId: string, newStatus: 'accepted' | 'rejected' | 'pending') => {
     setApplicationStatusUpdating(applicationId);
     
     try {
@@ -452,25 +452,85 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         {/* 応募一覧（オーナーのみ） */}
         {isOwner && (
           <div className="mt-8 bg-white p-6 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">応募一覧</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">応募一覧</h3>
+              {applications.length > 0 && (
+                <div className="flex gap-2 text-sm">
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full">
+                    未対応: {applications.filter(a => a.status === 'pending').length}
+                  </span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                    承認済み: {applications.filter(a => a.status === 'accepted').length}
+                  </span>
+                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full">
+                    却下済み: {applications.filter(a => a.status === 'rejected').length}
+                  </span>
+                </div>
+              )}
+            </div>
             
             {applications.length === 0 ? (
               <p className="text-gray-500 text-center py-8">まだ応募がありません</p>
             ) : (
               <div className="space-y-4">
                 {applications.map((application) => (
-                  <div key={application.id} className="border rounded-lg p-4">
+                  <div key={application.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-medium text-gray-800">
-                            {application.pro_profile.full_name || 'プロフィール未設定'}
-                          </h4>
-                          {getApplicationStatusIcon(application.status)}
+                        <div className="flex items-center gap-3 mb-2">
+                          {/* 応募者名をクリック可能に */}
+                          <Link href={`/pro/${application.pro_id}`} className="hover:text-blue-600">
+                            <h4 className="font-medium text-gray-800 underline decoration-dotted underline-offset-2">
+                              {application.pro_profile.full_name || 'プロフィール未設定'}
+                            </h4>
+                          </Link>
+                          
+                          {/* ステータスバッジの改善 */}
+                          <div className="flex items-center gap-2">
+                            {application.status === 'pending' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
+                                <Clock className="w-3 h-3" />
+                                未対応
+                              </span>
+                            )}
+                            {application.status === 'accepted' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                                <CheckCircle className="w-3 h-3" />
+                                承認済み
+                              </span>
+                            )}
+                            {application.status === 'rejected' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
+                                <XCircle className="w-3 h-3" />
+                                却下済み
+                              </span>
+                            )}
+                          </div>
                         </div>
                         
                         {application.message && (
-                          <p className="text-sm text-gray-600 mb-2">{application.message}</p>
+                          <div className="bg-gray-50 p-3 rounded-md mb-2">
+                            <p className="text-sm text-gray-600">{application.message}</p>
+                          </div>
+                        )}
+                        
+                        {/* プロフィール情報の追加 */}
+                        {application.pro_profile.profile_details && (
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {application.pro_profile.profile_details.ai_skills?.slice(0, 2).map((skill: string, index: number) => (
+                              <span key={index} className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                                {skill === 'expert' && 'エキスパート'}
+                                {skill === 'developer' && '開発者'}
+                                {skill === 'user' && '活用者'}
+                                {skill === 'supporter' && '支援者'}
+                              </span>
+                            ))}
+                            {application.pro_profile.availability && (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                                {application.pro_profile.availability}
+                              </span>
+                            )}
+                          </div>
                         )}
                         
                         <p className="text-xs text-gray-500">
@@ -478,26 +538,65 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                         </p>
                       </div>
                       
-                      {application.status === 'pending' && (
-                        <div className="flex gap-2 ml-4">
+                      <div className="flex flex-col gap-2 ml-4">
+                        {/* プロフィール詳細ボタンを常に表示 */}
+                        <Link href={`/pro/${application.pro_id}`}>
                           <Button
                             size="sm"
                             variant="outline"
+                            className="w-full"
+                          >
+                            詳細を見る
+                          </Button>
+                        </Link>
+                        
+                        {/* ステータス変更ボタン */}
+                        {application.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="w-full"
+                              onClick={() => handleApplicationStatusUpdate(application.id, 'accepted')}
+                              disabled={applicationStatusUpdating === application.id}
+                            >
+                              承認する
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => handleApplicationStatusUpdate(application.id, 'rejected')}
+                              disabled={applicationStatusUpdating === application.id}
+                            >
+                              却下する
+                            </Button>
+                          </>
+                        )}
+                        
+                        {/* ステータス変更可能（承認済み・却下済みから変更） */}
+                        {application.status === 'accepted' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-yellow-600 hover:bg-yellow-50"
+                            onClick={() => handleApplicationStatusUpdate(application.id, 'pending')}
+                            disabled={applicationStatusUpdating === application.id}
+                          >
+                            保留に戻す
+                          </Button>
+                        )}
+                        {application.status === 'rejected' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-green-600 hover:bg-green-50"
                             onClick={() => handleApplicationStatusUpdate(application.id, 'accepted')}
                             disabled={applicationStatusUpdating === application.id}
                           >
-                            承認
+                            承認に変更
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleApplicationStatusUpdate(application.id, 'rejected')}
-                            disabled={applicationStatusUpdating === application.id}
-                          >
-                            却下
-                          </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
