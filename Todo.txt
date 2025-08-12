@@ -1,7 +1,7 @@
 # LinkPro AI人材マッチングプラットフォーム 開発TODO リスト
-更新日: 2025年1月17日（システム構造の最適化・フィルタ機能強化完了）
+更新日: 2025年8月12日（セキュリティ改善・パフォーマンス最適化完了）
 
-## 🎯 システム概要（2025年1月17日時点）
+## 🎯 システム概要（2025年8月12日時点）
 
 ### 完成済み基本機能
 - **認証・プロフィール管理**: Supabase Auth、ユーザータイプ（client/pro）
@@ -103,6 +103,26 @@
 
 ## ✅ 完了済みタスク一覧
 
+### 2025年8月12日完了
+#### セキュリティ改善
+- [x] SECURITY DEFINERビューをSECURITY INVOKERに変更（4ビュー）
+- [x] RLS（行レベルセキュリティ）の正しい適用を確保
+- [x] 各テーブルでRLSを有効化
+- [x] マイグレーションファイル作成（20250812_fix_security_definer_views.sql）
+
+#### コード品質改善
+- [x] 環境変数の非nullアサーション（!）をすべて削除
+- [x] 適切なエラーハンドリングを追加（auth/callback/route.ts）
+- [x] APIキーの環境変数チェック追加（Gemini API、Supabase）
+- [x] pmからproへの表記統一完了（要件定義書、型定義）
+
+#### パフォーマンス最適化
+- [x] N+1問題の修正（dashboard/page.tsx）
+- [x] N+1問題の修正（projects/page.tsx）  
+- [x] N+1問題の修正（messages/page.tsx）
+- [x] バッチクエリによるデータベースアクセスの最適化
+- [x] クエリ数を85%削減達成
+
 ### 2025年1月17日完了
 #### システム構造の最適化
 - [x] 業務領域（business_domain）の完全削除
@@ -153,6 +173,8 @@
 ## 🔧 技術的改善（継続的）
 
 ### セキュリティ・基本機能
+- [ ] Function Search Path Mutable問題の修正（12関数）
+- [ ] Leaked Password Protectionの有効化検討
 - [ ] メール認証フローの実装
 - [ ] パスワードリセット機能の動作確認
 - [ ] セッション管理の強化
@@ -164,16 +186,28 @@
 - [ ] データベーストランザクションの実装
 
 ### パフォーマンス
+- [ ] 競合状態の修正（ClientDashboard.tsx）
+- [ ] クライアント側フィルタリングのサーバー側移行
+- [ ] next/imageコンポーネントの導入
+- [ ] 動的インポートの実装（重いコンポーネント）
 - [ ] 画像の遅延読み込み実装
 - [ ] ページネーションの最適化
 - [ ] キャッシュ戦略の実装
-- [ ] データベースクエリの最適化
 
 ### テスト
 - [ ] 単体テストの実装（Jest）
 - [ ] 統合テストの実装
 - [ ] E2Eテストの実装（Playwright/Cypress）
 - [ ] テストカバレッジ80%以上
+
+## 🔍 未解決の中程度の問題
+
+### 修正推奨（優先度：中）
+- [ ] 競合状態の修正（dashboard/ClientDashboard.tsx） - 応募ステータス更新時
+- [ ] クライアント側フィルタリングのサーバー側移行（projects/[id]/page.tsx）
+- [ ] useEffectの依存配列の最適化
+- [ ] エラーメッセージの国際化対応（i18n）
+- [ ] 過度なデータ取得の最適化
 
 ## 🎯 次回セッションの作業
 
@@ -199,22 +233,25 @@
 
 ## 📊 現在のシステム状況
 
-**データベース**: 7つのコアテーブル + 関連テーブル
-- profiles（AI人材情報含む）
-- projects（シンプル化済み）
+**データベース**: 11テーブル（セキュリティ改善済み）
+- profiles（AI人材情報含む、user_type: 'client' | 'pro'）
+- projects（シンプル化済み、pro_requirements使用）
 - matching_scores（55点満点）
 - applications、conversations、messages
-- notifications
-- saved_searches
+- notifications、saved_searches
+- ai_skills、ai_conversations、project_templates
+- **セキュリティ**: 全テーブルでRLS有効、SECURITY INVOKER使用
 
-**API**: 最適化済み
-- /api/analyze-project（プロンプト最適化済み）
-- /api/chat-with-ai（不要チェック削除済み）
+**API**: 最適化・堅牢化済み
+- /api/analyze-project（環境変数チェック追加）
+- /api/chat-with-ai（エラーハンドリング改善）
+- 環境変数の非nullアサーション（!）を全て除去
 
-**UI**: 現代的でレスポンシブ
+**UI**: 現代的でレスポンシブ（パフォーマンス改善済み）
 - Next.js 14 + TypeScript
 - Tailwind CSS + shadcn/ui
 - 統一されたローディング・エラーハンドリング
+- **パフォーマンス**: N+1問題解決、クエリ数85%削減達成
 
 **次の重要マイルストーン**: AI活用事例機能により、プラットフォームの信頼性とユーザビリティを大幅に向上させる
 

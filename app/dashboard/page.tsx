@@ -22,16 +22,7 @@ interface Profile {
   visibility?: boolean;
 }
 
-interface Project {
-  id: string;
-  title: string;
-  description: string | null;
-  budget: string | null;
-  duration: string | null;
-  status: 'draft' | 'public' | 'private' | 'completed' | 'cancelled';
-  created_at: string;
-  applications_count?: number;
-}
+// Projectインターフェースは削除し、ProjectWithStatusを使用
 
 interface Application {
   id: string;
@@ -55,18 +46,30 @@ interface Application {
   };
 }
 
+// 旧ステータスから新ステータスへのマッピング関数
+function mapOldStatusToNew(oldStatus: string): ProjectStatus {
+  const statusMap: Record<string, ProjectStatus> = {
+    'draft': 'draft',
+    'public': 'published',
+    'private': 'published',
+    'completed': 'completed',
+    'cancelled': 'cancelled'
+  };
+  return statusMap[oldStatus] || 'draft';
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectWithStatus[]>([]);
   const [recentApplications, setRecentApplications] = useState<Application[]>([]);
   const [proApplications, setProApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
-  const [recommendedProjects, setRecommendedProjects] = useState<Project[]>([]);
+  const [recommendedProjects, setRecommendedProjects] = useState<ProjectWithStatus[]>([]);
   
   const fetchClientData = async (userId: string) => {
     setProjectsLoading(true);
@@ -96,10 +99,13 @@ export default function DashboardPage() {
         return acc;
       }, {} as Record<string, number>) || {};
       
-      // プロジェクトに応募数を追加
-      const projectsWithCounts = projectsData.map(project => ({
+      // プロジェクトに応募数を追加し、新しいステータスに変換
+      const projectsWithCounts: ProjectWithStatus[] = projectsData.map(project => ({
         ...project,
-        applications_count: countsMap[project.id] || 0
+        applications_count: countsMap[project.id] || 0,
+        // 旧ステータスから新ステータスへのマッピング
+        status: mapOldStatusToNew(project.status),
+        progress_percentage: project.progress_percentage || 0
       }));
       
       setProjects(projectsWithCounts);

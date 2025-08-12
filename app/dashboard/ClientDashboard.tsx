@@ -6,17 +6,10 @@ import { Button } from "../../components/ui/button";
 import { Plus, FolderOpen, Users, MessageSquare, AlertCircle, Check, X, Sparkles } from 'lucide-react';
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { ProjectKanban } from "../../components/dashboard/ProjectKanban";
+import { ProjectWithStatus } from "../../types/project-status";
 
-interface Project {
-  id: string;
-  title: string;
-  description: string | null;
-  budget: string | null;
-  duration: string | null;
-  status: 'draft' | 'public' | 'private' | 'completed' | 'cancelled';
-  created_at: string;
-  applications_count?: number;
-}
+// ProjectWithStatus型を使用するため、Projectインターフェースは削除
 
 interface Application {
   id: string;
@@ -36,7 +29,7 @@ interface Application {
 }
 
 interface ClientDashboardProps {
-  projects: Project[];
+  projects: ProjectWithStatus[];
   recentApplications: Application[];
   projectsLoading: boolean;
   unreadMessageCount?: number;
@@ -186,50 +179,30 @@ export default function ClientDashboard({
           </div>
         </div>
 
-        {/* サマリーカード */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-          <Link href="/projects/my" className="block">
-            <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-600">総プロジェクト数</p>
-                  <p className="text-xl font-bold text-gray-800">{projects.length}</p>
-                </div>
-                <FolderOpen className="w-6 h-6 text-gray-400" />
+        {/* 新着応募サマリーカード（カンバンに含まれない重要情報） */}
+        {recentApplications.filter(a => a.status === 'pending').length > 0 && (
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <Link href="/projects/my?tab=applications" className="flex items-center justify-between hover:bg-blue-100 transition-colors rounded px-2 py-1">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">新着応募が{recentApplications.filter(a => a.status === 'pending').length}件あります</span>
               </div>
-            </div>
-          </Link>
-          <Link href="/projects/my?status=public" className="block">
-            <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-600">公開中</p>
-                  <p className="text-xl font-bold text-green-600">
-                    {projects.filter(p => p.status === 'public').length}
-                  </p>
-                </div>
-                <Users className="w-6 h-6 text-gray-400" />
-              </div>
-            </div>
-          </Link>
-          <Link href="/projects/my?tab=applications" className="block">
-            <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-600">新着応募</p>
-                  <p className="text-xl font-bold text-blue-600">
-                    {recentApplications.filter(a => a.status === 'pending').length}
-                  </p>
-                </div>
-                <MessageSquare className="w-6 h-6 text-gray-400" />
-              </div>
-            </div>
-          </Link>
-        </div>
+              <span className="text-sm text-blue-600">確認する →</span>
+            </Link>
+          </div>
+        )}
       </div>
 
-      {/* メインコンテンツ - 2カラムレイアウト */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* カンバンビュー */}
+      <div className="mt-6">
+        <ProjectKanban 
+          projects={projects}
+          onProjectUpdate={onApplicationUpdate}
+        />
+      </div>
+
+      {/* 下部コンテンツ - 2カラムレイアウト */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
         {/* 左カラム - プロジェクト情報 */}
         <div className="lg:col-span-1 space-y-4">
           {/* プロジェクト管理充実度 */}
@@ -295,17 +268,17 @@ export default function ClientDashboard({
           </div>
         </div>
 
-        {/* 右カラム - 応募とプロジェクト一覧 */}
+        {/* 右カラム - クイックアクション */}
         <div className="lg:col-span-2 space-y-4">
-          {/* 最新の応募 */}
-          {recentApplications.length > 0 && (
+          {/* 対応待ちの応募（クイックアクション用） */}
+          {localApplications.filter(a => a.status === 'pending').length > 0 && (
             <div className="bg-white p-4 rounded-lg shadow-sm">
               <h2 className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-blue-500" />
-                最新の応募
+                <AlertCircle className="w-4 h-4 text-orange-500" />
+                対応待ちの応募
               </h2>
               <div className="space-y-2">
-                {localApplications.slice(0, 3).map((application) => (
+                {localApplications.filter(a => a.status === 'pending').slice(0, 2).map((application) => (
                   <div key={application.id} className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer group" onClick={(e) => {
                     // ボタンクリック時は親要素のクリックを無視
                     if ((e.target as HTMLElement).closest('button')) return;
@@ -380,69 +353,6 @@ export default function ClientDashboard({
             </div>
           )}
 
-          {/* プロジェクト一覧 */}
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <h2 className="text-base font-semibold text-gray-800 mb-3">プロジェクト一覧</h2>
-            {projectsLoading ? (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary mx-auto"></div>
-              </div>
-            ) : projects.length === 0 ? (
-              <div className="text-center py-4">
-                <FolderOpen className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">まだプロジェクトがありません</p>
-                <Link href="/projects/new">
-                  <Button variant="link" className="mt-2 text-sm">
-                    最初のプロジェクトを作成
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {projects.slice(0, 5).map((project) => (
-                  <Link key={project.id} href={`/projects/${project.id}`} className="block">
-                    <div className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-800 hover:text-blue-600 line-clamp-1">
-                            {project.title}
-                          </p>
-                          <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
-                            <span>{getStatusBadge(project.status)}</span>
-                            {project.budget && <span>{project.budget}</span>}
-                            {project.applications_count !== undefined && (
-                              <span>応募: {project.applications_count}</span>
-                            )}
-                          </div>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-xs h-7"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            router.push(`/projects/${project.id}/edit`);
-                          }}
-                        >
-                          編集
-                        </Button>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-                {projects.length > 5 && (
-                  <div className="text-center pt-2">
-                    <Link href="/projects/my">
-                      <Button variant="link" className="text-xs">
-                        すべてのプロジェクトを見る ({projects.length}件)
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
