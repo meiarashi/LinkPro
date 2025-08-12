@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  // react-beautiful-dndがStrictModeと互換性がないため一時的に無効化
+  reactStrictMode: false,
   images: {
     remotePatterns: [
       {

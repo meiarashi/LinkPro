@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult, resetServerContext } from 'react-beautiful-dnd';
 import { Plus, Filter, LayoutGrid, List } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -17,9 +17,7 @@ interface ProjectKanbanProps {
 }
 
 // StrictMode対応のためresetServerContextを呼び出し
-if (typeof window === 'undefined') {
-  resetServerContext();
-}
+resetServerContext();
 
 export const ProjectKanban = ({ 
   projects: initialProjects, 
@@ -30,6 +28,7 @@ export const ProjectKanban = ({
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const uniqueId = useId();
   const supabase = createClient();
   const { addToast } = useToast();
 
@@ -56,8 +55,9 @@ export const ProjectKanban = ({
       return;
     }
 
-    const sourceStatus = result.source.droppableId as ProjectStatus;
-    const destinationStatus = result.destination.droppableId as ProjectStatus;
+    // uniqueIdを除去してステータスを取得
+    const sourceStatus = result.source.droppableId.split('-')[0] as ProjectStatus;
+    const destinationStatus = result.destination.droppableId.split('-')[0] as ProjectStatus;
     
     // 同じカラム内での移動は無視
     if (sourceStatus === destinationStatus) {
@@ -239,7 +239,7 @@ export const ProjectKanban = ({
         </div>
 
         {/* カード一覧（ドロップ可能エリア） */}
-        <Droppable droppableId={status} type="CARD">
+        <Droppable droppableId={`${status}-${uniqueId}`} type="CARD">
           {(provided, snapshot) => (
             <div 
               ref={provided.innerRef}

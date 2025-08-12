@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body className={`${notoSansJP.variable} font-sans`}>
+      <body className={`${notoSansJP.variable} font-sans`} suppressHydrationWarning>
         <ToastProvider>
           {children}
         </ToastProvider>
