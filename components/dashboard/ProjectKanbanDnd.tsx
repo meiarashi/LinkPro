@@ -105,12 +105,15 @@ export function ProjectKanban({
       setProjects(projects);
       
       console.error('Error updating project status:', error);
+      console.error('Error details:', error.message, error.details, error.hint);
       
       let errorMessage = "ステータスの更新に失敗しました";
       if (error.message?.includes('Invalid status transition')) {
         errorMessage = "この状態変更は許可されていません";
       } else if (error.message?.includes('Only project owner')) {
         errorMessage = "プロジェクトオーナーのみステータスを変更できます";
+      } else if (error.message) {
+        errorMessage = `エラー: ${error.message}`;
       }
       
       addToast({
@@ -174,9 +177,15 @@ export function ProjectKanban({
       ));
       
       console.error('Error updating project status:', error);
+      console.error('Error details:', error.message, error.details, error.hint);
+      
+      let errorMessage = "ステータスの更新に失敗しました";
+      if (error.message) {
+        errorMessage = `エラー: ${error.message}`;
+      }
       
       addToast({
-        message: "ステータスの更新に失敗しました",
+        message: errorMessage,
         type: "error"
       });
     } finally {
