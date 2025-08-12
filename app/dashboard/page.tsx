@@ -50,13 +50,20 @@ interface Application {
 // 旧ステータスから新ステータスへのマッピング関数
 function mapOldStatusToNew(oldStatus: string): ProjectStatus {
   const statusMap: Record<string, ProjectStatus> = {
+    // 旧ステータス
     'draft': 'draft',
     'public': 'published',
     'private': 'published',
+    // 新ステータス（すでに移行済みの場合はそのまま）
+    'published': 'published',
+    'reviewing': 'reviewing',
+    'contracted': 'contracted',
+    'in_progress': 'in_progress',
+    'in_review': 'in_review',
     'completed': 'completed',
     'cancelled': 'cancelled'
   };
-  return statusMap[oldStatus] || 'draft';
+  return statusMap[oldStatus as string] || 'draft';
 }
 
 export default function DashboardPage() {
@@ -86,6 +93,7 @@ export default function DashboardPage() {
       console.error("Error fetching projects:", projectsError);
     } else if (projectsData) {
       console.log("Projects fetched:", projectsData.length, "projects");
+      console.log("Project statuses:", projectsData.map(p => ({ id: p.id, status: p.status })));
       
       // 一度のクエリで全プロジェクトの応募数を取得
       const projectIds = projectsData.map(p => p.id);
@@ -101,14 +109,19 @@ export default function DashboardPage() {
       }, {} as Record<string, number>) || {};
       
       // プロジェクトに応募数を追加し、新しいステータスに変換
-      const projectsWithCounts: ProjectWithStatus[] = projectsData.map(project => ({
-        ...project,
-        applications_count: countsMap[project.id] || 0,
-        // 旧ステータスから新ステータスへのマッピング
-        status: mapOldStatusToNew(project.status),
-        progress_percentage: project.progress_percentage || 0
-      }));
+      const projectsWithCounts: ProjectWithStatus[] = projectsData.map(project => {
+        const mappedStatus = mapOldStatusToNew(project.status);
+        console.log(`Mapping status for project ${project.id}: ${project.status} -> ${mappedStatus}`);
+        return {
+          ...project,
+          applications_count: countsMap[project.id] || 0,
+          // 旧ステータスから新ステータスへのマッピング
+          status: mappedStatus,
+          progress_percentage: project.progress_percentage || 0
+        };
+      });
       
+      console.log("Projects after mapping:", projectsWithCounts.map(p => ({ id: p.id, status: p.status })));
       setProjects(projectsWithCounts);
       
       // 最新の応募を取得

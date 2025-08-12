@@ -126,6 +126,8 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
       const analyzeData = await analyzeResponse.json();
       
       if (analyzeData.success) {
+        console.log('AIProjectWizard - Setting analysis:', analyzeData.analysis);
+        console.log('AIProjectWizard - project_story:', analyzeData.analysis.project_story);
         setAnalysis(analyzeData.analysis);
         setSuggestedQuestions(analyzeData.suggestedQuestions || []);
       }
@@ -181,6 +183,10 @@ export default function AIProjectWizard({ onComplete }: AIProjectWizardProps) {
 
   const completeWizard = async () => {
     if (analysis && conversationId) {
+      console.log('completeWizard - Passing analysis to parent:', analysis);
+      console.log('completeWizard - analysis.project_story:', analysis.project_story);
+      console.log('completeWizard - typeof analysis:', typeof analysis);
+      
       // 会話を完了状態に更新
       await supabase
         .from('ai_conversations')
