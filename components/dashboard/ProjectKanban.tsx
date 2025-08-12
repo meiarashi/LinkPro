@@ -59,7 +59,7 @@ export function ProjectKanban({
       ));
 
       addToast({
-        title: "ステータスを更新しました",
+        message: "ステータスを更新しました",
         type: "success"
       });
 
@@ -70,7 +70,7 @@ export function ProjectKanban({
     } catch (error) {
       console.error('Error updating project status:', error);
       addToast({
-        title: "ステータスの更新に失敗しました",
+        message: "ステータスの更新に失敗しました",
         type: "error"
       });
     } finally {

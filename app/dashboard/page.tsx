@@ -9,6 +9,7 @@ import Link from 'next/link';
 import ClientDashboard from './ClientDashboard';
 import ProDashboard from './ProDashboard';
 import LoggedInHeader from '../../components/LoggedInHeader';
+import { ProjectStatus, ProjectWithStatus } from '../../types/project-status';
 
 interface Profile {
   id: string;
@@ -111,7 +112,6 @@ export default function DashboardPage() {
       setProjects(projectsWithCounts);
       
       // 最新の応募を取得
-      const projectIds = projectsData.map(p => p.id);
       if (projectIds.length > 0) {
         const { data: applicationsData, error: appError } = await supabase
           .from('applications')

@@ -59,7 +59,7 @@ export default function ClientDashboard({
     };
     
     if (projects.length > 0) score += weights.hasProjects;
-    if (projects.filter(p => p.status === 'public').length > 0) score += weights.hasActiveProjects;
+    if (projects.filter(p => p.status === 'published').length > 0) score += weights.hasActiveProjects;
     if (recentApplications.length > 0) score += weights.hasApplications;
     if (unreadMessageCount > 0 || recentApplications.some(a => a.status === 'accepted')) score += weights.hasMessages;
     
@@ -233,8 +233,8 @@ export default function ClientDashboard({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-600">公開中プロジェクト</span>
-                <span className={`text-xs ${projects.filter(p => p.status === 'public').length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                  {projects.filter(p => p.status === 'public').length > 0 ? '✓' : '×'}
+                <span className={`text-xs ${projects.filter(p => p.status === 'published').length > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                  {projects.filter(p => p.status === 'published').length > 0 ? '✓' : '×'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
